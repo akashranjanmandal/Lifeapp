@@ -30,7 +30,6 @@ import 'package:lifelab3/src/student/student_login/provider/student_login_provid
 import 'package:lifelab3/src/student/subject_level_list/provider/subject_level_provider.dart';
 import 'package:lifelab3/src/student/subject_list/provider/subject_list_provider.dart';
 import 'package:lifelab3/src/student/tracker/provider/tracker_provider.dart';
-import 'package:lifelab3/src/student/vision/presentations/vision_page.dart';
 import 'package:lifelab3/src/teacher/student_progress/provider/student_progress_provider.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/teacher_dashboard_page.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/provider/teacher_dashboard_provider.dart';
@@ -42,12 +41,10 @@ import 'package:lifelab3/src/utils/storage_utils.dart';
 import 'package:lifelab3/src/welcome/presentation/page/welcome_page.dart';
 import 'package:provider/provider.dart';
 import 'package:lifelab3/src/student/vision/providers/vision_provider.dart';
-
 import 'src/common/widgets/common_navigator.dart';
-
 import 'package:lifelab3/src/common/utils/version_check_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-
+import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
@@ -70,33 +67,38 @@ final navKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Set white system bars with dark icons
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
+
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge, overlays: []);
+
+  // Optional: show content under status/nav bars (edge-to-edge)
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge, overlays: SystemUiOverlay.values);
 
   await StorageUtil.getInstance();
-
   await Firebase.initializeApp();
   await FirebaseMessaging.instance.setAutoInitEnabled(true);
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   channel = const AndroidNotificationChannel(
-      'lifelab', 'High Importance Notifications',
-      description: 'This channel is used for important notifications.',
-      importance: Importance.high);
-
-  const DarwinInitializationSettings initializationSettingsDarwin =
-      DarwinInitializationSettings(
-    requestSoundPermission: true,
-    requestBadgePermission: true,
-    requestAlertPermission: true,
+    'lifelab', 'High Importance Notifications',
+    description: 'This channel is used for important notifications.',
+    importance: Importance.high,
   );
 
   flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
   await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
@@ -104,22 +106,24 @@ void main() async {
     badge: true,
     sound: true,
   );
-  // End FCM implementation
 
   if (Platform.isIOS) {
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-      iOS: initializationSettingsDarwin,
+    const InitializationSettings initializationSettings = InitializationSettings(
+      iOS: DarwinInitializationSettings(
+        requestSoundPermission: true,
+        requestBadgePermission: true,
+        requestAlertPermission: true,
+      ),
     );
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
-
+  await MixpanelService.init();
   runApp(const MyApp());
 }
 
 class VersionCheckWrapper extends StatefulWidget {
   final Widget child;
-  
+
   const VersionCheckWrapper({
     Key? key,
     required this.child,
@@ -163,7 +167,7 @@ class _MyAppState extends State<MyApp> {
   bool isMentor = false;
   bool isTeacher = false;
 
-  
+
 
   getFcmToken() async {
     await FirebaseMessaging.instance.requestPermission();
@@ -299,16 +303,16 @@ class _MyAppState extends State<MyApp> {
         navigatorKey: navKey,
         title: 'Life App',
         debugShowCheckedModeBanner: false,
-        
+
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-             
+
         supportedLocales: const [
           Locale('en', ''), // English
-          
+
         ],
 
          builder: (context, child) {
@@ -346,9 +350,9 @@ class _MyAppState extends State<MyApp> {
           fontFamily: "Avenir",
           textTheme: const TextTheme().apply(displayColor: Colors.white),
         ),
-        
+
           home: _buildHomeScreen(),
-        
+
       ),
     );
   }

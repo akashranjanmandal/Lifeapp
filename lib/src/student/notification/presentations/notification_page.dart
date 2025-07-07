@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -22,21 +21,252 @@ import '../../nav_bar/presentations/pages/nav_bar_page.dart';
 import '../../questions/models/quiz_review_model.dart';
 import '../../subject_level_list/provider/subject_level_provider.dart';
 import '../model/notification_model.dart';
-
+import 'package:lottie/lottie.dart';
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
-
   @override
   State<NotificationPage> createState() => _NotificationPageState();
 }
-
 class _NotificationPageState extends State<NotificationPage> {
-
   NotificationModel? notificationModel;
-
   bool isLoading = true;
-// Add these methods to your _NotificationPageState class
+  @override
+  void initState() {
+    super.initState();
+    getNotificationData();
+  }
+  void getNotificationData() async {
+    await NotificationServices().getNotification().then((value) async {
+      debugPrint('Notification Response: $value');
+      notificationModel = NotificationModel.fromJson(value.data);
+      await NotificationServices().clearNotification();
+      Provider.of<DashboardProvider>(context, listen: false).getDashboardData();
+      setState(() {});
+    });
+    setState(() {
+      isLoading = false;
+    });
+  }
+  void showVisionStatusDialog(BuildContext context, String status, NotificationData notification) async {
+    debugPrint("🟢 showVisionStatusDialog called with status: $status");
 
+    final bool isApproved = status.toLowerCase() == 'approved';
+    final Color color = isApproved ? Colors.green.shade600 : Colors.red.shade600;
+    final IconData icon = isApproved ? Icons.check_circle : Icons.cancel;
+
+    final visionProvider = Provider.of<VisionProvider>(context, listen: false);
+    VisionVideo? video;
+
+    // Get IDs from notification
+    final rawVisionId = notification.data?.data?.visionId ?? notification.data?.data?.actionId;
+    final rawSubjectId = notification.data?.data?.laSubjectId;
+
+    debugPrint('🔍 Raw Vision ID: $rawVisionId');
+    debugPrint('🔍 Raw Subject ID: $rawSubjectId');
+
+    final visionId = rawVisionId?.toString();
+    final subjectId = rawSubjectId?.toString();
+
+    if (visionId == null || visionId.isEmpty) {
+      debugPrint('❌ Vision ID is missing.');
+      Fluttertoast.showToast(msg: "Vision ID is missing");
+      return;
+    }
+
+    // Try fetching the video
+    if (subjectId == null || subjectId.isEmpty) {
+      debugPrint('⚠️ Subject ID is empty. Trying all levels...');
+      for (int level = 1; level <= 4; level++) {
+        debugPrint('🔄 Trying level $level...');
+        await visionProvider.initWithSubject('', level.toString());
+        video = visionProvider.getVideoById(visionId);
+        if (video != null) {
+          debugPrint('✅ Video found at level $level: ${video.title}');
+          break;
+        }
+      }
+    } else {
+      debugPrint('🔄 Trying levels with subjectId: $subjectId');
+      for (int level = 1; level <= 4; level++) {
+        debugPrint('🔄 Fetching videos for subjectId: $subjectId, level: $level');
+        await visionProvider.initWithSubject(subjectId, level.toString());
+        video = visionProvider.getVideoById(visionId);
+        if (video != null) {
+          debugPrint('✅ Video found at level $level: ${video.title}');
+          break;
+        }
+      }
+    }
+    final String title = video?.title ?? 'Vision';
+    debugPrint('📌 Final video title to show in dialog: $title');
+    debugPrint("🪙 Coin points: ${video?.visionTextImagePoints}");
+
+    if (!context.mounted) {
+      debugPrint('🚫 Context is not mounted. Aborting.');
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            width: MediaQuery.of(context).size.width * 0.2,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: color.withOpacity(0.1),
+                  child: Icon(icon, size: 50, color: color),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '$title ${isApproved}',
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                isApproved
+                    ? RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 16, color: Colors.black87),
+                    children: [
+                      const TextSpan(text: 'Brilliant work—your vision has been approved and '),
+                      TextSpan(
+                        text: '${video!.visionTextImagePoints} coins',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const TextSpan(
+                          text:
+                          ' have been added to your treasure chest. On to the next adventure!'),
+                    ],
+                  ),
+                )
+                    :RichText(
+                  textAlign: TextAlign.center,
+                  text: const TextSpan(
+                    style: TextStyle(fontSize: 16, color: Colors.black87),
+                    children: [
+                      TextSpan(
+                          text:
+                          'No worries—every pro started right where you are! Tap Redo to give it another go and earn '),
+                      TextSpan(
+                        text: '+25 coins',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      TextSpan(text: ' when you succeed.'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // 👇 Coin Earned section (only for approved)
+                if (isApproved && (video?.visionTextImagePoints ?? 0) > 0) ...[
+                  const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 12),
+                if (video != null) ...[
+                  Text(
+                    "Subject: ${video.subjectName ?? ''}",
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Level: ${video.levelId ?? 'N/A'}",
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                ],
+                const SizedBox(height: 15),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        if (video != null) {
+                          debugPrint('🚀 Navigating to VideoPlayerPage with video ID: ${video.id}');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChangeNotifierProvider.value(
+                                value: visionProvider,
+                                child: VideoPlayerPage(
+                                  video: video!,
+                                  navName: "Notification",
+                                  subjectId: subjectId ?? '',
+                                  onVideoCompleted: () {},
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          Fluttertoast.showToast(msg: "Video not found");
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                        child: Text(
+                          isApproved ? "Go to Vision" : "Redo",
+                          style: const TextStyle(fontSize: 13, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade400,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        push(
+                          context: context,
+                          page: const NotificationPage(),
+                        );
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                        child: Text(
+                          "Done",
+                          style: TextStyle(fontSize: 13, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
   Widget _buildButton(String text, VoidCallback onPressed) {
     return GestureDetector(
       onTap: onPressed,
@@ -83,79 +313,23 @@ class _NotificationPageState extends State<NotificationPage> {
           context: context,
           page: MissionPage(
             missionListModel: Provider.of<SubjectLevelProvider>(context,
-                listen: false).missionListModel!,
+                listen: false)
+                .missionListModel!,
             subjectId: notification.data!.data!.laSubjectId.toString(),
             levelId: notification.data!.data!.laLevelId.toString(),
           ),
         );
       });
-    }
-  }
-
-  void _handleVisionStatus(String message) {
-    if (message.contains('approved')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 4.0),
-              child: Text(
-                "🎉 Vision Approved!\nYou have been credited 25 coins",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-          duration: const Duration(seconds: 4),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8)),
-        ),
-      );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 4.0),
-              child: Text(
-                "❌ Vision Rejected!\nTry again later.",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14),
-              ),
-            ),
-          ),
-          duration: const Duration(seconds: 4),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8)),
-        ),
-      );
+      Fluttertoast.showToast(msg: "Mission data is incomplete");
     }
-  }
-  void getNotificationData() async {
-    await NotificationServices().getNotification().then((value) async {
-      debugPrint('nottt $value');
-      notificationModel = NotificationModel.fromJson(value.data);
-      await NotificationServices().clearNotification();
-      Provider.of<DashboardProvider>(context, listen: false).getDashboardData();
-      setState(() {});
-    });
-    debugPrint(jsonEncode(notificationModel));
-
-    setState(() {
-      isLoading = false;
-    });
   }
 
   void getQuizAnswer(String quizId, int index) async {
     Loader.show(
       context,
-      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
+      progressIndicator:
+      const CircularProgressIndicator(color: ColorCode.buttonColor),
       overlayColor: Colors.black54,
     );
 
@@ -165,144 +339,151 @@ class _NotificationPageState extends State<NotificationPage> {
 
     Loader.hide();
 
-    if(response.statusCode == 200) {
+    if (response.statusCode == 200) {
       QuizReviewModel model = QuizReviewModel.fromJson(response.data);
 
-      if(model.quizGame!.status == 3) {
+      if (model.quizGame!.status == 3) {
         Fluttertoast.showToast(msg: "Quiz already completed");
-
-      } else if(model.quizGame!.status == 4) {
+      } else if (model.quizGame!.status == 4) {
         Fluttertoast.showToast(msg: "Quiz has been expired");
-
-      } else if(model.quizGame!.gameParticipantStatus == 3) {
+      } else if (model.quizGame!.gameParticipantStatus == 3) {
         Fluttertoast.showToast(msg: "You have rejected Quiz");
-
-      } else if(model.quizGame!.status == 1 ) {
-        // TODO
-        // pushNewScreen(
-        //     context,
-        //     screen: WaitingQuiz(
-        //       time: notificationModel!.data![index].data!.data!.time!.toString(),
-        //       quizId: notificationModel!.data![index].data!.data!.actionId!.toString(),
-        //       isOwner: false,
-        //     ),
-        //     withNavBar: false
-        // );
-
-      } else if(model.quizGame!.status == 2) {
+      } else if (model.quizGame!.status == 1) {
+        // TODO: Implement waiting screen if needed
+      } else if (model.quizGame!.status == 2) {
         Fluttertoast.showToast(msg: "You have left the quiz");
-
       } else {
         Fluttertoast.showToast(msg: "Quiz has been expired");
       }
     }
+  }
 
-  }
-  @override
-  void initState() {
-    super.initState();
-    getNotificationData();
-  }
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: commonAppBar(
-        context: context,
-        name: "Notification",
-        onBack: () {
-          push(
-            context: context,
-            page: const NavBarPage(currentIndex: 0,),
-          );
+    void _handleVisionVideo(NotificationData notification) async {
+      try {
+        final rawVisionId = notification.data?.data?.visionId;
+        final rawSubjectId = notification.data?.data?.laSubjectId;
+        final rawActionId = notification.data?.data?.actionId;
+
+        debugPrint('🔍 Raw visionId: $rawVisionId');
+        debugPrint('🔍 Raw subjectId: $rawSubjectId');
+        debugPrint('🔍 Raw actionId: $rawActionId');
+
+        final visionId = (rawVisionId is String && rawVisionId.trim().isNotEmpty)
+            ? rawVisionId.trim()
+            : (rawVisionId?.toString().trim().isNotEmpty == true
+            ? rawVisionId.toString().trim()
+            : (rawActionId != null ? rawActionId.toString() : null));
+
+        final subjectId = (rawSubjectId is String && rawSubjectId.trim().isNotEmpty)
+            ? rawSubjectId.trim()
+            : (rawSubjectId?.toString().trim().isNotEmpty == true
+            ? rawSubjectId.toString().trim()
+            : null);
+
+        debugPrint('✅ Parsed visionId: $visionId');
+        debugPrint('✅ Parsed subjectId: $subjectId');
+
+        if (visionId == null || visionId.isEmpty) {
+          Fluttertoast.showToast(msg: "Vision ID is missing");
+          debugPrint('❌ Vision ID missing, aborting.');
+          return;
         }
-      ),
-      body: WillPopScope(
-        onWillPop: () async {
-          return false;
-        },
-        child: notificationModel != null && notificationModel!.data!.isNotEmpty ? _notificationWidget()
-            : notificationModel != null && notificationModel!.data!.isNotEmpty ? _emptyData()
-            : const SizedBox(),
-      ),
-    );
-  }
+
+        final visionProvider = Provider.of<VisionProvider>(context, listen: false);
+        VisionVideo? video;
+
+        if (subjectId == null) {
+          debugPrint('⚠️ Subject ID is null, fetching videos without subject filtering');
+          for (int level = 1; level <= 4; level++) {
+            await visionProvider.initWithSubject('', level.toString());
+            video = visionProvider.getVideoById(visionId);
+            if (video != null) {
+              debugPrint('🎯 Video found at level $level: ${video.title}');
+              break;
+            }
+          }
+        } else {
+          for (int level = 1; level <= 4; level++) {
+            debugPrint('🔄 Fetching videos for subjectId: $subjectId, level: $level');
+            await visionProvider.initWithSubject(subjectId, level.toString());
+
+            video = visionProvider.getVideoById(visionId);
+            if (video != null) {
+              debugPrint('🎯 Video found at level $level: ${video.title}');
+              break;
+            }
+          }
+        }
+
+        if (video == null) {
+          Fluttertoast.showToast(msg: "Video not found for vision");
+          debugPrint('❌ Video not found for visionId: $visionId');
+          return;
+        }
+        if (!mounted) return;
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: visionProvider,
+              child: VideoPlayerPage(
+                video: video!,
+                navName: "Notification",
+                subjectId: rawSubjectId?.toString() ?? '',
+                onVideoCompleted: () {},
+              ),
+            ),
+          ),
+        );
+      } catch (e, stacktrace) {
+        debugPrint('❌ Error opening video: $e');
+        debugPrint('$stacktrace');
+        Fluttertoast.showToast(msg: "Error opening video");
+      }
+    }
+
   Widget _getActionButton(NotificationData notification, int index) {
     final message = notification.data!.message ?? '';
     final action = notification.data!.data!.action?.toString() ?? '';
 
-    if (message.contains('vision has been approved') ||
-        message.contains('vision has been rejected')) {
-      return _buildButton('Know more', () => _handleVisionStatus(message));
-    }
-    else if (message.contains('mission have been rejected')) {
-      return _buildButton('View', () => _handleMissionRejected());
-    }
-    else if (message.contains('teacher have assigned you a mission') ||
-        message.contains('A new vision has been assigned to you')) {
+    if (message.contains('vision has been approved')) {
+      return _buildButton('View', () {
+        showVisionStatusDialog(context, 'approved', notification);
+      });
+    } else if (message.contains('vision has been rejected')) {
+      return _buildButton('View', () {
+        showVisionStatusDialog(context, 'rejected', notification);
+      });
+  } else if (message.contains('mission have been rejected')) {
+      return _buildButton('View', _handleMissionRejected);
+    } else if (message.contains('mission has been approved')) {
+      return _buildButton('View', () {
+        Fluttertoast.showToast(msg: "Mission has been approved");
+        _handleMissionAssigned(notification);
+      });
+    } else if (message.contains('teacher have assigned you a mission')) {
+      return _buildButton('View', () => _handleMissionAssigned(notification));
+    } else if (message.contains('A new vision has been assigned to you')) {
       return _buildButton('View', () => _handleVisionVideo(notification));
-    }
-    else if (action == '6') {
-      return _buildButton('View', () => push(
-        context: context,
-        page: const NavBarPage(currentIndex: 2),
-      ));
-    }
-    else if (action == '3' &&
-        notification.data!.data!.actionId != null &&
-        notification.data!.data!.time != null) {
-      return _buildButton('View', () => getQuizAnswer(
-          notification.data!.data!.actionId!.toString(),
-          index
-      ));
-    }
-    else {
-      return _buildButton('View', () {});
-    }
-  }
-
-  void _handleVisionVideo(NotificationData notification) async {
-    try {
-      final visionId = notification.data!.data!.visionId?.toString();
-      final subjectId = notification.data!.data!.laSubjectId;
-
-      if (visionId == null || subjectId == null) {
-        Fluttertoast.showToast(msg: "Invalid vision data");
-        return;
-      }
-
-      final subjectMap = {1: "Science", 2: "Maths", 3: "Finance"};
-      final subjectName = subjectMap[subjectId] ?? "Unknown";
-
-      final visionProvider = Provider.of<VisionProvider>(context, listen: false);
-      await visionProvider.initWithSubject(subjectId.toString() , '1');
-
-      final VisionVideo? video = visionProvider.getVideoById(visionId);
-      debugPrint('Video loaded: ${video?.toJson()}');
-
-      if (video == null) {
-        Fluttertoast.showToast(msg: "Video not found for vision");
-        return;
-      }
-
-      if (!mounted) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ChangeNotifierProvider.value(
-            value: visionProvider,
-            child: VideoPlayerPage(
-              video: video,
-              navName: "Notification",
-              subjectName: subjectName,
-              onVideoCompleted: () {},
-            ),
-          ),
+    } else if (action == '6') {
+      return _buildButton(
+        'View',
+            () => push(
+          context: context,
+          page: const NavBarPage(currentIndex: 2),
         ),
       );
-    } catch (e) {
-      debugPrint('Error opening vision video: $e');
-      Fluttertoast.showToast(msg: "Error opening video");
+    } else if (action == '3' &&
+        notification.data!.data!.actionId != null &&
+        notification.data!.data!.time != null) {
+      return _buildButton(
+        'View',
+            () => getQuizAnswer(
+          notification.data!.data!.actionId!.toString(),
+          index,
+        ),
+      );
+    } else {
+      return _buildButton('View', () {});
     }
   }
 
@@ -313,7 +494,6 @@ class _NotificationPageState extends State<NotificationPage> {
     itemBuilder: (context, index) {
       final notification = notificationModel!.data![index];
       final message = notification.data!.message ?? '';
-
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -337,12 +517,15 @@ class _NotificationPageState extends State<NotificationPage> {
               children: [
                 if (notification.data!.data!.mediaUrl != null)
                   CachedNetworkImage(
-                    imageUrl: ApiHelper.imgBaseUrl + notification.data!.data!.mediaUrl!,
+                    imageUrl:
+                    ApiHelper.imgBaseUrl + notification.data!.data!.mediaUrl!,
                     height: 40,
                     width: 40,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => const CircularProgressIndicator(),
-                    errorWidget: (context, url, error) => const Icon(Icons.error),
+                    placeholder: (context, url) =>
+                    const CircularProgressIndicator(),
+                    errorWidget: (context, url, error) =>
+                    const Icon(Icons.error),
                   )
                 else
                   Container(
@@ -384,7 +567,6 @@ class _NotificationPageState extends State<NotificationPage> {
     },
     separatorBuilder: (context, index) => const SizedBox(height: 8),
   );
-
   Widget _emptyData() => SizedBox(
     height: MediaQuery.of(context).size.height,
     child: const Center(
@@ -398,4 +580,30 @@ class _NotificationPageState extends State<NotificationPage> {
       ),
     ),
   );
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: commonAppBar(
+        context: context,
+        name: "Notification",
+        onBack: () {
+          push(
+            context: context,
+            page: const NavBarPage(currentIndex: 0),
+          );
+        },
+      ),
+      body: WillPopScope(
+        onWillPop: () async {
+          return false;
+        },
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : notificationModel != null && notificationModel!.data!.isNotEmpty
+            ? _notificationWidget()
+            : _emptyData(),
+      ),
+    );
+  }
 }

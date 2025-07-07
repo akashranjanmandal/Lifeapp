@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/common_appbar.dart';
 import 'package:provider/provider.dart';
 import '../providers/vision_provider.dart';
@@ -8,12 +9,12 @@ import 'video_player.dart';
 
 class VisionPage extends StatefulWidget {
   final String navName;
-  final String subjectName;
+  final String subjectId;
   final String levelId;
   const VisionPage({
     super.key,
     required this.navName,
-    required this.subjectName,
+    required this.subjectId,
     required this.levelId
   });
 
@@ -26,21 +27,100 @@ class _VisionPageState extends State<VisionPage> {
   @override
   void initState() {
     super.initState();
-
-    // Fetch videos when page loads, but only if there aren't any videos yet
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('xssss ${widget.subjectName}');
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = Provider.of<VisionProvider>(context, listen: false);
+      print("subject ${widget.subjectId}");
 
-      provider.initWithSubject(widget.subjectName , widget.levelId);
+      print('Loaded videos: ${provider.videos.length}');
+      print('Current Level ID: ${widget.levelId}');
+      // Fetch videos first
+      await provider.initWithSubject(widget.subjectId, widget.levelId);
 
-      // Output current state for debugging
-      debugPrint('VisionPage: isLoading=${provider.isLoading}, '
-          'videoCount=${provider.videos.length}, '
-          'error="${provider.error}"');
+      print('Is current level completed? ${provider.isCurrentLevelCompleted()}');
+      // Then check if level is completed
+      final currentLevel = int.tryParse(widget.levelId ?? '');
+      const finalLevel = 4; // or make dynamic later
+
+      if (provider.isCurrentLevelCompleted()) {
+        String message = currentLevel == finalLevel
+            ? '🎉 Congratulations!\nYou have completed all levels!'
+            : '✅ You have successfully completed Level $currentLevel!';
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) {
+              return Dialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                backgroundColor: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.emoji_events,
+                        color: Colors.amber.shade600,
+                        size: 60,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Level Complete!",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context); // close dialog
+
+                            final nextLevel = (int.tryParse(widget.levelId) ?? 1) + 1;
+
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => VisionPage(
+                                  navName: widget.navName,
+                                  subjectId: widget.subjectId,
+                                  levelId: nextLevel.toString(),
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text("Continue to Level 2",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,color: Colors.white ),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }
+      }
     });
-  }
 
+  }
   @override
   Widget build(BuildContext context) {
 
@@ -48,11 +128,7 @@ class _VisionPageState extends State<VisionPage> {
     return Scaffold(
       appBar: commonAppBar(
         context: context,
-        name: {
-          '1': 'Science',
-          '2': 'Maths',
-          '12': 'Financial Literacy',
-        }[widget.subjectName] ?? widget.subjectName,
+        name: StringHelper.navName,
       ),
 
       body: Consumer<VisionProvider>(
@@ -69,6 +145,29 @@ class _VisionPageState extends State<VisionPage> {
       ),
     );
   }
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return Colors.black;
+      case 'pending':
+        return Colors.black;
+      case 'submitted':
+        return Colors.black;
+      case 'rejected':
+        return Colors.black; // you can use red or orange based on UI preference
+      case 'skipped':
+        return Colors.black;
+      default:
+        return Colors.black;
+    }
+  }
+
+  String _getStatusLabel(VisionVideo video) {
+    if (video.teacherAssigned && video.status == 'submitted') {
+      return 'Submitted';
+    }
+    return video.status[0].toUpperCase() + video.status.substring(1);
+  }
 
   Widget _buildSearchFilterBar(BuildContext context, VisionProvider provider) {
     return Padding(
@@ -79,7 +178,7 @@ class _VisionPageState extends State<VisionPage> {
           Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: Colors.black12),
             ),
             child: IconButton(
               icon: const Icon(Icons.filter_alt_outlined),
@@ -112,7 +211,6 @@ class _VisionPageState extends State<VisionPage> {
       ),
     );
   }
-
   Widget _buildVisionCardsList(BuildContext context, VisionProvider provider) {
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -135,7 +233,6 @@ class _VisionPageState extends State<VisionPage> {
     }
 
     final filteredVideos = provider.filteredVideos;
-
     if (filteredVideos.isEmpty) {
       return const Center(
         child: Text('No vision videos found', style: TextStyle(fontSize: 16)),
@@ -164,14 +261,7 @@ class _VisionPageState extends State<VisionPage> {
     required VisionVideo video,
     required VisionProvider provider,
   }) {
-    Color statusBgColor;
-    if (video.status == 'completed') {
-      statusBgColor = Colors.green;
-    } else if (video.status == 'pending') {
-      statusBgColor = Colors.red;
-    } else {
-      statusBgColor = Colors.blue;
-    }
+    final statusBgColor = _getStatusColor(video.status);
 
     return InkWell(
       onTap: () {
@@ -238,17 +328,18 @@ class _VisionPageState extends State<VisionPage> {
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: const Color.fromARGB(255, 255, 255, 255)
-                            .withOpacity(0.8),
+                            .withOpacity(0.9),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        video.teacherAssigned ? 'Teacher Assigned' : video.status,
+                        _getStatusLabel(video),
                         style: TextStyle(
                           color: statusBgColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
                       ),
+
                     ),
                   ),
                 ],
@@ -294,7 +385,7 @@ class _VisionPageState extends State<VisionPage> {
           child: VideoPlayerPage(
             video: video,
             navName: widget.navName,
-            subjectName: widget.subjectName,
+            subjectId: widget.subjectId,
             onVideoCompleted: () {
             },
           ),

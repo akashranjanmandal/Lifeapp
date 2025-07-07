@@ -23,8 +23,11 @@ class TeacherVisionAPIService {
   }
 
   // Method to get all videos across all subjects
-  Future<List<TeacherVisionVideo>> getAllVisionVideos(
-      {String? subjectId}) async {
+  Future<List<TeacherVisionVideo>> getAllVisionVideos({
+    String? subjectId,
+    int page = 1,
+    int perPage = 10, // Default page size
+  })  async {
     try {
       final token = await _getAuthToken();
       if (token == null || token.isEmpty) {
@@ -40,8 +43,13 @@ class TeacherVisionAPIService {
       }
 
       final Map<String, String> queryParams = {
-        'la_subject_id': subjectId,
+        'per_page': perPage.toString(),
+        'page': page.toString(),
       };
+
+      if (subjectId != null && subjectId.isNotEmpty) {
+        queryParams['la_subject_id'] = subjectId;
+      }
 
       debugPrint('🔍 Filtering by subject ID: $subjectId');
 
@@ -129,7 +137,10 @@ class TeacherVisionAPIService {
 
 // Method to get videos for a specific subject (requires subject ID)
   Future<List<TeacherVisionVideo>> getVisionVideosBySubject(
-      String subjectId) async {
+      String subjectId, {
+        int page = 1,
+        int perPage = 10, // Default page size
+      })  async {
     try {
       final token = await _getAuthToken();
       if (token == null || token.isEmpty) {
@@ -139,7 +150,10 @@ class TeacherVisionAPIService {
 
       final Map<String, String> queryParams = {
         'la_subject_id': subjectId,
+        'per_page': perPage.toString(),
+        'page': page.toString(),
       };
+
 
       debugPrint('🔍 Fetching videos for subject ID: $subjectId');
 
@@ -204,7 +218,6 @@ class TeacherVisionAPIService {
           } else if (responseData['data'] is List) {
             visionsData = responseData['data'];
           }
-
           if (visionsData.isNotEmpty) {
             final videos = visionsData.map((item) {
               debugPrint('🎬 Processing video item: ${item.keys}');
