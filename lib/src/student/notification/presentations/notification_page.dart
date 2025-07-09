@@ -128,7 +128,7 @@ class _NotificationPageState extends State<NotificationPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '$title ${isApproved}',
+                  '$title',
                   textAlign: TextAlign.center,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
