@@ -8,37 +8,39 @@ import 'dart:io';
 
 
 class Answer {
-  final int answerId;
-  final String questionText;
-  final String answerType;
+  final String answerType; // 'mcq', 'text', 'image'
+  final String answerText; // For text answers
+  final String? selectedOption; // For MCQ
+  final String? correctOption;
+  final bool? isCorrect;
+  final String? questionText;
+  final String? imageUrl; // For image answers
   final String? description;
-  final int score;
-  final String answerText;
-  final String? imageUrl;
 
   Answer({
-    required this.answerId,
-    required this.questionText,
     required this.answerType,
-    this.description,
     required this.answerText,
-    required this.score,
+    this.selectedOption,
+    this.correctOption,
+    this.isCorrect,
+    this.questionText,
     this.imageUrl,
+    this.description,
   });
 
   factory Answer.fromJson(Map<String, dynamic> json) {
     return Answer(
-      answerId: json['answer_id'],
-      questionText: json['question_text'] ?? '',
       answerType: json['answer_type'] ?? '',
-      answerText :json['answer_text'] ?? '',
+      answerText: json['answer_text'] ?? '',
+      selectedOption: json['selected_option'],
+      correctOption: json['correct_option'],
+      isCorrect: json['is_correct'],
+      questionText: json['question_text'],
+      imageUrl: json['image_url'],
       description: json['description'],
-      score: json['score'] ?? 0,
-      imageUrl: json['image_url'], // can be null
     );
   }
 }
-
 // Model for student submission
 class StudentSubmission {
   final String id;
@@ -682,10 +684,21 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                         ],
                       )
                           : const Text('📎 No image available'),
-                    if (answer.answerType != 'image')
+                    if (answer.answerType == 'option') ...[
+                      Text('Selected Option: ${answer.selectedOption?.toUpperCase() ?? 'N/A'}'),
+                      Text('Correct Option: ${answer.correctOption?.toUpperCase() ?? 'N/A'}'),
                       Text(
-                        answer.answerText.isNotEmpty ? answer.answerText : 'No answer provided',
+                        answer.isCorrect == true ? '✅ Correct' : '❌ Incorrect',
+                        style: TextStyle(
+                          color: answer.isCorrect == true ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    ] else
+                      Text(
+                        answer.answerText.isNotEmpty ? answer.answerText : '',
+                      ),
+
                   ],
                 ),
               );
@@ -822,11 +835,22 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                                     ],
                                   )
                                       : const Text('📎 No image available'),
-                                if (answer.answerType != 'image')
+                                if (answer.answerType == 'option') ...[
+                                  Text('Selected Option: ${answer.selectedOption?.toUpperCase() ?? 'N/A'}'),
+                                  Text('Correct Option: ${answer.correctOption?.toUpperCase() ?? 'N/A'}'),
                                   Text(
-                                    answer.answerText ?? 'No answer provided',
+                                    answer.isCorrect == true ? '✅ Correct' : '❌ Incorrect',
+                                    style: TextStyle(
+                                      color: answer.isCorrect == true ? Colors.green : Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ] else
+                                  Text(
+                                    answer.answerText.isNotEmpty ? answer.answerText : 'No answer provided',
                                     style: const TextStyle(fontSize: 13),
                                   ),
+
                               ],
                             ),
                           );

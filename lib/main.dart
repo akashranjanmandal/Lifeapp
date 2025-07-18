@@ -30,6 +30,8 @@ import 'package:lifelab3/src/student/student_login/provider/student_login_provid
 import 'package:lifelab3/src/student/subject_level_list/provider/subject_level_provider.dart';
 import 'package:lifelab3/src/student/subject_list/provider/subject_list_provider.dart';
 import 'package:lifelab3/src/student/tracker/provider/tracker_provider.dart';
+import 'package:lifelab3/src/teacher/shop/provider/provider.dart';
+import 'package:lifelab3/src/teacher/shop/services/services.dart';
 import 'package:lifelab3/src/teacher/student_progress/provider/student_progress_provider.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/teacher_dashboard_page.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/provider/teacher_dashboard_provider.dart';
@@ -294,6 +296,9 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => QuestionProvider()),
         ChangeNotifierProvider(create: (_) => QuizProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ProductProvider(ProductService('https://your.api/baseurl')), // ✅ Correct
+        ),
         ChangeNotifierProvider(create: (_) => MentorProfileProvider()),
         ChangeNotifierProvider(create: (_) => ToolProvider()),
         ChangeNotifierProvider(create: (_) => TeacherProfileProvider()),

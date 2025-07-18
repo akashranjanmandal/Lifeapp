@@ -45,7 +45,11 @@ class TeacherProfileProvider extends ChangeNotifier {
 
   List<int> gradeList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   List<int> subjectIdList = [];
-
+  void updateSchoolCode(String val) {
+    isSchoolCodeValid = false;
+    schoolCodeController.text = val;
+    notifyListeners();
+  }
   int? boardId;
   String? boardName;
 
@@ -226,11 +230,17 @@ class TeacherProfileProvider extends ChangeNotifier {
       final currentBoardName = boardName;
 
       // Prepare request body with properly formatted DOB
+      final schoolData = verifySchoolModel?.data?.school;
+      final schoolId = schoolData?.id;
+      final schoolCode = schoolData?.code;
+
       Map<String, dynamic> body = {
         "mobile_no": contact,
         "type": 5,
         "name": teacherNameController.text.trim(),
-        "school": schoolNameController.text.trim(),
+        "school_id": schoolId, // ✅ Use this if supported
+        "school": schoolData?.name,
+        "school_code": schoolCode,
         "state": stateController.text,
         "city": cityController.text,
         "la_board_id": currentBoardId,

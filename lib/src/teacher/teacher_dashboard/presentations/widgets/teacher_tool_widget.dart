@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/widgets/common_navigator.dart';
 import 'package:lifelab3/src/teacher/student_progress/presentations/pages/students_progress_page.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/presentations/pages/teacher_class_page.dart';
+import 'package:provider/provider.dart';
+import 'package:lifelab3/src/teacher/shop/provider/provider.dart';
+import 'package:lifelab3/src/teacher/shop/services/services.dart';
+import 'package:lifelab3/src/utils/storage_utils.dart';
+
+// Import the new page (you need to create this)
+import 'package:lifelab3/src/teacher/shop/presentation/product_list.dart';
 
 import '../../../../common/helper/image_helper.dart';
 import '../../../../common/helper/string_helper.dart';
@@ -11,6 +18,9 @@ class TeacherToolWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -23,8 +33,10 @@ class TeacherToolWidget extends StatelessWidget {
         ),
 
         const SizedBox(height: 10),
+
+        // Existing blue tool container
         Container(
-          width: MediaQuery.of(context).size.width,
+          width: screenWidth,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color(0xff0092E4),
@@ -39,7 +51,7 @@ class TeacherToolWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .55,
+                        width: screenWidth * .55,
                         child: const Text(
                           StringHelper.teacherToolMsg,
                           style: TextStyle(
@@ -52,7 +64,7 @@ class TeacherToolWidget extends StatelessWidget {
 
                       const SizedBox(height: 5),
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .55,
+                        width: screenWidth * .55,
                         child: const Text(
                           "know more...",
                           style: TextStyle(
@@ -72,7 +84,7 @@ class TeacherToolWidget extends StatelessWidget {
                         },
                         child: Container(
                           height: 40,
-                          width: MediaQuery.of(context).size.width * .5,
+                          width: screenWidth * .5,
                           decoration: BoxDecoration(
                             color: const Color(0xff00659D),
                             borderRadius: BorderRadius.circular(25),
@@ -92,16 +104,17 @@ class TeacherToolWidget extends StatelessWidget {
                   ),
                   Image.asset(
                     ImageHelper.teacherIcon,
-                    width: MediaQuery.of(context).size.width * .23,
+                    width: screenWidth * .23,
                   ),
                 ],
               ),
-
             ],
           ),
         ),
 
         const SizedBox(height: 20),
+
+        // Existing pink tool container
         SizedBox(
           height: 170,
           width: double.infinity,
@@ -120,7 +133,7 @@ class TeacherToolWidget extends StatelessWidget {
                 top: 25,
                 left: 20,
                 child: SizedBox(
-                  width: MediaQuery.of(context).size.width * .6,
+                  width: screenWidth * .6,
                   child: const Text(
                     StringHelper.teacherToolMsg2,
                     style: TextStyle(
@@ -143,14 +156,13 @@ class TeacherToolWidget extends StatelessWidget {
                   },
                   child: Container(
                     alignment: Alignment.center,
-                    height: MediaQuery.of(context).size.height * 0.04,
-                    width: MediaQuery.of(context).size.width * 0.4,
+                    height: screenHeight * 0.04,
+                    width: screenWidth * 0.4,
                     decoration: BoxDecoration(
                       color: const Color(0xffCB1255),
-                      borderRadius:
-                      BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    child:  const Text(
+                    child: const Text(
                       StringHelper.trackStudentProgress,
                       style: TextStyle(
                         color: Colors.white,
@@ -175,6 +187,12 @@ class TeacherToolWidget extends StatelessWidget {
             ],
           ),
         ),
+
+        const SizedBox(height: 20),
+
+        // NEW Teacher Shop tool container
+
+        const SizedBox(height: 20),
       ],
     );
   }
