@@ -16,8 +16,6 @@ import '../../../../common/helper/api_helper.dart';
 import '../../../../common/helper/color_code.dart';
 import '../../../../common/helper/image_helper.dart';
 import '../../../../common/helper/string_helper.dart';
-import '../../../../common/widgets/custom_button.dart';
-import '../../../../common/widgets/custom_text_field.dart';
 import '../../../../student/profile/services/profile_services.dart';
 import '../../../../utils/storage_utils.dart';
 import '../../../../welcome/presentation/page/welcome_page.dart';
@@ -162,7 +160,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
           .dashboardModel!
           .data!
           .user!;
-
+      provider.fetchLeaderboardData(user.id!, user.school?.name ?? "");
       provider.getSchoolList();
       provider.getStateCityList();
       provider.getSectionList();
@@ -199,7 +197,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
         provider.initializeGradeMapList();
       }
 
-      provider.gradeList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      provider.gradeList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 , 12 ];
       setState(() => isLoading = false);
     });
   }
@@ -710,11 +708,21 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
             ),
             child: Column(
               children: [
-                _infoRow("Teacher Rank", "Elite Mentor"),
+                _infoRow("Teacher Rank",
+                    provider.teacherRankEntry != null && provider.teacherRankEntry!.rank > 0
+                        ? "#${provider.teacherRankEntry!.rank}"
+                        : "Not Ranked"),
                 const Divider(height: 25),
-                _infoRow("School Rank", "Top 5%"),
+                _infoRow("School Rank",
+                    provider.schoolRankEntry != null && provider.schoolRankEntry!.rank > 0
+                        ? "#${provider.schoolRankEntry!.rank}"
+                        : "Not Ranked"),
                 const Divider(height: 25),
-                _infoRow("Teacher Level", "Level 4"),
+                _infoRow(
+                    "Teacher Level",
+                    Provider.of<TeacherDashboardProvider>(context)
+                        .dashboardModel?.data?.user?.engagementBadge ?? "No badge"
+                ),
                 const Divider(height: 25),
                 _infoRow("School Name", user.school?.name ?? "N/A"),
                 const Divider(height: 25),
@@ -925,8 +933,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
-    _profileProvider.resetState();  // Use the cached provider here
+    _scrollController.dispose();  // Use the cached provider here
     super.dispose();
   }
 }

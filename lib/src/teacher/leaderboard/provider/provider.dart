@@ -14,9 +14,6 @@ class LeaderboardProvider extends ChangeNotifier {
   bool hasMoreTeachers = true;
   bool hasMoreSchools = true;
 
-  int _teacherPage = 1;
-  int _schoolPage = 1;
-
   String? errorTeachers;
   String? errorSchools;
 
@@ -26,7 +23,6 @@ class LeaderboardProvider extends ChangeNotifier {
     if (loadMore && !hasMoreTeachers) return;
 
     if (!loadMore) {
-      _teacherPage = 1;
       hasMoreTeachers = true;
       teachers.clear();
     }
@@ -36,12 +32,11 @@ class LeaderboardProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _service.fetchTeacherLeaderboard(page: _teacherPage);
+      final result = await _service.fetchTeacherLeaderboard();
       if (result.isEmpty) {
         hasMoreTeachers = false;
       } else {
         teachers.addAll(result);
-        _teacherPage++;
       }
     } catch (e) {
       errorTeachers = e.toString();
@@ -55,7 +50,6 @@ class LeaderboardProvider extends ChangeNotifier {
     if (loadMore && !hasMoreSchools) return;
 
     if (!loadMore) {
-      _schoolPage = 1;
       hasMoreSchools = true;
       schools.clear();
     }
@@ -65,12 +59,11 @@ class LeaderboardProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _service.fetchSchoolLeaderboard(page: _schoolPage);
+      final result = await _service.fetchSchoolLeaderboard();
       if (result.isEmpty) {
         hasMoreSchools = false;
       } else {
         schools.addAll(result);
-        _schoolPage++;
       }
     } catch (e) {
       errorSchools = e.toString();

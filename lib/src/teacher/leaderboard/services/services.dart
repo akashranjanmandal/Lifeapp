@@ -8,7 +8,7 @@ import '../model/model.dart';
 class LeaderboardService {
   final String token;
   final Dio dio = Dio();
-  final String baseUrl = 'https://api.life-lab.org/v3/teachers';
+  final String baseUrl = 'https://api.life-lab.org/v3/leaderboard';
   LeaderboardService(this.token);
 
   Future<Map<String, String>> getHeaders() async {
@@ -22,12 +22,11 @@ class LeaderboardService {
     };
   }
 
-  Future<List<LeaderboardEntry>> fetchTeacherLeaderboard({int page = 1}) async {
+  Future<List<LeaderboardEntry>> fetchTeacherLeaderboard() async {
     final headers = await getHeaders();
 
     final response = await dio.get(
-      '$baseUrl/leaderboard',
-      queryParameters: {'page': page},
+      '$baseUrl/teachers',
       options: Options(headers: headers),
     );
 
@@ -36,20 +35,21 @@ class LeaderboardService {
 
     if (response.statusCode == 200) {
       final data = response.data;
-      if (data['success'] == true) {
-        final List entries = data['data'];
-        return entries.map((e) => LeaderboardEntry.fromTeacherJson(e)).toList();
+
+      // ✅ directly check if data is a list
+      if (data is List) {
+        return data.map((e) => LeaderboardEntry.fromTeacherJson(e)).toList();
       }
     }
+
     throw Exception('Failed to load teacher leaderboard');
   }
 
-  Future<List<LeaderboardEntry>> fetchSchoolLeaderboard({int page = 1}) async {
+  Future<List<LeaderboardEntry>> fetchSchoolLeaderboard() async {
     final headers = await getHeaders();
 
     final response = await dio.get(
-      '$baseUrl/school-leaderboard',
-      queryParameters: {'page': page},
+      '$baseUrl/school',
       options: Options(headers: headers),
     );
 
@@ -58,11 +58,15 @@ class LeaderboardService {
 
     if (response.statusCode == 200) {
       final data = response.data;
-      if (data['success'] == true) {
-        final List entries = data['data'];
-        return entries.map((e) => LeaderboardEntry.fromSchoolJson(e)).toList();
+
+      // Extract the list under 'data' key
+      final List<dynamic>? schoolsList = data['data'];
+
+      if (schoolsList != null && schoolsList is List) {
+        return schoolsList.map((e) => LeaderboardEntry.fromSchoolJson(e)).toList();
       }
     }
+
     throw Exception('Failed to load school leaderboard');
   }
 }

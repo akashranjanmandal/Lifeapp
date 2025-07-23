@@ -26,7 +26,7 @@ class DashboardServices {
         ),
       );
 
-      debugPrint("Dashboard Code: ${response.statusCode}");
+      debugPrint("Dashboard Code: ${response.data}");
 
       return response;
     } on DioException catch (e) {

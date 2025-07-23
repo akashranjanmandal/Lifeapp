@@ -13,7 +13,7 @@ class TeacherLeaderboardScreen extends StatefulWidget {
 class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
   int? _selectedIndex;
   bool isTeacherView = true;
-  String filter = 'Weekly';
+  String filter = 'Monthly';
 
   @override
   void initState() {
@@ -62,7 +62,7 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
                       _loadData();
                     }
                   },
-                  items: ['Weekly', 'Monthly', '3 Months', '6 Months', '1 Year']
+                  items: ['Monthly', '3 Months', '6 Months', '1 Year']
                       .map((label) => DropdownMenuItem(value: label, child: Text(label)))
                       .toList(),
                 ),
@@ -299,7 +299,7 @@ void showProfileDialog(
               radius: 50,
               backgroundColor: Colors.purple.shade100,
               backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
-                  ? NetworkImage('https://api.life-lab.org/$imageUrl')
+                  ? NetworkImage('https://lifeappmedia.blr1.digitaloceanspaces.com/$imageUrl')
                   : AssetImage(
                 isSchool ? 'assets/images/school-3.png' : 'assets/images/placeholder.jpg',
               ) as ImageProvider,
@@ -392,7 +392,7 @@ class _LeaderboardTopThree extends StatelessWidget {
                 radius: imageSize / 2,
                 backgroundColor: Colors.purple.shade100,
                 backgroundImage: (profileImage != null && profileImage!.isNotEmpty)
-                    ? NetworkImage('https://api.life-lab.org/$profileImage')
+                    ? NetworkImage('https://lifeappmedia.blr1.digitaloceanspaces.com/$profileImage')
                     : AssetImage(
                   isSchool ? 'assets/images/school-3.png' : 'assets/images/placeholder.jpg',
                 ) as ImageProvider,
@@ -490,7 +490,7 @@ class _LeaderboardListItem extends StatelessWidget {
             radius: 20,
             backgroundColor: Colors.purple.shade100,
             backgroundImage: (profileImage != null && profileImage!.isNotEmpty)
-                ? NetworkImage('https://api.life-lab.org/$profileImage')
+                ? NetworkImage('https://lifeappmedia.blr1.digitaloceanspaces.com/$profileImage')
                 : AssetImage(
               isSchool ? 'assets/images/school-3.png' : 'assets/images/placeholder.jpg',
             ) as ImageProvider,

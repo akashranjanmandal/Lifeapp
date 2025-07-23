@@ -19,16 +19,20 @@ class TeacherHomeAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     String? finalImageUrl;
 
-    // Determine correct image URL
     if (img != null && img!.isNotEmpty) {
-      if (!img!.contains('image_cropper_')) {
-        finalImageUrl = img!.startsWith('http')
-            ? img!
-            : (ApiHelper.imgBaseUrl.endsWith('/') ? ApiHelper.imgBaseUrl : ApiHelper.imgBaseUrl + '/') + img!;
-      }
+      final base = ApiHelper.imgBaseUrl.endsWith('/')
+          ? ApiHelper.imgBaseUrl
+          : '${ApiHelper.imgBaseUrl}/';
+
+      final path = img!.startsWith('/')
+          ? img!.substring(1)
+          : img!;
+
+      finalImageUrl = img!.startsWith('http') ? img : '$base$path';
     }
 
-    print('👤 Final Profile Image URL: $finalImageUrl');
+
+    debugPrint('👤 Final Profile Image URL: $finalImageUrl');
 
     return Builder(
       builder: (context) => Padding(
@@ -70,7 +74,7 @@ class TeacherHomeAppBar extends StatelessWidget {
 
             const Spacer(),
 
-            // Profile image with error fallback
+            // Profile image with fallback
             InkWell(
               onTap: () {
                 PersistentNavBarNavigator.pushNewScreen(
@@ -90,8 +94,13 @@ class TeacherHomeAppBar extends StatelessWidget {
 
 class _ProfileImageWithFallback extends StatefulWidget {
   final String? imageUrl;
+  final double size;
 
-  const _ProfileImageWithFallback({this.imageUrl});
+  const _ProfileImageWithFallback({
+    required this.imageUrl,
+    this.size = 50,
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<_ProfileImageWithFallback> createState() => _ProfileImageWithFallbackState();
@@ -103,25 +112,42 @@ class _ProfileImageWithFallbackState extends State<_ProfileImageWithFallback> {
   @override
   Widget build(BuildContext context) {
     if (widget.imageUrl != null && !_hasError) {
-      return CircleAvatar(
-        radius: 25,
-        backgroundImage: NetworkImage(widget.imageUrl!),
-        onBackgroundImageError: (_, __) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                _hasError = true;
-              });
-            }
-          });
-          print('❌ Failed to load image: ${widget.imageUrl}');
-        },
+      return ClipOval(
+        child: Image.network(
+          widget.imageUrl!,
+          width: widget.size,
+          height: widget.size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() => _hasError = true);
+              }
+            });
+            return _fallbackImage(widget.size);
+          },
+          loadingBuilder: (_, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return SizedBox(
+              width: widget.size,
+              height: widget.size,
+              child: const Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          },
+        ),
       );
     } else {
-      return const CircleAvatar(
-        radius: 25,
-        backgroundImage: AssetImage(ImageHelper.profileImg),
-      );
+      return _fallbackImage(widget.size);
     }
   }
+
+  Widget _fallbackImage(double size) {
+    return CircleAvatar(
+      radius: size / 2,
+      backgroundImage: const AssetImage(ImageHelper.profileImg),
+    );
+  }
 }
+

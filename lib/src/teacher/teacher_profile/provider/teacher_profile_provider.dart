@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
 import '../../../common/helper/color_code.dart';
+import '../../../common/helper/string_helper.dart';
 import '../../../student/home/models/subject_model.dart';
 import '../../../student/home/services/dashboard_services.dart';
 import '../../../student/profile/services/profile_services.dart';
@@ -12,6 +12,9 @@ import '../../../student/sign_up/model/section_model.dart';
 import '../../../student/sign_up/model/state_city_model.dart';
 import '../../../student/sign_up/model/verify_school_model.dart';
 import '../../../student/sign_up/services/sign_up_services.dart';
+import '../../../utils/storage_utils.dart';
+import '../../leaderboard/model/model.dart';
+import '../../leaderboard/services/services.dart';
 import '../../teacher_sign_up/model/board_model.dart';
 import '../../teacher_sign_up/services/teacher_sign_up_services.dart';
 import '../../teacher_dashboard/provider/teacher_dashboard_provider.dart';
@@ -23,6 +26,9 @@ class TeacherProfileProvider extends ChangeNotifier {
   BoardModel? boardModel;
   SubjectModel? subjectModel;
   VerifySchoolModel? verifySchoolModel;
+  LeaderboardEntry? teacherRankEntry;
+  LeaderboardEntry? schoolRankEntry;
+
 
   List<StateCityListModel> listOfLocation = [];
   List<StateCityListModel> searchListOfLocation = [];
@@ -45,11 +51,76 @@ class TeacherProfileProvider extends ChangeNotifier {
 
   List<int> gradeList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   List<int> subjectIdList = [];
+  Future<void> fetchLeaderboardData(int teacherId, String schoolName) async {
+    try {
+      final token = await StorageUtil.getString(StringHelper.token);
+      final leaderboardService = LeaderboardService(token);
+
+      final teacherList = await leaderboardService.fetchTeacherLeaderboard();
+      final schoolList = await leaderboardService.fetchSchoolLeaderboard();
+
+      // More flexible school name matching
+      final normalizedSchoolName = schoolName.trim().toLowerCase();
+
+      // Find teacher rank
+      teacherRankEntry = teacherList.firstWhere(
+            (entry) => entry.teacherId == teacherId,
+        orElse: () => LeaderboardEntry(
+          rank: 0,
+          teacherId: teacherId,
+          name: '',
+          schoolName: '',
+          totalEarnedCoins: 0,
+        ),
+      );
+
+      // Find school rank with more flexible matching
+      schoolRankEntry = schoolList.firstWhere(
+            (entry) {
+          final entryName = entry.name?.trim().toLowerCase() ?? '';
+          return entryName.contains(normalizedSchoolName) ||
+              normalizedSchoolName.contains(entryName);
+        },
+        orElse: () => LeaderboardEntry(
+          rank: 0,
+          teacherId: null,
+          name: schoolName,
+          schoolName: '',
+          totalEarnedCoins: 0,
+        ),
+      );
+
+      debugPrint("Teacher Rank: ${teacherRankEntry?.rank}");
+      debugPrint("School Rank: ${schoolRankEntry?.rank}");
+
+      safeNotifyListeners();
+    } catch (e) {
+      debugPrint("Error fetching leaderboard data: $e");
+      // Set default values on error
+      teacherRankEntry = LeaderboardEntry(
+        rank: 0,
+        teacherId: teacherId,
+        name: '',
+        schoolName: '',
+        totalEarnedCoins: 0,
+      );
+      schoolRankEntry = LeaderboardEntry(
+        rank: 0,
+        teacherId: null,
+        name: schoolName,
+        schoolName: '',
+        totalEarnedCoins: 0,
+      );
+      safeNotifyListeners();
+    }
+  }
+
   void updateSchoolCode(String val) {
     isSchoolCodeValid = false;
     schoolCodeController.text = val;
-    notifyListeners();
+    safeNotifyListeners();
   }
+
   int? boardId;
   String? boardName;
 
@@ -61,12 +132,39 @@ class TeacherProfileProvider extends ChangeNotifier {
 
   DateTime date = DateTime.now();
 
+  bool _isInitialized = false;
+  bool _isDisposed = false;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    teacherNameController.dispose();
+    schoolNameController.dispose();
+    boardNameController.dispose();
+    subjectController.dispose();
+    sectionController.dispose();
+    gradeController.dispose();
+    stateController.dispose();
+    cityController.dispose();
+    stateSearchCont.dispose();
+    citySearchCont.dispose();
+    dobController.dispose();
+    schoolCodeController.dispose();
+    super.dispose();
+  }
+
+  void safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
   Future<void> getSchoolList() async {
     Response? response = await TeacherSignUpServices().getSchoolList();
 
     if (response?.statusCode == 200) {
       schoolListModel = SchoolListModel.fromJson(response!.data);
-      notifyListeners();
+      safeNotifyListeners();
     }
   }
 
@@ -75,10 +173,9 @@ class TeacherProfileProvider extends ChangeNotifier {
 
     if (response.statusCode == 200) {
       sectionModel = SectionModel.fromJson(response.data);
-      notifyListeners();
+      safeNotifyListeners();
     }
   }
-
   Future<void> getBoardList() async {
     Response response = await TeacherSignUpServices().getBoard();
     if (response.statusCode == 200) {
@@ -92,7 +189,7 @@ class TeacherProfileProvider extends ChangeNotifier {
         setInitialBoard(firstBoard.id.toString(), firstBoard.name);
       }
 
-      notifyListeners();
+      safeNotifyListeners();
     }
   }
 
@@ -101,7 +198,7 @@ class TeacherProfileProvider extends ChangeNotifier {
 
     if (response.statusCode == 200) {
       subjectModel = SubjectModel.fromJson(response.data);
-      notifyListeners();
+      safeNotifyListeners();
     }
   }
 
@@ -118,31 +215,28 @@ class TeacherProfileProvider extends ChangeNotifier {
       }
 
       int index = listOfLocation.indexWhere((element) =>
-          element.stateName!.toLowerCase() ==
+      element.stateName!.toLowerCase() ==
           stateController.text.toLowerCase());
       if (index > 0) getCityData(index);
-      notifyListeners();
+      safeNotifyListeners();
     }
   }
 
   void getCityData(int index) {
     cityList = listOfLocation[index].cities!;
     searchCityList = listOfLocation[index].cities!;
-    notifyListeners();
+    safeNotifyListeners();
   }
-
-  bool _isInitialized = false;
 
   void resetState() {
     _isInitialized = false;
     gradeMapList.clear();
-    notifyListeners();
+    safeNotifyListeners();
   }
 
   void initializeGradeMapList() {
-    // Only initialize if not already initialized
     if (!_isInitialized) {
-      gradeMapList.clear(); // Clear any existing data
+      gradeMapList.clear();
       gradeMapList.add({
         "la_grade_id": "",
         "la_section_id": "",
@@ -151,7 +245,7 @@ class TeacherProfileProvider extends ChangeNotifier {
         "subject_name": ""
       });
       _isInitialized = true;
-      notifyListeners();
+      safeNotifyListeners();
     }
   }
 
@@ -164,16 +258,15 @@ class TeacherProfileProvider extends ChangeNotifier {
   void syncBoardWithDashboard(BuildContext context) {
     if (boardId != null && boardName != null) {
       final dashboardProvider =
-          Provider.of<TeacherDashboardProvider>(context, listen: false);
+      Provider.of<TeacherDashboardProvider>(context, listen: false);
       dashboardProvider.setSelectedBoard(boardId!, boardName!);
     }
   }
 
   void updateTeacher(BuildContext context, String contact) async {
     try {
-      // Validate gradeMapList data
       bool hasValidData = gradeMapList.any((grade) =>
-          grade["la_grade_id"].toString().isNotEmpty &&
+      grade["la_grade_id"].toString().isNotEmpty &&
           grade["la_section_id"].toString().isNotEmpty &&
           grade["subjects"].toString().isNotEmpty);
 
@@ -186,7 +279,6 @@ class TeacherProfileProvider extends ChangeNotifier {
         return;
       }
 
-      // Validate DOB
       String formattedDob = dobController.text.trim();
       if (formattedDob.isEmpty) {
         Fluttertoast.showToast(
@@ -196,7 +288,6 @@ class TeacherProfileProvider extends ChangeNotifier {
         return;
       }
 
-      // Validate board data
       if (boardId == null || boardName == null || boardName!.isEmpty) {
         Fluttertoast.showToast(
             msg: "Please select a board",
@@ -205,7 +296,6 @@ class TeacherProfileProvider extends ChangeNotifier {
         return;
       }
 
-      // Show loader
       if (context.mounted) {
         Loader.show(
           context,
@@ -216,20 +306,18 @@ class TeacherProfileProvider extends ChangeNotifier {
         );
       }
 
-      // Clean up gradeMapList
       final cleanGradeMapList = gradeMapList
           .where((grade) => grade["subjects"].toString().isNotEmpty)
           .map((grade) => {
-                "la_grade_id": grade["la_grade_id"],
-                "la_section_id": grade["la_section_id"],
-                "subjects": grade["subjects"],
-              })
+        "la_grade_id": grade["la_grade_id"],
+        "la_section_id": grade["la_section_id"],
+        "subjects": grade["subjects"],
+      })
           .toList();
 
       final currentBoardId = boardId;
       final currentBoardName = boardName;
 
-      // Prepare request body with properly formatted DOB
       final schoolData = verifySchoolModel?.data?.school;
       final schoolId = schoolData?.id;
       final schoolCode = schoolData?.code;
@@ -238,7 +326,7 @@ class TeacherProfileProvider extends ChangeNotifier {
         "mobile_no": contact,
         "type": 5,
         "name": teacherNameController.text.trim(),
-        "school_id": schoolId, // ✅ Use this if supported
+        "school_id": schoolId,
         "school": schoolData?.name,
         "school_code": schoolCode,
         "state": stateController.text,
@@ -251,31 +339,22 @@ class TeacherProfileProvider extends ChangeNotifier {
 
       debugPrint("Update request body: $body");
 
-      // Make API call
       Response response = await ProfileService().updateProfileData(body);
       debugPrint("Update Profile Response: ${response.data}");
 
       Loader.hide();
 
       if (response.statusCode == 200) {
-        // Store the DOB value before refreshing dashboard
         final updatedDob = formattedDob;
-
-        // Refresh dashboard data
-        // if (boardId != null && boardName != null) {
-        //   setInitialBoard(boardId.toString(), boardName);
-        // }
 
         if (context.mounted) {
           await Provider.of<TeacherDashboardProvider>(context, listen: false)
               .getDashboardData();
 
-          // Sync board with dashboard provider
           Provider.of<TeacherDashboardProvider>(context, listen: false)
               .setSelectedBoard(currentBoardId!, currentBoardName!);
         }
 
-        // Restore board values if they were cleared
         if (currentBoardId != null && currentBoardName != null) {
           setInitialBoard(currentBoardId.toString(), currentBoardName);
         }
@@ -284,7 +363,6 @@ class TeacherProfileProvider extends ChangeNotifier {
         debugPrint(
             "Current Board ID: $boardId, Current Board Name: $boardName");
 
-        // Show success message
         if (context.mounted) {
           Fluttertoast.showToast(
               msg: "Profile updated successfully",
@@ -292,7 +370,6 @@ class TeacherProfileProvider extends ChangeNotifier {
               textColor: Colors.white,
               toastLength: Toast.LENGTH_LONG);
 
-          // Navigate after successful update
           Navigator.pop(context);
         }
       } else {
@@ -324,10 +401,9 @@ class TeacherProfileProvider extends ChangeNotifier {
       "la_section_name": "",
       "subject_name": ""
     });
-    notifyListeners();
+    safeNotifyListeners();
   }
 
-// notifylisteners issue fixed
   void updateGradeMapList(String gradeId, String sectionId, String subjectId,
       String sectionName, String subjectName, int index) {
     if (index < gradeMapList.length) {
@@ -339,23 +415,15 @@ class TeacherProfileProvider extends ChangeNotifier {
         "subject_name": subjectName
       };
     }
-    notifyListeners();
+    safeNotifyListeners();
   }
 
   void updateDOB(DateTime picked) {
     date = picked;
     dobController.text =
-        "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-    notifyListeners();
+    "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+    safeNotifyListeners();
   }
-
-  // void updateBoard(int id, String name) {
-  //   boardId = id;
-  //   boardName = name;
-  //   boardNameController.text = name;
-  //   debugPrint("Board updated - ID: $id, Name: $name"); // Add logging
-  //   notifyListeners();
-  // }
 
   void setInitialDOB(String? dob) {
     if (dob != null && dob.isNotEmpty) {
@@ -363,7 +431,7 @@ class TeacherProfileProvider extends ChangeNotifier {
         final DateTime dobDate = DateTime.parse(dob);
         date = dobDate;
         dobController.text =
-            "${dobDate.year}-${dobDate.month.toString().padLeft(2, '0')}-${dobDate.day.toString().padLeft(2, '0')}";
+        "${dobDate.year}-${dobDate.month.toString().padLeft(2, '0')}-${dobDate.day.toString().padLeft(2, '0')}";
       } catch (e) {
         debugPrint("Error parsing DOB: $e");
         date = DateTime.now();
@@ -373,7 +441,7 @@ class TeacherProfileProvider extends ChangeNotifier {
       date = DateTime.now();
       dobController.text = "";
     }
-    notifyListeners();
+    safeNotifyListeners();
   }
 
   void setInitialBoard(String? id, String? name) {
@@ -383,10 +451,9 @@ class TeacherProfileProvider extends ChangeNotifier {
         boardName = name;
         boardNameController.text = name;
         debugPrint("Board set - ID: $boardId, Name: $boardName");
-        notifyListeners();
+        safeNotifyListeners();
       } catch (e) {
         debugPrint("Error setting board: $e");
-        // Don't reset board data on error
       }
     } else {
       debugPrint("Invalid board data provided - ID: $id, Name: $name");
@@ -400,11 +467,10 @@ class TeacherProfileProvider extends ChangeNotifier {
         boardName = name;
         boardNameController.text = name;
         debugPrint("Board updated - ID: $id, Name: $name");
-        notifyListeners();
+        safeNotifyListeners();
       }
     } catch (e) {
       debugPrint("Error updating board: $e");
-      // Don't reset the board data on update error
     }
   }
 
@@ -418,7 +484,7 @@ class TeacherProfileProvider extends ChangeNotifier {
     );
 
     Response response =
-        await SignUpServices().verifyCode(schoolCodeController.text);
+    await SignUpServices().verifyCode(schoolCodeController.text);
 
     Loader.hide();
 
@@ -434,6 +500,6 @@ class TeacherProfileProvider extends ChangeNotifier {
       stateController.text = "";
       cityController.text = "";
     }
-    notifyListeners();
+    safeNotifyListeners();
   }
 }

@@ -31,6 +31,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
   final List<Widget> _tabs = [
     const _DashboardBody(),
+    const StudentProgressPage(),
     const TeacherClassPage(),
     ChangeNotifierProvider(
       create: (_) => ProductProvider(
@@ -148,8 +149,8 @@ class _DashboardBody extends StatelessWidget {
 
     final user = provider.dashboardModel!.data!.user!;
     final userName = user.name ?? '';
-    final userImg = user.profileImage != null
-        ? user.profileImage!
+    final userImg = user.imagePath != null
+        ? user.imagePath!
         : null;
 
     return SafeArea(

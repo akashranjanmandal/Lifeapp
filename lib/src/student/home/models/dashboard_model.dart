@@ -61,7 +61,7 @@ class User {
   dynamic username;
   String? mobileNo;
   dynamic dob;
-  
+  String? engagementBadge;
   String? la_board_id;
   String? board_name;
   int? gender;
@@ -92,7 +92,7 @@ class User {
     this.username,
     this.mobileNo,
     this.dob,
-    
+    this.engagementBadge,
     this.la_board_id,
     this.board_name,
     this.gender,
@@ -124,7 +124,7 @@ class User {
     username: json["username"],
     mobileNo: json["mobile_no"],
     dob: json["dob"],
-    
+    engagementBadge: json["engagement_badge"],
     la_board_id: json['la_board_id']?.toString(),
     board_name: json['board_name']?.toString(),
     gender: json["gender"],
@@ -156,7 +156,7 @@ class User {
     "username": username,
     "mobile_no": mobileNo,
     "dob": dob,
-    
+    "engagement_badge": engagementBadge,
     "la_board_id": la_board_id,
     "board_name": board_name,
     "gender": gender,

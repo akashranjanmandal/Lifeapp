@@ -22,7 +22,7 @@ class LeaderboardEntry {
       name: json['name'] ?? '',
       schoolName: json['school_name'] ?? '',
       totalEarnedCoins: parseToInt(json['total_earned_coins']),
-      profileImage: json['profile_image'],
+      profileImage: json['image_path'],
     );
   }
 

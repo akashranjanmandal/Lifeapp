@@ -24,7 +24,7 @@ class TeacherSignUpServices {
         ),
       );
 
-      debugPrint("Get School List Code: ${response.statusCode}");
+      debugPrint("Get School List Code: ${response.data}");
 
       if(response.statusCode == 200) {
         return response;
@@ -57,7 +57,7 @@ class TeacherSignUpServices {
       ),
     );
 
-    debugPrint("Get Section List Code: ${response.statusCode}");
+    debugPrint("Get Section List Code: ${response.data}");
 
     if (response.statusCode == 200) {
       return response;
@@ -91,7 +91,7 @@ class TeacherSignUpServices {
       ),
     );
 
-    debugPrint("Get Grade List Code: ${response.statusCode}");
+    debugPrint("Get Grade List Code: ${response.data}");
 
     if (response.statusCode == 200) {
       return response;
@@ -124,7 +124,7 @@ Future subjects() async {
       ),
     );
 
-    debugPrint("Get Subject Data Code: ${response.statusCode}");
+    debugPrint("Get Subject Data Code: ${response.data}");
 
     if (response.statusCode == 200) {
       return response;
@@ -158,7 +158,7 @@ Future subjects() async {
         ),
       );
 
-      debugPrint("Get Board List Code: ${response.statusCode}");
+      debugPrint("Get Board List Code: ${response.data}");
 
       if(response.statusCode == 200) {
         return response;
@@ -190,7 +190,7 @@ Future subjects() async {
         ),
       );
 
-      debugPrint("Get State List Code: ${response.statusCode}");
+      debugPrint("Get State List Code: ${response.data}");
 
       if(response.statusCode == 200) {
         return response;
@@ -225,7 +225,7 @@ Future subjects() async {
         ),
       );
 
-      debugPrint("Register Code: ${response.statusCode}");
+      debugPrint("Register Code: ${response.data}");
 
       return response;
     } on DioException catch (e) {
