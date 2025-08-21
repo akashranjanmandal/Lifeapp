@@ -88,6 +88,7 @@ class ApiHelper {
   static const String teachersGrade = "/v3/teachers/grade-sections";
   static const String classStudent = "/v3/reports/class-students/";
   static const String getTeacherMission = "/v3/teachers/missions";
+  static const String pblmapping = "/v3/pbl-textbook-mappings/";
   static const String getTeacherMissionParticipant =
       "/v3/teachers/mission-participants/";
   static const String teacherMissionApproveReject = "/v3/teachers/submission/";

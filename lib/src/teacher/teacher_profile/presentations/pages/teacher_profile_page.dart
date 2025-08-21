@@ -491,7 +491,6 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
                   ...provider.gradeMapList.asMap().entries.map((entry) {
                     final index = entry.key;
                     final e = entry.value;
-
                     return Stack(
                       children: [
                         Container(
@@ -618,7 +617,6 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
                     },
                   ),
                   const SizedBox(height: 28),
-
                   // === DOB ===
                   _buildTextLabel("DOB"),
                   CustomTextField(
@@ -644,9 +642,7 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
                       }
                     },
                   ),
-
                   const SizedBox(height: 48),
-
                   // === Submit Button
                   SizedBox(
                     width: double.infinity,
@@ -676,7 +672,6 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
     "grades_count": provider.gradeMapList.length,
     "timestamp": DateTime.now().toIso8601String(),
     });
-
     provider.updateTeacher(
     context,
     Provider.of<TeacherDashboardProvider>(context, listen: false)
@@ -685,7 +680,6 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
         .user!
         .mobileNo!,
     );
-
     Navigator.of(context).pushAndRemoveUntil(
     MaterialPageRoute(builder: (context) => TeacherDashboardPage()),
     (route) => false,
@@ -711,7 +705,6 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 60),
                 ],
               ),
@@ -721,11 +714,9 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
       ),
     );
   }
-
   Widget _profile() {
     final user = Provider.of<TeacherDashboardProvider>(context).dashboardModel!.data!.user!;
     final provider = Provider.of<TeacherProfileProvider>(context, listen: false);
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),

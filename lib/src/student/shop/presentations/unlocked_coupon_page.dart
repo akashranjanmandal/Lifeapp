@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../../../common/helper/color_code.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
@@ -10,13 +8,11 @@ class UnlockCouponPage extends StatefulWidget {
   final String? url;
   final String? title;
   final String? coin;
-  // final String ? link;
 
   const UnlockCouponPage({Key? key,
      this.url,
      this.title,
      this.coin,
-    // required this.link,
   }) : super(key: key);
 
   @override

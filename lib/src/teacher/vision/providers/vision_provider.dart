@@ -156,13 +156,10 @@ class VisionProvider with ChangeNotifier {
     try {
       debugPrint('🔄 Fetching all videos...');
       final newAllVideos = await _fetchAllVideosPage();
-      debugPrint('✅ Fetched ${newAllVideos.length} all videos');
 
       debugPrint('🔄 Fetching assigned videos...');
       final newAssignedVideos = await _fetchAssignedVideosPage();
-      debugPrint('✅ Fetched ${newAssignedVideos.length} assigned videos');
 
-      // Mark all assigned videos explicitly
       final markedAssignedVideos = newAssignedVideos.map((v) {
         v.teacherAssigned = true;
         return v;
@@ -174,13 +171,10 @@ class VisionProvider with ChangeNotifier {
       _hasMoreAllVideos = newAllVideos.length >= _perPage;
       _hasMoreAssignedVideos = markedAssignedVideos.length >= _perPage;
 
-      debugPrint('📊 Total videos after merge:');
-      debugPrint('- All videos: ${_allVideos.length}');
-      debugPrint('- Assigned videos: ${_assignedVideos.length}');
-
       _applyFilters();
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('❌ Error in _fetchVideos: $e');
+      debugPrint(stack.toString());
       _errorMessage = 'Failed to load videos. Please try again.';
     } finally {
       _isLoading = false;
@@ -188,6 +182,7 @@ class VisionProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
   Future<String> _getAuthToken() async {
     return StorageUtil.getString(StringHelper.token);
   }
@@ -255,37 +250,49 @@ class VisionProvider with ChangeNotifier {
     }
   }
 
-  // Fetch one page of all videos, filtered by subject & level if any
   Future<List<TeacherVisionVideo>> _fetchAllVideosPage() async {
     if (!_hasMoreAllVideos && _currentPage > 1) return [];
-    List<TeacherVisionVideo> videos;
+    try {
+      List<TeacherVisionVideo> videos;
 
-    if (_selectedSubjectId != null) {
-      videos = await _apiService.getVisionVideosBySubject(
-        _selectedSubjectId!,
-        levelId: _selectedLevelId,
-        page: _currentPage,
-        perPage: _perPage,
-      );
-    } else {
-      videos = await _apiService.getAllVisionVideos(
-        levelId: _selectedLevelId,
-        page: _currentPage,
-        perPage: _perPage,
-      );
+      if (_selectedSubjectId != null && _selectedSubjectId!.isNotEmpty) {
+        videos = await _apiService.getVisionVideosBySubject(
+          _selectedSubjectId!,
+          levelId: _selectedLevelId,
+          page: _currentPage,
+          perPage: _perPage,
+        );
+      } else {
+        videos = await _apiService.getAllVisionVideos(
+          levelId: _selectedLevelId,
+          page: _currentPage,
+          perPage: _perPage,
+        );
+      }
+
+      debugPrint('[_fetchAllVideosPage] Page: $_currentPage, Videos fetched: ${videos.length}');
+      return videos;
+    } catch (e, stack) {
+      debugPrint('❌ Error fetching all videos: $e');
+      debugPrint(stack.toString());
+      return []; // Return empty list so provider doesn't crash
     }
-
-    debugPrint('[_fetchAllVideosPage] SubjectId: $_selectedSubjectId, Videos fetched: ${videos.length}');
-    return videos;
   }
 
-  // Fetch one page of assigned videos (if API supports filtering by subject and level)
   Future<List<TeacherVisionVideo>> _fetchAssignedVideosPage() async {
     if (!_hasMoreAssignedVideos && _currentPage > 1) return [];
-    return await _apiService.getAssignedVideos(
-      subjectId: _selectedSubjectId,
-      levelId: _levelFilter.isNotEmpty ? _levelFilter : null,
-    );
+    try {
+      final videos = await _apiService.getAssignedVideos(
+        subjectId: _selectedSubjectId,
+        levelId: _selectedLevelId,
+      );
+      debugPrint('[_fetchAssignedVideosPage] Videos fetched: ${videos.length}');
+      return videos;
+    } catch (e, stack) {
+      debugPrint('❌ Error fetching assigned videos: $e');
+      debugPrint(stack.toString());
+      return [];
+    }
   }
 
   // Load more videos pagination

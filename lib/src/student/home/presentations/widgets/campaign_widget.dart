@@ -13,6 +13,8 @@ import 'package:lifelab3/src/student/mission/presentations/pages/submit_mission_
 import 'package:lifelab3/src/student/subject_level_list/models/mission_list_model.dart';
 import 'dart:async';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+import '../../../connect/provider/connect_provider.dart';
+import '../../../connect/presentations/widgets/connect_session_details_widget.dart';
 
 class CampaignSliderWidget extends StatefulWidget {
   const CampaignSliderWidget({super.key});
@@ -161,7 +163,6 @@ class _CampaignSliderWidgetState extends State<CampaignSliderWidget> {
         } catch (e) {
           targetMission = null;
         }
-
         if (targetMission != null) {
           Navigator.push(
             context,
@@ -175,6 +176,22 @@ class _CampaignSliderWidgetState extends State<CampaignSliderWidget> {
         }
       }
     }
+    // else if (gameId == 8) {
+    //   debugPrint("🤝 Campaign type: Mentor Connect");
+    //   debugPrint("ReferenceId (session id): $referenceId");
+    //   try {
+    //     Navigator.of(context, rootNavigator: true).push(
+    //       MaterialPageRoute(
+    //         builder: (_) => ConnectSessionDetailsWidget(
+    //           id: referenceId.toString(), // 👈 map campaign referenceId to session id
+    //         ),
+    //       ),
+    //     );
+    //   } catch (e) {
+    //     debugPrint("❌ Failed to navigate Mentor Connect: $e");
+    //     Fluttertoast.showToast(msg: "Unable to open Mentor Connect session");
+    //   }
+    // }
 
       else {
       debugPrint("Unknown gameId: $gameId");

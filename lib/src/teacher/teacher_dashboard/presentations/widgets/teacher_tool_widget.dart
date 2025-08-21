@@ -2,14 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/widgets/common_navigator.dart';
 import 'package:lifelab3/src/teacher/student_progress/presentations/pages/students_progress_page.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/presentations/pages/teacher_class_page.dart';
-import 'package:provider/provider.dart';
-import 'package:lifelab3/src/teacher/shop/provider/provider.dart';
-import 'package:lifelab3/src/teacher/shop/services/services.dart';
-import 'package:lifelab3/src/utils/storage_utils.dart';
-
-// Import the new page (you need to create this)
-import 'package:lifelab3/src/teacher/shop/presentation/product_list.dart';
-
 import '../../../../common/helper/image_helper.dart';
 import '../../../../common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';

@@ -50,7 +50,7 @@ class _ConnectPageState extends State<ConnectPage> {
     return Scaffold(
       body: provider.upcomingSessionModel != null
           ? SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 15, right: 15),
+        padding: const EdgeInsets.only(left: 5, right: 5),
         child: Column(
           children: [
             SizedBox(height: MediaQuery.of(context).padding.top),

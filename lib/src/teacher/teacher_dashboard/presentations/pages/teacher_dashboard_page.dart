@@ -97,7 +97,6 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
       // Other initialization
       Provider.of<TeacherDashboardProvider>(context, listen: false).getDashboardData();
-      Provider.of<TeacherDashboardProvider>(context, listen: false).getSubjectsData();
       Provider.of<DashboardProvider>(context, listen: false).checkSubscription();
       Provider.of<DashboardProvider>(context, listen: false).storeToken();
     });
@@ -311,12 +310,20 @@ class _TeacherResources extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Row(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             TeacherResourceWidget(
               name: StringHelper.lifeLabActivitiesPlan,
               img: ImageHelper.lessonPlanIcon,
               isSubscribe: StorageUtil.getBool(StringHelper.isTeacherLesson),
             ),
+            const SizedBox(width: 15),
+            // TeacherResourceWidget(
+            //   name: StringHelper.pblTextBookMapping,
+            //   img: "assets/images/B2 1.png",
+            //   isSubscribe: StorageUtil.getBool(StringHelper.pblTextBookMapping),
+            // ),
+
           ],
         ),
       ],

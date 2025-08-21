@@ -26,6 +26,7 @@ class StringHelper {
   static const String isTeacherJigyasa = "isTeacherJigyasa";
   static const String isTeacherPragya = "isTeacherJigyasa";
   static const String isTeacherLesson = "isTeacherLesson";
+  static const String pblTextBookMapping = "PBL Text Book Mapping";
 
   // Sign Up
   static const String chileName = "Child Name";

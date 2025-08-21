@@ -8,13 +8,16 @@ import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/teach
 import '../../../../common/helper/color_code.dart';
 import '../../../../common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
-class TeacherResourceWidget extends StatelessWidget {
 
+import '../pages/pbl_mapping.dart';
+
+class TeacherResourceWidget extends StatelessWidget {
   final String name;
   final String img;
   final bool isSubscribe;
 
-  const TeacherResourceWidget({super.key,
+  const TeacherResourceWidget({
+    super.key,
     required this.name,
     required this.img,
     required this.isSubscribe,
@@ -24,17 +27,20 @@ class TeacherResourceWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // Mixpanel tracking event
+        // Mixpanel tracking
         MixpanelService.track("Teacher resource clicked", properties: {
           "resource_name": name,
           "timestamp": DateTime.now().toIso8601String(),
         });
-        if(name == StringHelper.conceptCartoons) {
+
+        if (name == StringHelper.conceptCartoons) {
           push(
             context: context,
             page: const CartoonHeaderPage(),
           );
-        } else if(name == StringHelper.competencies || name == StringHelper.assesments || name == StringHelper.worksheet) {
+        } else if (name == StringHelper.competencies ||
+            name == StringHelper.assesments ||
+            name == StringHelper.worksheet) {
           push(
             context: context,
             page: TeacherSubjectListPage(
@@ -42,32 +48,49 @@ class TeacherResourceWidget extends StatelessWidget {
             ),
           );
         } else {
-          if(name == StringHelper.lifeLabDemoModelLesson && isSubscribe) {
+          // Lesson Plan resources
+          if (name == StringHelper.lifeLabDemoModelLesson && isSubscribe) {
             push(
               context: context,
               page: const LessonPlanPage(type: "1"),
             );
-          } else if(name == StringHelper.jigyasaSelfDiy && isSubscribe) {
+          } else if (name == StringHelper.jigyasaSelfDiy && isSubscribe) {
             push(
               context: context,
               page: const LessonPlanPage(type: "2"),
             );
-          } else if(name == StringHelper.pragyaDIYActivity && isSubscribe) {
+          } else if (name == StringHelper.pragyaDIYActivity && isSubscribe) {
             push(
               context: context,
               page: const LessonPlanPage(type: "3"),
             );
-          } else if(name == StringHelper.lifeLabActivitiesPlan && isSubscribe) {
+          } else if (name == StringHelper.lifeLabActivitiesPlan && isSubscribe) {
             push(
               context: context,
               page: const LessonPlanPage(type: "4"),
             );
-          } else {
+          }
+          else if (name == StringHelper.pblTextBookMapping) {
             push(
               context: context,
-              page: SubScribePage(type:  name == StringHelper.lifeLabDemoModelLesson ? "1"
-                  : name == StringHelper.jigyasaSelfDiy ? "2"
-                  : name == StringHelper.pragyaDIYActivity ? "3" : "4"),
+              page: const PblTextBookMappingPage(),
+            );
+          }
+          else {
+            // If not subscribed
+            push(
+              context: context,
+              page: SubScribePage(
+                type: name == StringHelper.lifeLabDemoModelLesson
+                    ? "1"
+                    : name == StringHelper.jigyasaSelfDiy
+                    ? "2"
+                    : name == StringHelper.pragyaDIYActivity
+                    ? "3"
+                    : name == StringHelper.lifeLabActivitiesPlan
+                    ? "4"
+                    : "0",
+              ),
             );
           }
         }
@@ -84,39 +107,39 @@ class TeacherResourceWidget extends StatelessWidget {
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black54)
+                  border: Border.all(color: Colors.black54),
                 ),
                 child: Center(
                   child: Image.asset(img),
                 ),
               ),
-              if(!isSubscribe) Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  height: 20,
-                  width: MediaQuery.of(context).size.width * .13,
-                  decoration: const BoxDecoration(
-                    color: ColorCode.buttonColor,
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(15),
-                      bottomLeft: Radius.circular(15),
+              if (!isSubscribe)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    height: 20,
+                    width: MediaQuery.of(context).size.width * .13,
+                    decoration: const BoxDecoration(
+                      color: ColorCode.buttonColor,
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(15),
+                        bottomLeft: Radius.circular(15),
+                      ),
                     ),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      StringHelper.subscribe,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
+                    child: const Center(
+                      child: Text(
+                        StringHelper.subscribe,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
-
           const SizedBox(height: 10),
           SizedBox(
             width: MediaQuery.of(context).size.width * .2,

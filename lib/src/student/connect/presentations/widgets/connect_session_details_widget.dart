@@ -90,7 +90,7 @@ class _ConnectSessionDetailsWidgetState extends State<ConnectSessionDetailsWidge
                       const SizedBox(height: 20),
                       // Name
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * .6,
+                        width: MediaQuery.of(context).size.width * .2,
                         child: Text(
                           data.data!.user!.name ?? "",
                           style: const TextStyle(
@@ -108,7 +108,7 @@ class _ConnectSessionDetailsWidgetState extends State<ConnectSessionDetailsWidge
                     ? Container(
                         height: 35,
                         width: 130,
-                        padding: const EdgeInsets.only(left: 15),
+                        padding: const EdgeInsets.only(left: 5),
                         decoration: const BoxDecoration(
                           color: ColorCode.buttonColor,
                           borderRadius: BorderRadius.only(
