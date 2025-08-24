@@ -1,0 +1,2 @@
+C:/Dev/CODES/xeta/Lifeapp/android/app/.cxx/Debug/72a5e153/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Dev/CODES/xeta/Lifeapp/android/app/.cxx/Debug/72a5e153/armeabi-v7a/CMakeFiles/rebuild_cache.dir
