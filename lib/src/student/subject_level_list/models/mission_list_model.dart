@@ -19,9 +19,9 @@ class MissionListModel {
   });
 
   factory MissionListModel.fromJson(Map<String, dynamic> json) => MissionListModel(
-    status: json["status"],
-    data: json["data"] == null ? null : Data.fromJson(json["data"]),
-    message: json["message"],
+    status: _safeParseInt(json["status"]),
+    data: json["data"] is Map<String, dynamic> ? Data.fromJson(json["data"] as Map<String, dynamic>) : null,
+    message: _safeParseString(json["message"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -34,15 +34,13 @@ class MissionListModel {
 class Data {
   Missions? missions;
 
-
   Data({
     this.missions,
   });
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
-    missions: json["missions"] == null ? null : Missions.fromJson(json["missions"]),
+    missions: json["missions"] is Map<String, dynamic> ? Missions.fromJson(json["missions"] as Map<String, dynamic>) : null,
   );
-
 
   Map<String, dynamic> toJson() => {
     "missions": missions?.toJson(),
@@ -61,9 +59,11 @@ class Missions {
   });
 
   factory Missions.fromJson(Map<String, dynamic> json) => Missions(
-    data: json["data"] == null ? [] : List<MissionDatum>.from(json["data"]!.map((x) => MissionDatum.fromJson(x))),
-    links: json["links"] == null ? null : Links.fromJson(json["links"]),
-    meta: json["meta"] == null ? null : Meta.fromJson(json["meta"]),
+    data: json["data"] is List
+        ? List<MissionDatum>.from((json["data"] as List).map((x) => MissionDatum.fromJson(x as Map<String, dynamic>)))
+        : [],
+    links: json["links"] is Map<String, dynamic> ? Links.fromJson(json["links"] as Map<String, dynamic>) : null,
+    meta: json["meta"] is Map<String, dynamic> ? Meta.fromJson(json["meta"] as Map<String, dynamic>) : null,
   );
 
   Map<String, dynamic> toJson() => {
@@ -87,6 +87,7 @@ class MissionDatum {
   List<Resource>? resources;
   Submission? submission;
   dynamic assignedBy;
+  String? status;
 
   MissionDatum({
     this.id,
@@ -102,22 +103,26 @@ class MissionDatum {
     this.resources,
     this.submission,
     this.assignedBy,
+    this.status,
   });
 
   factory MissionDatum.fromJson(Map<String, dynamic> json) => MissionDatum(
-    id: json["id"],
-    level: json["level"] == null ? null : Level.fromJson(json["level"]),
-    topic: json["topic"] == null ? [] : List<dynamic>.from(json["topic"]!.map((x) => x)),
-    type: json["type"],
-    title: json["title"],
-    description: json["description"],
-    image: json["image"] == null ? null : Document.fromJson(json["image"]),
-    document: json["document"] == null ? null : Document.fromJson(json["document"]),
-    question: json["question"],
-    subject: json["subject"] == null ? null : Subject.fromJson(json["subject"]),
-    resources: json["resources"] == null ? [] : List<Resource>.from(json["resources"]!.map((x) => Resource.fromJson(x))),
-    submission: json["submission"] == null ? null : Submission.fromJson(json["submission"]),
+    id: _safeParseInt(json["id"]),
+    level: json["level"] is Map<String, dynamic> ? Level.fromJson(json["level"] as Map<String, dynamic>) : null,
+    topic: json["topic"] is List ? List<dynamic>.from(json["topic"] as List) : [],
+    type: _safeParseInt(json["type"]),
+    title: _safeParseString(json["title"]),
+    description: _safeParseString(json["description"]),
+    image: json["image"] is Map<String, dynamic> ? Document.fromJson(json["image"] as Map<String, dynamic>) : null,
+    document: json["document"] is Map<String, dynamic> ? Document.fromJson(json["document"] as Map<String, dynamic>) : null,
+    question: _safeParseString(json["question"]),
+    subject: json["subject"] is Map<String, dynamic> ? Subject.fromJson(json["subject"] as Map<String, dynamic>) : null,
+    resources: json["resources"] is List
+        ? List<Resource>.from((json["resources"] as List).map((x) => Resource.fromJson(x as Map<String, dynamic>)))
+        : [],
+    submission: _parseSubmission(json["submission"]),
     assignedBy: json["assigned_by"],
+    status: _safeParseString(json["status"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -134,7 +139,34 @@ class MissionDatum {
     "resources": resources == null ? [] : List<dynamic>.from(resources!.map((x) => x.toJson())),
     "submission": submission?.toJson(),
     "assigned_by": assignedBy,
+    "status": status,
   };
+
+  static Submission? _parseSubmission(dynamic submissionData) {
+    if (submissionData == null) return null;
+
+    try {
+      if (submissionData is List) {
+        if (submissionData.isNotEmpty) {
+          final firstItem = submissionData[0];
+          if (firstItem is Map<String, dynamic>) {
+            return Submission.fromJson(firstItem);
+          }
+        }
+        return null;
+      }
+
+      if (submissionData is Map<String, dynamic>) {
+        return Submission.fromJson(submissionData);
+      }
+
+      return null;
+    } catch (e) {
+      print('Error parsing submission data: $e');
+      print('Submission data: $submissionData');
+      return null;
+    }
+  }
 }
 
 class Document {
@@ -149,9 +181,9 @@ class Document {
   });
 
   factory Document.fromJson(Map<String, dynamic> json) => Document(
-    id: json["id"],
-    name: json["name"],
-    url: json["url"],
+    id: _safeParseInt(json["id"]),
+    name: _safeParseString(json["name"]),
+    url: _safeParseString(json["url"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -191,18 +223,18 @@ class Level {
   });
 
   factory Level.fromJson(Map<String, dynamic> json) => Level(
-    id: json["id"],
-    title: json["title"],
+    id: _safeParseInt(json["id"]),
+    title: _safeParseString(json["title"]),
     description: json["description"],
-    missionPoints: json["mission_points"],
-    quizPoints: json["quiz_points"],
-    riddlePoints: json["riddle_points"],
-    puzzlePoints: json["puzzle_points"],
-    jigyasaPoints: json["jigyasa_points"],
-    pragyaPoints: json["pragya_points"],
-    quizTime: json["quiz_time"],
-    riddleTime: json["riddle_time"],
-    puzzleTime: json["puzzle_time"],
+    missionPoints: _safeParseInt(json["mission_points"]),
+    quizPoints: _safeParseInt(json["quiz_points"]),
+    riddlePoints: _safeParseInt(json["riddle_points"]),
+    puzzlePoints: _safeParseInt(json["puzzle_points"]),
+    jigyasaPoints: _safeParseInt(json["jigyasa_points"]),
+    pragyaPoints: _safeParseInt(json["pragya_points"]),
+    quizTime: _safeParseInt(json["quiz_time"]),
+    riddleTime: _safeParseInt(json["riddle_time"]),
+    puzzleTime: _safeParseInt(json["puzzle_time"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -235,10 +267,10 @@ class Resource {
   });
 
   factory Resource.fromJson(Map<String, dynamic> json) => Resource(
-    id: json["id"],
-    title: json["title"],
-    media: json["media"] == null ? null : Document.fromJson(json["media"]),
-    locale: json["locale"],
+    id: _safeParseInt(json["id"]),
+    title: _safeParseString(json["title"]),
+    media: json["media"] is Map<String, dynamic> ? Document.fromJson(json["media"] as Map<String, dynamic>) : null,
+    locale: _safeParseString(json["locale"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -267,12 +299,12 @@ class Subject {
   });
 
   factory Subject.fromJson(Map<String, dynamic> json) => Subject(
-    id: json["id"],
-    title: json["title"],
-    heading: json["heading"],
-    image: json["image"] == null ? null : Document.fromJson(json["image"]),
-    isCouponAvailable: json["is_coupon_available"],
-    couponCodeUnlock: json["coupon_code_unlock"],
+    id: _safeParseInt(json["id"]),
+    title: _safeParseString(json["title"]),
+    heading: _safeParseString(json["heading"]),
+    image: json["image"] is Map<String, dynamic> ? Document.fromJson(json["image"] as Map<String, dynamic>) : null,
+    isCouponAvailable: _safeParseBool(json["is_coupon_available"]),
+    couponCodeUnlock: _safeParseBool(json["coupon_code_unlock"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -311,16 +343,16 @@ class Submission {
   });
 
   factory Submission.fromJson(Map<String, dynamic> json) => Submission(
-    id: json["id"],
-    user: json["user"] == null ? null : User.fromJson(json["user"]),
+    id: _safeParseInt(json["id"]),
+    user: json["user"] is Map<String, dynamic> ? User.fromJson(json["user"] as Map<String, dynamic>) : null,
     title: json["title"],
-    media: json["media"] == null ? null : Document.fromJson(json["media"]),
-    description: json["description"],
-    comments: json["comments"],
+    media: json["media"] is Map<String, dynamic> ? Document.fromJson(json["media"] as Map<String, dynamic>) : null,
+    description: _safeParseString(json["description"]),
+    comments: _safeParseString(json["comments"]),
     approvedAt: json["approved_at"],
-    rejectedAt: json["rejected_at"] == null ? null : DateTime.parse(json["rejected_at"]),
-    points: json["points"],
-    timing: json["timing"],
+    rejectedAt: json["rejected_at"] is String ? DateTime.tryParse(json["rejected_at"] as String) : null,
+    points: _safeParseInt(json["points"]),
+    timing: _safeParseInt(json["timing"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -359,14 +391,14 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
-    id: json["id"],
-    name: json["name"],
+    id: _safeParseInt(json["id"]),
+    name: _safeParseString(json["name"]),
     email: json["email"],
-    mobileNo: json["mobile_no"],
+    mobileNo: _safeParseString(json["mobile_no"]),
     username: json["username"],
-    school: json["school"] == null ? null : School.fromJson(json["school"]),
-    state: json["state"],
-    profileImage: json["profile_image"],
+    school: json["school"] is Map<String, dynamic> ? School.fromJson(json["school"] as Map<String, dynamic>) : null,
+    state: _safeParseString(json["state"]),
+    profileImage: _safeParseString(json["profile_image"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -395,10 +427,10 @@ class School {
   });
 
   factory School.fromJson(Map<String, dynamic> json) => School(
-    id: json["id"],
-    name: json["name"],
-    state: json["state"],
-    city: json["city"],
+    id: _safeParseInt(json["id"]),
+    name: _safeParseString(json["name"]),
+    state: _safeParseString(json["state"]),
+    city: _safeParseString(json["city"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -423,8 +455,8 @@ class Links {
   });
 
   factory Links.fromJson(Map<String, dynamic> json) => Links(
-    first: json["first"],
-    last: json["last"],
+    first: _safeParseString(json["first"]),
+    last: _safeParseString(json["last"]),
     prev: json["prev"],
     next: json["next"],
   );
@@ -459,14 +491,16 @@ class Meta {
   });
 
   factory Meta.fromJson(Map<String, dynamic> json) => Meta(
-    currentPage: json["current_page"],
-    from: json["from"],
-    lastPage: json["last_page"],
-    links: json["links"] == null ? [] : List<Link>.from(json["links"]!.map((x) => Link.fromJson(x))),
-    path: json["path"],
-    perPage: json["per_page"],
-    to: json["to"],
-    total: json["total"],
+    currentPage: _safeParseInt(json["current_page"]),
+    from: _safeParseInt(json["from"]),
+    lastPage: _safeParseInt(json["last_page"]),
+    links: json["links"] is List
+        ? List<Link>.from((json["links"] as List).map((x) => Link.fromJson(x as Map<String, dynamic>)))
+        : [],
+    path: _safeParseString(json["path"]),
+    perPage: _safeParseInt(json["per_page"]),
+    to: _safeParseInt(json["to"]),
+    total: _safeParseInt(json["total"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -493,9 +527,9 @@ class Link {
   });
 
   factory Link.fromJson(Map<String, dynamic> json) => Link(
-    url: json["url"],
-    label: json["label"],
-    active: json["active"],
+    url: _safeParseString(json["url"]),
+    label: _safeParseString(json["label"]),
+    active: _safeParseBool(json["active"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -503,4 +537,29 @@ class Link {
     "label": label,
     "active": active,
   };
+}
+
+// Helper functions for safe parsing
+int? _safeParseInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value);
+  if (value is double) return value.toInt();
+  return null;
+}
+
+String? _safeParseString(dynamic value) {
+  if (value == null) return null;
+  if (value is String) return value;
+  return value.toString();
+}
+
+bool? _safeParseBool(dynamic value) {
+  if (value == null) return null;
+  if (value is bool) return value;
+  if (value is String) {
+    return value.toLowerCase() == 'true' || value == '1';
+  }
+  if (value is int) return value == 1;
+  return null;
 }

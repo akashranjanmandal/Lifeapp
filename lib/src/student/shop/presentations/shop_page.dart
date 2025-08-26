@@ -318,7 +318,8 @@ class _ShopPageState extends State<ShopPage> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Budget Exceeded',
+                    textAlign: TextAlign.center,
+                    'Purchase limit reached',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -327,7 +328,7 @@ class _ShopPageState extends State<ShopPage> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    "Your shopping budget has been exceeded for this month.\n\nYou'll need to wait until it resets before making new purchases.",
+                    "Hang tight — you can shop again once it resets!",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
