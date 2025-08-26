@@ -38,7 +38,8 @@ class _CoinHistoryPageState extends State<CoinHistoryPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Coin History', style: TextStyle(color: Colors.black)),
+        title:
+            const Text('Coin History', style: TextStyle(color: Colors.black)),
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, _) {
@@ -51,8 +52,12 @@ class _CoinHistoryPageState extends State<CoinHistoryPage> {
 
           final history = provider.coinTransactions;
 
-          final totalEarned = history.where((tx) => tx.amount > 0).fold<int>(0, (sum, tx) => sum + tx.amount);
-          final totalSpent = history.where((tx) => tx.amount < 0).fold<int>(0, (sum, tx) => sum + tx.amount.abs());
+          final totalEarned = history
+              .where((tx) => tx.amount > 0)
+              .fold<int>(0, (sum, tx) => sum + tx.amount);
+          final totalSpent = history
+              .where((tx) => tx.amount < 0)
+              .fold<int>(0, (sum, tx) => sum + tx.amount.abs());
 
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -61,16 +66,22 @@ class _CoinHistoryPageState extends State<CoinHistoryPage> {
               children: [
                 Row(
                   children: [
-                    _StatCard(title: 'Total Coin Earned', value: totalEarned.toString()),
+                    _StatCard(
+                        title: 'Total Coin Earned',
+                        value: totalEarned.toString()),
                     const SizedBox(width: 12),
-                    _StatCard(title: 'Coin Balance', value: provider.coinBalance.toString()),
+                    _StatCard(
+                        title: 'Coin Balance',
+                        value: provider.coinBalance.toString()),
                   ],
                 ),
                 const SizedBox(height: 20),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF3F5FF),
                       borderRadius: BorderRadius.circular(14),
@@ -87,10 +98,11 @@ class _CoinHistoryPageState extends State<CoinHistoryPage> {
                             color: const Color(0xFF5C6BFF).withOpacity(0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.monetization_on_outlined,
-                            color: Color(0xFF5C6BFF),
-                            size: 20,
+                          child: Image.asset(
+                            'assets/images/coins_icon.png',
+                            width: 20,
+                            height: 20,
+                            fit: BoxFit.contain,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -124,7 +136,9 @@ class _CoinHistoryPageState extends State<CoinHistoryPage> {
                 if (history.isEmpty)
                   const Center(child: Text('No coin transactions found.'))
                 else
-                  ...history.map((tx) => _CoinHistoryTile(transaction: tx)).toList(),
+                  ...history
+                      .map((tx) => _CoinHistoryTile(transaction: tx))
+                      .toList(),
               ],
             ),
           );
@@ -153,14 +167,21 @@ class _StatCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
-                style: const TextStyle(color: _kPurple, fontWeight: FontWeight.w600)),
+                style: const TextStyle(
+                    color: _kPurple, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.monetization_on, color: _kCoinGold, size: 20),
+                Image.asset(
+                  'assets/images/coins_icon.png',
+                  width: 20,
+                  height: 20,
+                  fit: BoxFit.contain,
+                ),
                 const SizedBox(width: 4),
                 Text(value,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
           ],
@@ -234,7 +255,9 @@ class _CoinHistoryTile extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: isGain ? _kGreenGain.withOpacity(0.1) : _kRedLoss.withOpacity(0.1),
+              color: isGain
+                  ? _kGreenGain.withOpacity(0.1)
+                  : _kRedLoss.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -261,7 +284,8 @@ class _CoinHistoryTile extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: badgeBg,
                         borderRadius: BorderRadius.circular(12),
@@ -294,7 +318,12 @@ class _CoinHistoryTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.monetization_on, color: _kCoinGold, size: 18),
+                    Image.asset(
+                      'assets/images/coins_icon.png',
+                      width: 18,
+                      height: 18,
+                      fit: BoxFit.contain,
+                    ),
                   ],
                 ),
               ],

@@ -300,7 +300,12 @@ class _CoinCard extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.monetization_on, color: _kCoinGold, size: 20),
+              Image.asset(
+                'assets/images/coins_icon.png',
+                width: 20,
+                height: 20,
+                fit: BoxFit.contain,
+              ),
               const SizedBox(width: 4),
               Text(
                 coinCount.toString(),
@@ -431,7 +436,7 @@ class ProductItem extends StatelessWidget {
                         style: TextStyle(fontSize: 14, color: Colors.black54),
                       ),
                       Image.asset(
-                        "assets/images/coin.png",
+                        "assets/images/coins_icon.png",
                         height: 18,
                         width: 18,
                       ),

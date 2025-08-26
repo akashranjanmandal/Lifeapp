@@ -3,11 +3,13 @@ import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/teach
 import 'package:provider/provider.dart';
 import '../provider/provider.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+
 class TeacherLeaderboardScreen extends StatefulWidget {
   const TeacherLeaderboardScreen({super.key});
 
   @override
-  State<TeacherLeaderboardScreen> createState() => _TeacherLeaderboardScreenState();
+  State<TeacherLeaderboardScreen> createState() =>
+      _TeacherLeaderboardScreenState();
 }
 
 class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
@@ -21,6 +23,7 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
     _startTime = DateTime.now();
     Future.microtask(_loadData);
   }
+
   @override
   void dispose() {
     if (_startTime != null) {
@@ -35,14 +38,18 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
 
   void _loadData() {
     final provider = Provider.of<LeaderboardProvider>(context, listen: false);
-    isTeacherView ? provider.loadTeacherLeaderboard() : provider.loadSchoolLeaderboard();
+    isTeacherView
+        ? provider.loadTeacherLeaderboard()
+        : provider.loadSchoolLeaderboard();
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<LeaderboardProvider>(context);
-    final isLoading = isTeacherView ? provider.isLoadingTeachers : provider.isLoadingSchools;
-    final error = isTeacherView ? provider.errorTeachers : provider.errorSchools;
+    final isLoading =
+        isTeacherView ? provider.isLoadingTeachers : provider.isLoadingSchools;
+    final error =
+        isTeacherView ? provider.errorTeachers : provider.errorSchools;
     final items = isTeacherView ? provider.teachers : provider.schools;
     final isSchool = !isTeacherView;
 
@@ -66,7 +73,11 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Leaderboard', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
+            const Text('Leaderboard',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black)),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: DropdownButtonHideUnderline(
@@ -80,16 +91,18 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
                       });
 
                       // Track filter option clicked
-                      MixpanelService.track("Filter option clicked", properties: {
-                        "filter": val,
-                        "timestamp": DateTime.now().toIso8601String(),
-                      });
+                      MixpanelService.track("Filter option clicked",
+                          properties: {
+                            "filter": val,
+                            "timestamp": DateTime.now().toIso8601String(),
+                          });
 
                       _loadData();
                     }
                   },
                   items: ['Monthly', '3 Months', '6 Months', '1 Year']
-                      .map((label) => DropdownMenuItem(value: label, child: Text(label)))
+                      .map((label) =>
+                          DropdownMenuItem(value: label, child: Text(label)))
                       .toList(),
                 ),
               ),
@@ -99,7 +112,8 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
       ),
       body: Container(
         decoration: const BoxDecoration(
-          image: DecorationImage(image: AssetImage('assets/images/bg.png'), fit: BoxFit.cover),
+          image: DecorationImage(
+              image: AssetImage('assets/images/bg.png'), fit: BoxFit.cover),
         ),
         child: SafeArea(
           child: Column(
@@ -108,34 +122,45 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _styledChoiceChip(label: 'Teacher Board', selected: isTeacherView, onTap: () {
-                    // Track teacher board tab clicked
-                    MixpanelService.track("Teacher board tab button clicked", properties: {
-                      "timestamp": DateTime.now().toIso8601String(),
-                    });
-                    _onSwitch(true);
-                  },),
+                  _styledChoiceChip(
+                    label: 'Teacher Board',
+                    selected: isTeacherView,
+                    onTap: () {
+                      // Track teacher board tab clicked
+                      MixpanelService.track("Teacher board tab button clicked",
+                          properties: {
+                            "timestamp": DateTime.now().toIso8601String(),
+                          });
+                      _onSwitch(true);
+                    },
+                  ),
                   const SizedBox(width: 8),
-                  _styledChoiceChip(label: 'School Board', selected: !isTeacherView, onTap: () {
-                    // Track school board tab clicked
-                    MixpanelService.track("School board tab button clicked", properties: {
-                      "timestamp": DateTime.now().toIso8601String(),
-                    });
-                    _onSwitch(false);
-                  },),
+                  _styledChoiceChip(
+                    label: 'School Board',
+                    selected: !isTeacherView,
+                    onTap: () {
+                      // Track school board tab clicked
+                      MixpanelService.track("School board tab button clicked",
+                          properties: {
+                            "timestamp": DateTime.now().toIso8601String(),
+                          });
+                      _onSwitch(false);
+                    },
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
               if (isLoading)
-                const Expanded(child: Center(child: CircularProgressIndicator()))
+                const Expanded(
+                    child: Center(child: CircularProgressIndicator()))
               else if (error != null)
                 Expanded(child: Center(child: Text(error)))
               else if (items.isNotEmpty) ...[
-                  _buildTopThree(items, isSchool),
-                  const SizedBox(height: 8),
-                  Expanded(child: _buildRemainingList(items, isSchool)),
-                ] else
-                  const Expanded(child: Center(child: Text('No data available'))),
+                _buildTopThree(items, isSchool),
+                const SizedBox(height: 8),
+                Expanded(child: _buildRemainingList(items, isSchool)),
+              ] else
+                const Expanded(child: Center(child: Text('No data available'))),
             ],
           ),
         ),
@@ -143,13 +168,18 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
     );
   }
 
-  Widget _styledChoiceChip({required String label, required bool selected, required VoidCallback onTap}) => ChoiceChip(
-    label: Text(label, style: TextStyle(color: selected ? Colors.white : Colors.black87)),
-    selected: selected,
-    selectedColor: Colors.blueAccent,
-    backgroundColor: Colors.grey.shade200,
-    onSelected: (_) => onTap(),
-  );
+  Widget _styledChoiceChip(
+          {required String label,
+          required bool selected,
+          required VoidCallback onTap}) =>
+      ChoiceChip(
+        label: Text(label,
+            style: TextStyle(color: selected ? Colors.white : Colors.black87)),
+        selected: selected,
+        selectedColor: Colors.blueAccent,
+        backgroundColor: Colors.grey.shade200,
+        onSelected: (_) => onTap(),
+      );
 
   void _onSwitch(bool teacher) {
     if (isTeacherView != teacher) {
@@ -170,20 +200,22 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
               padding: const EdgeInsets.only(bottom: 10),
               child: GestureDetector(
                 onTap: () {
-                  MixpanelService.track("Profile/rank button clicked", properties: {
-                    "rank": items[1].rank ?? 2,
-                    "name": items[1].name ?? '',
-                    "timestamp": DateTime.now().toIso8601String(),
-                  });
+                  MixpanelService.track("Profile/rank button clicked",
+                      properties: {
+                        "rank": items[1].rank ?? 2,
+                        "name": items[1].name ?? '',
+                        "timestamp": DateTime.now().toIso8601String(),
+                      });
                   showProfileDialog(
-                  context,
-                  rank: items[1].rank ?? 2,
-                  name: items[1].name ?? '',
-                  schoolName: items[1].schoolName ?? '',
-                  score: items[1].totalEarnedCoins ?? 0,
-                  imageUrl: items[1].profileImage,
-                  isSchool: isSchool,
-                );},
+                    context,
+                    rank: items[1].rank ?? 2,
+                    name: items[1].name ?? '',
+                    schoolName: items[1].schoolName ?? '',
+                    score: items[1].totalEarnedCoins ?? 0,
+                    imageUrl: items[1].profileImage,
+                    isSchool: isSchool,
+                  );
+                },
                 child: _LeaderboardTopThree(
                   rank: items[1].rank ?? 2,
                   badgeAsset: 'assets/images/2.png',
@@ -201,20 +233,22 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
             padding: const EdgeInsets.only(bottom: 30),
             child: GestureDetector(
               onTap: () {
-                MixpanelService.track("Profile/rank button clicked", properties: {
-                  "rank": items[0].rank ?? 1,
-                  "name": items[0].name ?? '',
-                  "timestamp": DateTime.now().toIso8601String(),
-                });
+                MixpanelService.track("Profile/rank button clicked",
+                    properties: {
+                      "rank": items[0].rank ?? 1,
+                      "name": items[0].name ?? '',
+                      "timestamp": DateTime.now().toIso8601String(),
+                    });
                 showProfileDialog(
-                context,
-                rank: items[0].rank ?? 1,
-                name: items[0].name ?? '',
-                schoolName: items[0].schoolName ?? '',
-                score: items[0].totalEarnedCoins ?? 0,
-                imageUrl: items[0].profileImage,
-                isSchool: isSchool,
-              );},
+                  context,
+                  rank: items[0].rank ?? 1,
+                  name: items[0].name ?? '',
+                  schoolName: items[0].schoolName ?? '',
+                  score: items[0].totalEarnedCoins ?? 0,
+                  imageUrl: items[0].profileImage,
+                  isSchool: isSchool,
+                );
+              },
               child: _LeaderboardTopThree(
                 rank: items[0].rank ?? 1,
                 badgeAsset: 'assets/images/1.png',
@@ -232,20 +266,22 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
               padding: const EdgeInsets.only(bottom: 10),
               child: GestureDetector(
                 onTap: () {
-                  MixpanelService.track("Profile/rank button clicked", properties: {
-                    "rank": items[2].rank ?? 3,
-                    "name": items[2].name ?? '',
-                    "timestamp": DateTime.now().toIso8601String(),
-                  });
+                  MixpanelService.track("Profile/rank button clicked",
+                      properties: {
+                        "rank": items[2].rank ?? 3,
+                        "name": items[2].name ?? '',
+                        "timestamp": DateTime.now().toIso8601String(),
+                      });
                   showProfileDialog(
-                  context,
-                  rank: items[2].rank ?? 3,
-                  name: items[2].name ?? '',
-                  schoolName: items[2].schoolName ?? '',
-                  score: items[2].totalEarnedCoins ?? 0,
-                  imageUrl: items[2].profileImage,
-                  isSchool: isSchool,
-                );},
+                    context,
+                    rank: items[2].rank ?? 3,
+                    name: items[2].name ?? '',
+                    schoolName: items[2].schoolName ?? '',
+                    score: items[2].totalEarnedCoins ?? 0,
+                    imageUrl: items[2].profileImage,
+                    isSchool: isSchool,
+                  );
+                },
                 child: _LeaderboardTopThree(
                   rank: items[2].rank ?? 3,
                   badgeAsset: 'assets/images/3.png',
@@ -302,14 +338,14 @@ class _TeacherLeaderboardScreenState extends State<TeacherLeaderboardScreen> {
 }
 
 void showProfileDialog(
-    BuildContext context, {
-      required int rank,
-      required String name,
-      required String schoolName,
-      required int score,
-      required String? imageUrl,
-      required bool isSchool,
-    }) {
+  BuildContext context, {
+  required int rank,
+  required String name,
+  required String schoolName,
+  required int score,
+  required String? imageUrl,
+  required bool isSchool,
+}) {
   showDialog(
     context: context,
     builder: (_) => Dialog(
@@ -360,15 +396,21 @@ void showProfileDialog(
               radius: 50,
               backgroundColor: Colors.purple.shade100,
               backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
-                  ? NetworkImage('https://lifeappmedia.blr1.digitaloceanspaces.com/$imageUrl')
+                  ? NetworkImage(
+                      'https://lifeappmedia.blr1.digitaloceanspaces.com/$imageUrl')
                   : AssetImage(
-                isSchool ? 'assets/images/school-3.png' : 'assets/images/placeholder.jpg',
-              ) as ImageProvider,
+                      isSchool
+                          ? 'assets/images/school-3.png'
+                          : 'assets/images/placeholder.jpg',
+                    ) as ImageProvider,
             ),
             const SizedBox(height: 20),
             Text(
               name,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -381,11 +423,20 @@ void showProfileDialog(
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.monetization_on, color: Colors.amber, size: 28),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Image.asset(
+                    'assets/images/coins_icon.png',
+                    width: 28,
+                    height: 28,
+                    fit: BoxFit.contain,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   score.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 20),
                 ),
               ],
             ),
@@ -395,21 +446,27 @@ void showProfileDialog(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: () {
                   // Track close button clicked in rank details popup
-                  MixpanelService.track("Close button in Rank details popup clicked", properties: {
-                    "timestamp": DateTime.now().toIso8601String(),
-                    "rank": rank,
-                    "name": name,
-                  });
+                  MixpanelService.track(
+                      "Close button in Rank details popup clicked",
+                      properties: {
+                        "timestamp": DateTime.now().toIso8601String(),
+                        "rank": rank,
+                        "name": name,
+                      });
                   Navigator.of(context, rootNavigator: true).pop();
                 },
-                  child: const Text(
+                child: const Text(
                   'Close',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white),
                 ),
               ),
             ),
@@ -447,7 +504,7 @@ class _LeaderboardTopThree extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool small = isSecond || isThird;
     final imageSize = small ? 60.0 : 80.0;
-
+//top 3 leaderboard
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -459,11 +516,15 @@ class _LeaderboardTopThree extends StatelessWidget {
               child: CircleAvatar(
                 radius: imageSize / 2,
                 backgroundColor: Colors.purple.shade100,
-                backgroundImage: (profileImage != null && profileImage!.isNotEmpty)
-                    ? NetworkImage('https://lifeappmedia.blr1.digitaloceanspaces.com/$profileImage')
+                backgroundImage: (profileImage != null &&
+                        profileImage!.isNotEmpty)
+                    ? NetworkImage(
+                        'https://lifeappmedia.blr1.digitaloceanspaces.com/$profileImage')
                     : AssetImage(
-                  isSchool ? 'assets/images/school-3.png' : 'assets/images/placeholder.jpg',
-                ) as ImageProvider,
+                        isSchool
+                            ? 'assets/images/school-3.png'
+                            : 'assets/images/placeholder.jpg',
+                      ) as ImageProvider,
               ),
             ),
             Positioned(top: 0, child: Image.asset(badgeAsset, height: 24)),
@@ -479,7 +540,8 @@ class _LeaderboardTopThree extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: small ? 10 : 12),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: small ? 10 : 12),
               ),
               Text(
                 schoolName,
@@ -491,9 +553,18 @@ class _LeaderboardTopThree extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(score.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(score.toString(),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(width: 4),
-                  const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Image.asset(
+                      'assets/images/coins_icon.png',
+                      width: 16,
+                      height: 16,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -552,30 +623,46 @@ class _LeaderboardListItem extends StatelessWidget {
           )
         ],
       ),
+
+      //the leaderboard after top 3
       child: Row(
         children: [
           CircleAvatar(
             radius: 20,
             backgroundColor: Colors.purple.shade100,
             backgroundImage: (profileImage != null && profileImage!.isNotEmpty)
-                ? NetworkImage('https://lifeappmedia.blr1.digitaloceanspaces.com/$profileImage')
+                ? NetworkImage(
+                    'https://lifeappmedia.blr1.digitaloceanspaces.com/$profileImage')
                 : AssetImage(
-              isSchool ? 'assets/images/school-3.png' : 'assets/images/placeholder.jpg',
-            ) as ImageProvider,
+                    isSchool
+                        ? 'assets/images/school-3.png'
+                        : 'assets/images/placeholder.jpg',
+                  ) as ImageProvider,
           ),
           const SizedBox(width: 12),
-          Text(_ordinal(rank), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+          Text(_ordinal(rank),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: Colors.black)),
           const SizedBox(width: 15),
           Expanded(
             child: Text(name,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
           ),
           const SizedBox(width: 10),
-          Text(score.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(score.toString(),
+              style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(width: 6),
-          const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Image.asset(
+              'assets/images/coins_icon.png',
+              width: 18,
+              height: 18,
+            ),
+          ),
         ],
       ),
     );

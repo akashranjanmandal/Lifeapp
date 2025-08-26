@@ -1,16 +1,16 @@
 /// Normalizes API category names to a consistent key used in UI.
 String _normalizeCategoryKey(String name) {
   final n = (name ?? '').trim().toLowerCase();
-  if (n == 'coin') return 'coins'; // unify singular/plural
+  if (n == 'coin') return 'coins';
   return n.replaceAll(' ', '-');
 }
 
-/// Represents one FAQ entry parsed from API
 class TeacherFaq {
   final int id;
   final String question;
   final String answer;
-  final String audience; // "student" | "teacher" | "all"
+  final String
+      audience; // "student" | "teacher" | "all" (we only use "teacher")
   final String categoryKey; // normalized key (e.g., "coins", "profile")
   final String categoryName; // original display name from API
 
@@ -43,8 +43,8 @@ class TeacherFaq {
 /// Represents a UI category (emoji icon + FAQs inside it)
 class TeacherFaqCategory {
   final String key; // normalized key (e.g., "coins")
-  final String name; // display ("Coins")
-  final String icon; // emoji
+  final String name; // display properties
+  final String icon; // logo
   final List<TeacherFaq> faqItems; // FAQs for this category (can be empty)
 
   TeacherFaqCategory({
@@ -63,9 +63,9 @@ class TeacherFaqCategory {
       );
 }
 
-// Icon map for categories you always show
+// Icon map for always showing either asset or temp emoji
 const Map<String, String> _kTeacherCategoryIcons = {
-  'coins': 'assets/images/coins_icon.png', // Use asset path
+  'coins': 'assets/images/coins_icon.png',
   'accessibility': '🧑‍🦽',
   'profile': '👤',
   'mission': '🚀',
