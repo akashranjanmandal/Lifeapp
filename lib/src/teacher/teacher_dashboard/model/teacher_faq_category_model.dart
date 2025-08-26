@@ -1,3 +1,4 @@
+/// Normalizes API category names to a consistent key used in UI.
 String _normalizeCategoryKey(String name) {
   final n = (name ?? '').trim().toLowerCase();
   if (n == 'coin') return 'coins'; // unify singular/plural
@@ -5,7 +6,7 @@ String _normalizeCategoryKey(String name) {
 }
 
 /// Represents one FAQ entry parsed from API
-class Faq {
+class TeacherFaq {
   final int id;
   final String question;
   final String answer;
@@ -13,7 +14,7 @@ class Faq {
   final String categoryKey; // normalized key (e.g., "coins", "profile")
   final String categoryName; // original display name from API
 
-  Faq({
+  TeacherFaq({
     required this.id,
     required this.question,
     required this.answer,
@@ -22,17 +23,17 @@ class Faq {
     required this.categoryName,
   });
 
-  factory Faq.fromJson(Map<String, dynamic> json) {
+  factory TeacherFaq.fromJson(Map<String, dynamic> json) {
     final catName = (json['category']?['name'] ?? '').toString();
     final key = _normalizeCategoryKey(catName);
 
-    return Faq(
+    return TeacherFaq(
       id: json['id'] is int
           ? json['id']
           : int.tryParse(json['id'].toString()) ?? 0,
       question: (json['question'] ?? '').toString(),
       answer: (json['answer'] ?? '').toString(),
-      audience: (json['audience'] ?? 'all').toString().toLowerCase(),
+      audience: (json['audience'] ?? 'teacher').toString().toLowerCase(),
       categoryKey: key,
       categoryName: catName.isEmpty ? key : catName,
     );
@@ -40,20 +41,21 @@ class Faq {
 }
 
 /// Represents a UI category (emoji icon + FAQs inside it)
-class FaqCategory {
-  final String key; //  properties values
-  final String name; //properties
+class TeacherFaqCategory {
+  final String key; // normalized key (e.g., "coins")
+  final String name; // display ("Coins")
   final String icon; // emoji
-  final List<Faq> faqItems; // FAQs for this category (can be empty)
+  final List<TeacherFaq> faqItems; // FAQs for this category (can be empty)
 
-  FaqCategory({
+  TeacherFaqCategory({
     required this.key,
     required this.name,
     required this.icon,
     this.faqItems = const [],
   });
 
-  FaqCategory copyWith({List<Faq>? faqItems}) => FaqCategory(
+  TeacherFaqCategory copyWith({List<TeacherFaq>? faqItems}) =>
+      TeacherFaqCategory(
         key: key,
         name: name,
         icon: icon,
@@ -62,8 +64,8 @@ class FaqCategory {
 }
 
 // Icon map for categories you always show
-const Map<String, String> _kCategoryIcons = {
-  'coins': '💰',
+const Map<String, String> _kTeacherCategoryIcons = {
+  'coins': 'assets/images/coins_icon.png', // Use asset path
   'accessibility': '🧑‍🦽',
   'profile': '👤',
   'mission': '🚀',
@@ -79,6 +81,11 @@ String _titleCase(String key) {
       .join(' ');
 }
 
-final List<FaqCategory> predefinedCategories = _kCategoryIcons.entries
-    .map((e) => FaqCategory(key: e.key, name: _titleCase(e.key), icon: e.value))
-    .toList();
+final List<TeacherFaqCategory> predefinedTeacherCategories =
+    _kTeacherCategoryIcons.entries
+        .map((e) => TeacherFaqCategory(
+              key: e.key,
+              name: _titleCase(e.key),
+              icon: e.value,
+            ))
+        .toList();

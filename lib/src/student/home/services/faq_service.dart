@@ -39,7 +39,6 @@ class FaqService {
     }
   }
 
-  // ✅ New helper: returns strongly typed List<Faq>
   Future<List<Faq>> getFaqsByCategory([String? categoryId]) async {
     final raw = await getFaqsByCategoryRaw(categoryId);
     return raw.map((json) => Faq.fromJson(json)).toList();
