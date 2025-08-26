@@ -1,77 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/color_code.dart';
-import 'package:lifelab3/src/student/home/models/faq_category_model.dart';
-import 'package:lifelab3/src/student/home/services/faq_service.dart';
-import 'package:lifelab3/src/student/home/presentations/widgets/faq_qa_page.dart';
+import 'package:lifelab3/src/student/home/models/student_faq_category_model.dart';
+import 'package:lifelab3/src/student/home/presentations/widgets/student_faq_detail.dart';
+import 'package:lifelab3/src/student/home/services/student_faq_service.dart';
 
-class FaqListview extends StatefulWidget {
-  const FaqListview({super.key});
+class StudentFaqListView extends StatefulWidget {
+  const StudentFaqListView({super.key});
 
   @override
-  State<FaqListview> createState() => _FaqListviewState();
+  State<StudentFaqListView> createState() => _StudentFaqListViewState();
 }
 
-class _FaqListviewState extends State<FaqListview> {
-  final FaqService _faqService = FaqService();
+class _StudentFaqListViewState extends State<StudentFaqListView> {
+  final StudentFaqService _faqService = StudentFaqService();
 
   bool _loading = true;
   String? _error;
-  List<Faq> _allFaqs = const [];
+  List<StudentFaq> _allFaqs = const [];
 
   @override
   void initState() {
     super.initState();
-    _loadAllFaqs();
+    _loadStudentFaqs();
   }
 
-  Future<void> _loadAllFaqs() async {
+  Future<void> _loadStudentFaqs() async {
     try {
-      // fetch everything once; we'll filter per category on tap
       final faqs = await _faqService.getFaqsByCategory();
+
+      // STRICT: only keep student audience, remove 'all'
+      final studentFaqs = faqs.where((f) => f.audience == 'student').toList();
+
       setState(() {
-        _allFaqs = faqs;
+        _allFaqs = studentFaqs;
         _loading = false;
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load FAQs';
+        _error = 'Failed to load Student FAQs';
         _loading = false;
       });
     }
   }
 
-  void _openCategory(BuildContext context, FaqCategory category) {
-    // filter: selected category + audience student or all
-    final filtered = _allFaqs.where((f) {
-      final matchesCategory = f.categoryKey == category.key;
-      final matchesAudience = f.audience == 'student' || f.audience == 'all';
-      return matchesCategory && matchesAudience;
-    }).toList();
+  void _openCategory(BuildContext context, StudentFaqCategory category) {
+    final filtered =
+        _allFaqs.where((f) => f.categoryKey == category.key).toList();
 
     final categoryWithFaqs = category.copyWith(faqItems: filtered);
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FaqDetailPage(category: categoryWithFaqs),
+        builder: (context) => StudentFaqDetailPage(category: categoryWithFaqs),
       ),
+    );
+  }
+
+  Widget _buildCategoryIcon(String icon) {
+    if (icon.endsWith('.png')) {
+      return Image.asset(
+        icon,
+        width: 35,
+        height: 35,
+        fit: BoxFit.contain,
+      );
+    }
+    return Text(
+      icon,
+      style: const TextStyle(fontSize: 35),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return Center(child: Text(_error!));
-    }
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) return Center(child: Text(_error!));
 
-    // your original landing UI with big buttons & emojis
     return ListView.builder(
-      itemCount: predefinedCategories.length,
+      itemCount: predefinedStudentCategories.length,
       itemBuilder: (BuildContext context, int index) {
-        final category = predefinedCategories[index];
+        final category = predefinedStudentCategories[index];
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
           child: GestureDetector(
@@ -99,10 +108,7 @@ class _FaqListviewState extends State<FaqListview> {
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      category.icon,
-                      style: const TextStyle(fontSize: 35),
-                    ),
+                    child: _buildCategoryIcon(category.icon),
                   ),
                 ],
               ),

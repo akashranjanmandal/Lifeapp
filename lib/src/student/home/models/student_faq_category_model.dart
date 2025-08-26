@@ -1,3 +1,5 @@
+// student_faq_category_model.dart
+
 String _normalizeCategoryKey(String name) {
   final n = (name ?? '').trim().toLowerCase();
   if (n == 'coin') return 'coins'; // unify singular/plural
@@ -5,7 +7,7 @@ String _normalizeCategoryKey(String name) {
 }
 
 /// Represents one FAQ entry parsed from API
-class Faq {
+class StudentFaq {
   final int id;
   final String question;
   final String answer;
@@ -13,7 +15,7 @@ class Faq {
   final String categoryKey; // normalized key (e.g., "coins", "profile")
   final String categoryName; // original display name from API
 
-  Faq({
+  StudentFaq({
     required this.id,
     required this.question,
     required this.answer,
@@ -22,11 +24,11 @@ class Faq {
     required this.categoryName,
   });
 
-  factory Faq.fromJson(Map<String, dynamic> json) {
+  factory StudentFaq.fromJson(Map<String, dynamic> json) {
     final catName = (json['category']?['name'] ?? '').toString();
     final key = _normalizeCategoryKey(catName);
 
-    return Faq(
+    return StudentFaq(
       id: json['id'] is int
           ? json['id']
           : int.tryParse(json['id'].toString()) ?? 0,
@@ -40,20 +42,21 @@ class Faq {
 }
 
 /// Represents a UI category (emoji icon + FAQs inside it)
-class FaqCategory {
-  final String key; //  properties values
-  final String name; //properties
-  final String icon; // emoji
-  final List<Faq> faqItems; // FAQs for this category (can be empty)
+class StudentFaqCategory {
+  final String key; // normalized key
+  final String name; // display name
+  final String icon; // emoji icon
+  final List<StudentFaq> faqItems; // FAQs for this category
 
-  FaqCategory({
+  StudentFaqCategory({
     required this.key,
     required this.name,
     required this.icon,
     this.faqItems = const [],
   });
 
-  FaqCategory copyWith({List<Faq>? faqItems}) => FaqCategory(
+  StudentFaqCategory copyWith({List<StudentFaq>? faqItems}) =>
+      StudentFaqCategory(
         key: key,
         name: name,
         icon: icon,
@@ -61,8 +64,8 @@ class FaqCategory {
       );
 }
 
-// Icon map for categories you always show
-const Map<String, String> _kCategoryIcons = {
+// Icon map for predefined student categories
+const Map<String, String> _kStudentCategoryIcons = {
   'coins': '💰',
   'accessibility': '🧑‍🦽',
   'profile': '👤',
@@ -71,7 +74,7 @@ const Map<String, String> _kCategoryIcons = {
   'quiz': '❓',
 };
 
-// Build the predefined category skeleton (always shown in list)
+// Helper to convert keys to title case
 String _titleCase(String key) {
   return key
       .split('-')
@@ -79,6 +82,12 @@ String _titleCase(String key) {
       .join(' ');
 }
 
-final List<FaqCategory> predefinedCategories = _kCategoryIcons.entries
-    .map((e) => FaqCategory(key: e.key, name: _titleCase(e.key), icon: e.value))
-    .toList();
+// Predefined student categories for UI skeleton
+final List<StudentFaqCategory> predefinedStudentCategories =
+    _kStudentCategoryIcons.entries
+        .map((e) => StudentFaqCategory(
+              key: e.key,
+              name: _titleCase(e.key),
+              icon: e.value,
+            ))
+        .toList();

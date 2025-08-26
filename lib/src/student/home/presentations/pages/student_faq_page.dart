@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/color_code.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
-import 'package:lifelab3/src/student/home/presentations/widgets/faq_listview.dart';
+import 'package:lifelab3/src/student/home/presentations/widgets/student_faq_listview.dart';
 
 class FaqPage extends StatefulWidget {
   const FaqPage({super.key});
@@ -24,6 +24,6 @@ class _FaqPageState extends State<FaqPage> {
             ),
           ),
         ),
-        body: const FaqListview());
+        body: const StudentFaqListView());
   }
 }

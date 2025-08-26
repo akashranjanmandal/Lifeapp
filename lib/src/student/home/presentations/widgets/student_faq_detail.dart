@@ -1,21 +1,19 @@
+// student_faq_detail.dart
 import 'package:flutter/material.dart';
-import 'package:lifelab3/src/student/home/models/faq_category_model.dart';
+import 'package:lifelab3/src/student/home/models/student_faq_category_model.dart';
 import 'package:lifelab3/src/common/helper/color_code.dart';
 
-class FaqDetailPage extends StatefulWidget {
-  final FaqCategory category;
+class StudentFaqDetailPage extends StatefulWidget {
+  final StudentFaqCategory category;
 
-  const FaqDetailPage({
-    super.key,
-    required this.category,
-  });
+  const StudentFaqDetailPage({super.key, required this.category});
 
   @override
-  State<FaqDetailPage> createState() => _FaqDetailPageState();
+  State<StudentFaqDetailPage> createState() => _StudentFaqDetailPageState();
 }
 
-class _FaqDetailPageState extends State<FaqDetailPage> {
-  List<bool> expandedStates = [];
+class _StudentFaqDetailPageState extends State<StudentFaqDetailPage> {
+  late List<bool> expandedStates;
 
   @override
   void initState() {
@@ -52,9 +50,10 @@ class _FaqDetailPageState extends State<FaqDetailPage> {
               Text(
                 widget.category.name,
                 style: const TextStyle(
-                    color: ColorCode.textBlackColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18),
+                  color: ColorCode.textBlackColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
               Expanded(
                 child: ListView.builder(
@@ -64,7 +63,6 @@ class _FaqDetailPageState extends State<FaqDetailPage> {
                     return Column(
                       children: [
                         Container(
-                          margin: const EdgeInsets.symmetric(vertical: 0),
                           width: double.infinity,
                           child: Card(
                             elevation: 0,
@@ -85,9 +83,10 @@ class _FaqDetailPageState extends State<FaqDetailPage> {
                                 title: Text(
                                   item.question,
                                   style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blueAccent),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blueAccent,
+                                  ),
                                 ),
                                 trailing: Icon(
                                   color: Colors.blue,
@@ -103,16 +102,22 @@ class _FaqDetailPageState extends State<FaqDetailPage> {
                                     const Divider(
                                       color: ColorCode.greywhite,
                                       thickness: 1.5,
-                                      height:
-                                          32, // <-- match outside divider height
+                                      height: 32,
                                     ),
                                   Padding(
-                                    padding: EdgeInsets.zero,
-                                    child: Text(
-                                      item.answer,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        height: 1.5,
+                                    padding: const EdgeInsets.only(
+                                        bottom:
+                                            12), // Remove left/right padding
+                                    child: Align(
+                                      alignment: Alignment
+                                          .centerLeft, // Ensure left alignment
+                                      child: Text(
+                                        item.answer,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          height: 1.5,
+                                        ),
+                                        textAlign: TextAlign.left,
                                       ),
                                     ),
                                   ),
@@ -121,7 +126,6 @@ class _FaqDetailPageState extends State<FaqDetailPage> {
                             ),
                           ),
                         ),
-                        // Add a grey divider after each card except the last one
                         if (index != widget.category.faqItems.length - 1)
                           const Divider(
                             color: ColorCode.greywhite,

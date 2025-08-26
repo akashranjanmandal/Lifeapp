@@ -107,13 +107,16 @@ class _TeacherFaqDetailPageState extends State<TeacherFaqDetailPage> {
                                       height: 32,
                                     ),
                                   Padding(
-                                    padding: const EdgeInsets.only(
-                                        bottom: 12, left: 4, right: 4),
-                                    child: Text(
-                                      item.answer,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        height: 1.5,
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        item.answer,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          height: 1.5,
+                                        ),
+                                        textAlign: TextAlign.left,
                                       ),
                                     ),
                                   ),

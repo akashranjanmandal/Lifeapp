@@ -9,7 +9,7 @@ import 'package:lifelab3/src/common/widgets/common_navigator.dart';
 import 'package:lifelab3/src/student/friend/presentations/pages/friend_page.dart';
 import 'package:lifelab3/src/student/hall_of_fame/presentations/pages/hall_of_fame_page.dart';
 import 'package:lifelab3/src/student/home/presentations/pages/coin_history_page.dart';
-import 'package:lifelab3/src/student/home/presentations/pages/faq_page.dart';
+import 'package:lifelab3/src/student/home/presentations/pages/student_faq_page.dart';
 import 'package:lifelab3/src/utils/storage_utils.dart';
 import 'package:lifelab3/src/welcome/presentation/page/welcome_page.dart';
 import 'package:share_plus/share_plus.dart';
@@ -164,7 +164,6 @@ class _ChallengeWidget extends StatelessWidget {
           title: Row(
             children: [
               Image.asset(ImageHelper.drawerChallengeIcon, height: 23),
-
               const SizedBox(width: 10),
               const Text(
                 StringHelper.challenges,
@@ -183,9 +182,11 @@ class _ChallengeWidget extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   MixpanelService.track("Challenges - Vision Clicked");
-                  push(context: context, page: const SubjectListPage(
-                    navName: StringHelper.vision,
-                  ));
+                  push(
+                      context: context,
+                      page: const SubjectListPage(
+                        navName: StringHelper.vision,
+                      ));
                 },
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
@@ -216,9 +217,11 @@ class _ChallengeWidget extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   MixpanelService.track("Challenges - Mission Clicked");
-                  push(context: context, page: const SubjectListPage(
-                    navName: StringHelper.mission,
-                  ));
+                  push(
+                      context: context,
+                      page: const SubjectListPage(
+                        navName: StringHelper.mission,
+                      ));
                 },
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
@@ -250,9 +253,11 @@ class _ChallengeWidget extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   MixpanelService.track(("Challenges - Quiz Clicked"));
-                  push(context: context, page: const SubjectListPage(
-                    navName: StringHelper.quiz,
-                  ));
+                  push(
+                      context: context,
+                      page: const SubjectListPage(
+                        navName: StringHelper.quiz,
+                      ));
                 },
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
@@ -284,9 +289,11 @@ class _ChallengeWidget extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   MixpanelService.track(("Challenges - Puzzle Clicked"));
-                  push(context: context, page: const SubjectListPage(
-                    navName: StringHelper.puzzles,
-                  ));
+                  push(
+                      context: context,
+                      page: const SubjectListPage(
+                        navName: StringHelper.puzzles,
+                      ));
                 },
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
@@ -318,9 +325,11 @@ class _ChallengeWidget extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   MixpanelService.track(("Challenges - Riddle Clicked"));
-                  push(context: context, page: const SubjectListPage(
-                    navName: StringHelper.riddles,
-                  ));
+                  push(
+                      context: context,
+                      page: const SubjectListPage(
+                        navName: StringHelper.riddles,
+                      ));
                 },
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
@@ -352,9 +361,11 @@ class _ChallengeWidget extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   MixpanelService.track(("Challenges - Jigyasa Clicked"));
-                  push(context: context, page: const SubjectListPage(
-                    navName: StringHelper.jigyasa,
-                  ));
+                  push(
+                      context: context,
+                      page: const SubjectListPage(
+                        navName: StringHelper.jigyasa,
+                      ));
                 },
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
@@ -386,9 +397,11 @@ class _ChallengeWidget extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   MixpanelService.track(("Challenges - Pragya  Clicked"));
-                  push(context: context, page: const SubjectListPage(
-                    navName: StringHelper.pragya,
-                  ));
+                  push(
+                      context: context,
+                      page: const SubjectListPage(
+                        navName: StringHelper.pragya,
+                      ));
                 },
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
