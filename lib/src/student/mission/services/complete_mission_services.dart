@@ -10,8 +10,47 @@ import '../../../common/helper/string_helper.dart';
 import '../../../utils/storage_utils.dart';
 
 class CompleteMissionServices {
-
   final Dio dio = Dio();
+
+  Future<Response?> skipMission(int missionId) async {
+    try {
+      Response response = await dio.post(
+        '${ApiHelper.baseUrl}/v3/mission/$missionId/skip',
+        options: Options(
+          contentType: "application/json",
+          headers: {
+            HttpHeaders.acceptHeader: "application/json",
+            HttpHeaders.authorizationHeader:
+            "Bearer ${StorageUtil.getString(StringHelper.token)}",
+          },
+        ),
+      );
+
+      debugPrint("Skip Mission Code: ${response.statusCode}");
+      debugPrint("Skip Mission Response: ${response.data}");
+
+      return response;
+    } on DioException catch (e) {
+      Loader.hide();
+      debugPrint("Skip Mission Dio Error: $e, response: ${e.response}");
+      String msg = "Failed to skip mission";
+      if (e.response?.data is Map && e.response!.data["message"] != null) {
+        msg = e.response!.data["message"];
+      }
+      Fluttertoast.showToast(msg: msg);
+      return null;
+    } on SocketException catch (e) {
+      Loader.hide();
+      debugPrint("Skip Mission Socket Error: $e");
+      Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
+    } catch (e) {
+      Loader.hide();
+      debugPrint("Skip Mission Catch Error: $e");
+      Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
+    }
+  }
 
   Future submitMission(Map<String, dynamic> data) async {
     try {
@@ -77,3 +116,4 @@ class CompleteMissionServices {
     }
   }
 }
+

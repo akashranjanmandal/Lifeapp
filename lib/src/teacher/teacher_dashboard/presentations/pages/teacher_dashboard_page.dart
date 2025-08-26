@@ -318,11 +318,11 @@ class _TeacherResources extends StatelessWidget {
               isSubscribe: StorageUtil.getBool(StringHelper.isTeacherLesson),
             ),
             const SizedBox(width: 15),
-            // TeacherResourceWidget(
-            //   name: StringHelper.pblTextBookMapping,
-            //   img: "assets/images/B2 1.png",
-            //   isSubscribe: StorageUtil.getBool(StringHelper.pblTextBookMapping),
-            // ),
+            TeacherResourceWidget(
+              name: StringHelper.pblTextBookMapping,
+              img: "assets/images/B2 1.png",
+              isSubscribe: StorageUtil.getBool(StringHelper.pblTextBookMapping),
+            ),
 
           ],
         ),

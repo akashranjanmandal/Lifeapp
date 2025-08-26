@@ -8,6 +8,7 @@ import 'package:lifelab3/src/student/mission/presentations/pages/mission_success
 import 'package:lifelab3/src/student/mission/services/complete_mission_services.dart';
 
 import '../../../common/helper/color_code.dart';
+import '../../../common/helper/string_helper.dart';
 
 class MissionProvider extends ChangeNotifier {
 
@@ -37,6 +38,25 @@ class MissionProvider extends ChangeNotifier {
       Fluttertoast.showToast(msg: response.data["message"]);
     }
 
+  }
+  final CompleteMissionServices _missionServices = CompleteMissionServices();
+
+  Future<bool> skipMission(BuildContext context, int missionId) async {
+    try {
+      final response = await _missionServices.skipMission(missionId);
+
+      if (response != null && response.statusCode == 200) {
+        Fluttertoast.showToast(msg: "Mission skipped successfully");
+        return true;
+      } else {
+        Fluttertoast.showToast(msg: "Failed to skip mission");
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Skip mission error: $e');
+      Fluttertoast.showToast(msg: "Error skipping mission");
+      return false;
+    }
   }
 
   void getMissionDetails(BuildContext context, String id) async {

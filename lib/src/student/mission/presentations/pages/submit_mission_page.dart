@@ -166,16 +166,16 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
     return WillPopScope(
       onWillPop: () async {
         timer.cancel();
-        _cancelPopup();
+        _cancelPopup(widget.mission?.level?.missionPoints ?? 0);
         return false;
       },
       child: Scaffold(
         appBar: commonAppBar(
           context: context,
-          name: StringHelper.mission,
+          name: "Skip",
           onBack: () {
             timer.cancel();
-            _cancelPopup();
+            _cancelPopup(widget.mission?.level?.missionPoints ?? 0);
           },
           action: !isSubmitView
               ? const Padding(
@@ -437,132 +437,139 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
     ),
   );
 
-  _cancelPopup() => showModalBottomSheet(
+  _cancelPopup(int coins) => showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     useRootNavigator: true,
-    builder: (ctx) => Container(
-      height: MediaQuery.of(context).size.height * 0.3,
-      margin: const EdgeInsets.only(bottom: 50),
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).size.height * 0.035,
-                left: 20,
-                right: 20),
-            height: MediaQuery.of(context).size.height * 0.25,
-            width: double.infinity,
-            alignment: Alignment.bottomLeft,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                const Text(
-                  "Do you want to\n"
-                      "cancel the mission?",
-                  textAlign: TextAlign.start,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+    isScrollControlled: true, // allows modal to take more height if needed
+    builder: (ctx) => SingleChildScrollView(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7, // max 70% of screen
+        ),
+        margin: const EdgeInsets.only(bottom: 20, top: 20),
+        width: double.infinity,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).size.height * 0.035,
+                  left: 20,
+                  right: 20,
+                  top: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // important to avoid overflow
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Uh-oh!!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.015,
-                ),
-                const Text(
-                  "You can start the mission\n"
-                      "again from starting",
-                  textAlign: TextAlign.start,
-                  style: TextStyle(
-                    color: Color(0xff7A7A7A),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w300,
+                  const SizedBox(height: 10),
+                  const Text(
+                    "You're about to lose",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                    ),
                   ),
-                ),
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.02,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        height: MediaQuery.of(context).size.height * 0.05,
-                        width: MediaQuery.of(context).size.width * 0.32,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                              color: ColorCode.buttonColor, width: 1),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Text(
-                          "Confirm",
-                          style: TextStyle(
-                            color: ColorCode.buttonColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                  const SizedBox(height: 10),
+                  Text(
+                    "$coins coins",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.orange,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Complete this challenge now to boost your balance and level up — your adventure awaits!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // "I'll Stay" button
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.pop(ctx); // Close popup
+                          },
+                          child: Container(
+                            alignment: Alignment.center,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: const Text(
+                              "I'll Stay",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(
-                      width: 25,
-                    ),
-                    InkWell(
-                      onTap: () {
-                        Navigator.pop(ctx);
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        height: MediaQuery.of(context).size.height * 0.05,
-                        width: MediaQuery.of(context).size.width * 0.32,
-                        decoration: BoxDecoration(
-                          color: ColorCode.buttonColor,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Text(
-                          "Cancel",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                      const SizedBox(width: 15),
+                      // "Skip Anyway" button
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            Navigator.pop(ctx); // Close popup first
+
+                            bool skipped = await Provider.of<MissionProvider>(context, listen: false)
+                                .skipMission(context, widget.mission.id!);
+
+                            if (skipped) {
+                              // Pop this page and return true so the previous page can refresh
+                              Navigator.pop(context, true);
+                            }
+                          },
+                          child: Container(
+                            alignment: Alignment.center,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: const Text(
+                              "Skip Anyway",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ),
-                    )
-                  ],
-                )
-              ],
-            ),
-          ),
-          Positioned(
-            right: 15,
-            top: 0,
-            child: Container(
-              alignment: Alignment.topRight,
-              height: MediaQuery.of(context).size.height * 0.2,
-              width: MediaQuery.of(context).size.width * 0.45,
-              child: Image.asset(
-                "assets/images/cancel.png",
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     ),
   );

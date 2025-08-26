@@ -1,65 +1,110 @@
 import 'package:flutter/material.dart';
+import 'package:lifelab3/src/common/helper/api_helper.dart';
 import 'package:lifelab3/src/common/widgets/common_navigator.dart';
-import 'package:lifelab3/src/common/widgets/custom_button.dart';
 import 'package:lifelab3/src/student/mission/presentations/pages/submit_mission_page.dart';
 import 'package:lifelab3/src/student/subject_level_list/models/mission_list_model.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+
 class GetStartedMissionWidget extends StatelessWidget {
-
   final MissionDatum data;
-  final bool isAssigned;
 
-  const GetStartedMissionWidget({super.key, required this.data, this.isAssigned = false});
+  const GetStartedMissionWidget({super.key, required this.data});
+
+  String _getStatus() {
+    if (data.assignedBy != null && data.assignedBy!.isNotEmpty) {
+      return "Assigned"; // 👈 Show "Assigned" if teacher assigned
+    }
+    return data.status ?? "Get Started";
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: MediaQuery.of(context).size.width,
-      padding: const EdgeInsets.only(left: 20, top: 15, bottom: 15, right: 20),
-      margin: const EdgeInsets.only(bottom: 15),
-      decoration: ShapeDecoration(
-        color: isAssigned?Colors.red.withOpacity(0.5):Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
+    final status = _getStatus();
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(15),
+      onTap: () {
+        MixpanelService.track("Mission Card Clicked", properties: {
+          "mission_id": data.id,
+          "mission_title": data.title,
+          "status": status,
+        });
+        push(
+          context: context,
+          page: SubmitMissionPage(mission: data),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            // width: MediaQuery.of(context).size.width * .5,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image + Status Badge
+            Stack(
               children: [
-                Text(
-                  data.title!,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                  child: Image.network(
+                    data.image?.url != null
+                        ? ApiHelper.imgBaseUrl + data.image!.url!
+                        : "https://via.placeholder.com/300",
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
                   ),
                 ),
-                if(isAssigned)const Text("Assigned By Teacher")
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      status,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                )
               ],
             ),
-          ),
-          CustomButton(
-            name: "Get Started",
-            height: 40,
-            width: 130,
-            onTap: () {
-              MixpanelService.track("Get Started Button Clicked", properties: {
-                "mission_id": data.id,
-                "mission_title": data.title,
-              });
-              push(
-                context: context,
-                page: SubmitMissionPage(mission: data),
-              );
-            },
-          ),
-        ],
+
+            // Title / Assigned By
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data.title ?? "Untitled Mission",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

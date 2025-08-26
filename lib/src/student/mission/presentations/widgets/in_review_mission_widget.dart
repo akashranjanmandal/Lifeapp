@@ -1,67 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:lifelab3/src/common/helper/image_helper.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:lifelab3/src/common/helper/api_helper.dart';
 import 'package:lifelab3/src/student/subject_level_list/models/mission_list_model.dart';
-import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
-class InReviewMissionWidget extends StatelessWidget {
 
+class InReviewMissionWidget extends StatelessWidget {
   final MissionDatum data;
 
   const InReviewMissionWidget({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: MediaQuery.of(context).size.width,
-      padding: const EdgeInsets.only(left: 20, top: 15, bottom: 15, right: 20),
-      margin: const EdgeInsets.only(bottom: 15),
-      decoration: ShapeDecoration(
-        color: const Color(0xFFF4D292),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
+    return InkWell(
+      borderRadius: BorderRadius.circular(15),
+      onTap: () {
+        Fluttertoast.showToast(
+          msg: "Mission in review",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              data.title ?? "",
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image + Status Badge
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                  child: Image.network(
+                    data.image?.url != null
+                        ? ApiHelper.imgBaseUrl + data.image!.url!
+                        : "https://via.placeholder.com/300",
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      "In Review",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                )
+              ],
+            ),
+
+            // Title
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Text(
+                data.title ?? "Untitled Mission",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
               ),
             ),
-          ),
-          Row(
-            children: [
-              const Text(
-                "In review",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  height: 0,
-                ),
-              ),
-
-              const SizedBox(width: 10),
-              Container(
-                height: 30,
-                width: 30,
-                padding: const EdgeInsets.all(5),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Image.asset(
-                  ImageHelper.fileIcon,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

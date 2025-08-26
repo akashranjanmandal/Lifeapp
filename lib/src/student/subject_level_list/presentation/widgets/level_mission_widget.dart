@@ -113,19 +113,28 @@ class LevelMissionWidget extends StatelessWidget {
                 left: 20,
                 child: InkWell(
                   onTap: () {
-                    // 🔥 Mixpanel Tracking
-                    MixpanelService.track("Mission Get Started Clicked", properties: {
-                      "subjectId": subjectId,
-                      "levelId": levelId,
-                    });
-                    push(
-                      context: context,
-                      page: MissionPage(
-                        missionListModel: provider.missionListModel!,
-                        subjectId: subjectId,
-                        levelId: levelId,
-                      ),
-                    );
+                    final missionModel = provider.missionListModel;
+                    if (missionModel != null) {
+                      // 🔥 Mixpanel Tracking
+                      MixpanelService.track("Mission Get Started Clicked", properties: {
+                        "subjectId": subjectId,
+                        "levelId": levelId,
+                      });
+
+                      push(
+                        context: context,
+                        page: MissionPage(
+                          missionListModel: missionModel,
+                          subjectId: subjectId,
+                          levelId: levelId,
+                        ),
+                      );
+                    } else {
+                      // Show a toast or loading indicator
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Mission data is loading, please wait...")),
+                      );
+                    }
                   },
                   child: Container(
                     alignment: Alignment.center,

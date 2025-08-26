@@ -63,8 +63,16 @@ class Data {
     document: json["document"] == null ? null : Document.fromJson(json["document"]),
     question: json["question"],
     subject: json["subject"] == null ? null : Subject.fromJson(json["subject"]),
-    resources: json["resources"] == null ? [] : List<Resource>.from(json["resources"]!.map((x) => Resource.fromJson(x))),
-    submission: json["submission"] == null ? null : Submission.fromJson(json["submission"]),
+    resources: json["resources"] == null
+        ? []
+        : List<Resource>.from(json["resources"]!.map((x) => Resource.fromJson(x))),
+    submission: json["submission"] == null
+        ? null
+        : json["submission"] is List
+        ? (json["submission"] as List).isNotEmpty
+        ? Submission.fromJson(json["submission"][0])
+        : null
+        : Submission.fromJson(json["submission"]),
   );
 
   Map<String, dynamic> toJson() => {
