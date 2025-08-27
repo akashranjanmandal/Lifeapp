@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/color_code.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/widgets/teacher_faq_listview.dart';
+import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/test/teacher_sucessful_assigned_page.dart';
 
 class TeacherFaqPage extends StatefulWidget {
   const TeacherFaqPage({super.key});
@@ -25,6 +26,7 @@ class _TeacherFaqPageState extends State<TeacherFaqPage> {
         ),
       ),
       body: const TeacherFaqListview(),
+// body: const SuccessPage(),
     );
   }
 }

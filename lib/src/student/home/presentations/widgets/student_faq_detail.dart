@@ -105,12 +105,9 @@ class _StudentFaqDetailPageState extends State<StudentFaqDetailPage> {
                                       height: 32,
                                     ),
                                   Padding(
-                                    padding: const EdgeInsets.only(
-                                        bottom:
-                                            12), // Remove left/right padding
+                                    padding: const EdgeInsets.only(bottom: 12),
                                     child: Align(
-                                      alignment: Alignment
-                                          .centerLeft, // Ensure left alignment
+                                      alignment: Alignment.centerLeft,
                                       child: Text(
                                         item.answer,
                                         style: const TextStyle(
