@@ -10,7 +10,6 @@ import '../../../../common/helper/image_helper.dart';
 import '../../../../common/widgets/custom_button.dart';
 import '../../../home/provider/dashboard_provider.dart';
 import '../../../riddles/provider/riddle_provider.dart';
-import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 class PuzzlePage extends StatelessWidget {
 
   final SubjectLevelProvider provider;

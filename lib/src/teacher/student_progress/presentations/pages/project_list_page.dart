@@ -20,7 +20,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Provider.of<StudentProgressProvider>(context, listen: false).getTeacherMission();
+      // Provider.of<StudentProgressProvider>(context, listen: false).getTeacherMission(data);
     });
     super.initState();
   }

@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart'; // for debugPrint
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class NotificationModel {
   final int? status;
@@ -11,16 +12,17 @@ class NotificationModel {
     this.message,
   });
 
-  NotificationModel.fromJson(Map<String, dynamic> json)
-      : status = json['status'] as int?,
-        data = (json['data'] as List?)
-            ?.map((dynamic e) {
-          debugPrint('NotificationModel.fromJson: notification raw data: $e');
-          return NotificationData.fromJson(e as Map<String, dynamic>);
-        })
-            .toList(),
-        message = json['message'] as String? {
-    debugPrint('NotificationModel.fromJson: status=$status, message=$message');
+  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    return NotificationModel(
+      status: json['status'] as int?,
+      data: (json['data'] as List?)
+          ?.map((e) {
+        debugPrint('NotificationModel.fromJson: notification raw data: $e');
+        return NotificationData.fromJson(e as Map<String, dynamic>);
+      })
+          .toList(),
+      message: json['message'] as String?,
+    );
   }
 
   Map<String, dynamic> toJson() => {
@@ -53,24 +55,33 @@ class NotificationData {
     this.subjectId,
   });
 
-  NotificationData.fromJson(Map<String, dynamic> json)
-      : id = json['id'] as String?,
-        type = json['type'] as String?,
-        notifiableType = json['notifiable_type'] as String?,
-        notifiableId = json['notifiable_id'] as int?,
-        data = (json['data'] as Map<String, dynamic>?) != null
-            ? NotificationInner1Data.fromJson(json['data'] as Map<String, dynamic>)
-            : null,
-        readAt = json['read_at'],
-        createdAt = json['created_at'] as String?,
-        updatedAt = json['updated_at'] as String?,
-        subjectId = (json['data'] != null
-            ? NotificationInner1Data.fromJson(json['data'] as Map<String, dynamic>)
-            : null)
-            ?.data
-            ?.laSubjectId
-            ?.toString() {
-    debugPrint('NotificationData.fromJson: id=$id, type=$type, subjectId=$subjectId');
+  factory NotificationData.fromJson(Map<String, dynamic> json) {
+    NotificationInner1Data? parsedData;
+
+    final rawData = json['data'];
+    if (rawData != null) {
+      if (rawData is String) {
+        try {
+          parsedData = NotificationInner1Data.fromJson(jsonDecode(rawData));
+        } catch (e) {
+          debugPrint('NotificationData.fromJson: failed to decode data string → $e');
+        }
+      } else if (rawData is Map<String, dynamic>) {
+        parsedData = NotificationInner1Data.fromJson(rawData);
+      }
+    }
+
+    return NotificationData(
+      id: json['id'] as String?,
+      type: json['type'] as String?,
+      notifiableType: json['notifiable_type'] as String?,
+      notifiableId: json['notifiable_id'] as int?,
+      data: parsedData,
+      readAt: json['read_at'],
+      createdAt: json['created_at'] as String?,
+      updatedAt: json['updated_at'] as String?,
+      subjectId: parsedData?.data?.laSubjectId?.toString(),
+    );
   }
 
   Map<String, dynamic> toJson() => {
@@ -97,13 +108,27 @@ class NotificationInner1Data {
     this.data,
   });
 
-  NotificationInner1Data.fromJson(Map<String, dynamic> json)
-      : title = json['title'] as String?,
-        message = json['message'] as String?,
-        data = (json['data'] as Map<String, dynamic>?) != null
-            ? ActionData.fromJson(json['data'] as Map<String, dynamic>)
-            : null {
-    debugPrint('NotificationInner1Data.fromJson: title=$title, message=$message');
+  factory NotificationInner1Data.fromJson(Map<String, dynamic> json) {
+    ActionData? parsedActionData;
+
+    final rawData = json['data'];
+    if (rawData != null) {
+      if (rawData is String) {
+        try {
+          parsedActionData = ActionData.fromJson(jsonDecode(rawData));
+        } catch (e) {
+          debugPrint('NotificationInner1Data.fromJson: failed to decode action data → $e');
+        }
+      } else if (rawData is Map<String, dynamic>) {
+        parsedActionData = ActionData.fromJson(rawData);
+      }
+    }
+
+    return NotificationInner1Data(
+      title: json['title'] as String?,
+      message: json['message'] as String?,
+      data: parsedActionData,
+    );
   }
 
   Map<String, dynamic> toJson() => {
@@ -136,17 +161,18 @@ class ActionData {
     this.visionTitle,
   });
 
-  ActionData.fromJson(Map<String, dynamic> json)
-      : action = json['action'] as int?,
-        actionId = json['action_id'],
-        mediaUrl = json['media_url'],
-        laSubjectId = json['la_subject_id'],
-        laLevelId = json['la_level_id'],
-        missionId = json['mission_id'],
-        visionId = json['vision_id'],
-        time = json["quiz_time"],
-        visionTitle = json["vision_title"] as String? {
-    debugPrint('ActionData.fromJson: action=$action, laSubjectId=$laSubjectId, visionId=$visionId, visionTitle=$visionTitle');
+  factory ActionData.fromJson(Map<String, dynamic> json) {
+    return ActionData(
+      action: json['action'] as int?,
+      actionId: json['action_id'],
+      mediaUrl: json['media_url'],
+      laSubjectId: json['la_subject_id'],
+      laLevelId: json['la_level_id'],
+      missionId: json['mission_id'],
+      visionId: json['vision_id'],
+      time: json["quiz_time"],
+      visionTitle: json["vision_title"] as String?,
+    );
   }
 
   Map<String, dynamic> toJson() => {

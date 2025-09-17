@@ -18,7 +18,7 @@ class MentorHomeProvider extends ChangeNotifier {
   DashboardModel? dashboardModel;
 
   Future<void> storeToken() async {
-    await ToolServices().storeToken(deviceToken: StorageUtil.getString(StringHelper.fcmToken));
+    await ToolServices().storeToken(); // no deviceToken parameter
   }
 
   Future upcomingSession(BuildContext context) async {

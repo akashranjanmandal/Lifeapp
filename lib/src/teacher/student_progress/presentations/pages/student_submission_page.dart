@@ -18,10 +18,14 @@ class StudentSubmissionPage extends StatefulWidget {
 }
 
 class _StudentSubmissionPageState extends State<StudentSubmissionPage> {
+  String? selectedClass;
+  String? selectedStatus;
+
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Provider.of<StudentProgressProvider>(context, listen: false).getTeacherMissionParticipant(widget.missionId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<StudentProgressProvider>(context, listen: false)
+          .getTeacherMissionParticipant(widget.missionId);
     });
     super.initState();
   }
@@ -29,128 +33,304 @@ class _StudentSubmissionPageState extends State<StudentSubmissionPage> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<StudentProgressProvider>(context);
+
+    /// Participants
+    final participants =
+        provider.teacherMissionParticipantModel?.data?.data ?? [];
+    /// Available classes (unique grade names only)
+    final availableClasses = [
+      "All",
+      ...participants
+          .map((p) => p.user?.grade?.name ?? "")
+          .where((c) => c.isNotEmpty)
+          .toSet()
+          .toList(),
+    ];
+    /// Apply filters
+    var filteredList = participants.where((p) {
+      // Filter by class
+      if (selectedClass != null &&
+          selectedClass!.isNotEmpty &&
+          selectedClass != "All") {
+        if ((p.user?.grade?.name ?? "") != selectedClass) return false;
+      }
+
+      // Filter by status
+      if (selectedStatus != null && selectedStatus!.isNotEmpty) {
+        final sub = p.submission;
+        String status;
+        if (sub == null) {
+          status = "Assigned";
+        } else if (sub.approvedAt != null) {
+          status = "Approved";
+        } else if (sub.rejectedAt != null) {
+          status = "Rejected";
+        } else {
+          status = "Review";
+        }
+        if (status != selectedStatus) return false;
+      }
+
+      return true;
+    }).toList();
+
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: commonAppBar(
         context: context,
         name: StringHelper.submission,
         action: Padding(
           padding: const EdgeInsets.only(right: 15),
           child: Text(
-            "Total ${(provider.teacherMissionParticipantModel?.data?.data ?? []).length}",
+            "Total ${filteredList.length}",
             style: const TextStyle(
-              color: Colors.black,
-              fontSize: 15,
+              color: Colors.black87,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          Provider.of<StudentProgressProvider>(context, listen: false).getTeacherMissionParticipant(widget.missionId);
-        },
-        child: ListView.builder(
-          shrinkWrap: true,
-          padding: const EdgeInsets.only(left: 15, right: 15, bottom: 80),
-          itemCount: (provider.teacherMissionParticipantModel?.data?.data ?? []).length,
-          itemBuilder: (context, index) => InkWell(
-            onTap: () {
-              if (provider.teacherMissionParticipantModel!.data!.data![index].submission != null) {
-                push(
-                  context: context,
-                  page: TeacherMissionSubmissionPage(
-                    missionIndex: index,
-                    missionStatus: provider.teacherMissionParticipantModel!.data!.data![index].submission != null && provider.teacherMissionParticipantModel!.data!.data![index].submission!.approvedAt == null && provider.teacherMissionParticipantModel!.data!.data![index].submission!.rejectedAt == null,
-                    missionId: widget.missionId,
-                  ),
-                );
-              }
-            },
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            child: Container(
-              height: 70,
-              width: MediaQuery.of(context).size.width,
-              padding: const EdgeInsets.only(left: 15, right: 15),
-              margin: const EdgeInsets.only(bottom: 15),
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), color: Colors.white, boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  offset: Offset(1, 1),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                ),
-              ]),
+      body: Column(
+        children: [
+          /// Filters Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  provider.teacherMissionParticipantModel!.data!.data![index].submission == null ?
-                  provider.teacherMissionParticipantModel!.data!.data![index].user!.profileImage != null
-                      ? CircleAvatar(
-                    radius: 25,
-                    backgroundImage: NetworkImage(ApiHelper.imgBaseUrl + provider.teacherMissionParticipantModel!.data!.data![index].user!.profileImage!),
-                  )
-                      : const CircleAvatar(
-                    radius: 25,
-                    backgroundImage: AssetImage(ImageHelper.profileIcon),
-                  ):
-                  provider.teacherMissionParticipantModel!.data!.data![index].submission!.media != null
-                      ? CircleAvatar(
-                          radius: 25,
-                          backgroundImage: NetworkImage(ApiHelper.imgBaseUrl + provider.teacherMissionParticipantModel!.data!.data![index].submission!.media!.url!),
-                        )
-                      : const CircleAvatar(
-                          radius: 25,
-                          backgroundImage: AssetImage(ImageHelper.profileIcon),
-                        ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      provider.teacherMissionParticipantModel!.data!.data![index].user?.name ?? "",
-                      maxLines: 1,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
+                  /// Class Filter
+                  SizedBox(
+                    width: 160,
+                    child: DropdownButtonFormField<String>(
+                      value: selectedClass ?? "All",
+                      isExpanded: true,
+                      hint: const Text(
+                        "Select Class",
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                       ),
+                      items: availableClasses
+                          .map(
+                            (cls) => DropdownMenuItem<String>(
+                          value: cls,
+                          child: Text(
+                            cls,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      )
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() => selectedClass = val);
+                      },
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      icon: const Icon(Icons.arrow_drop_down,
+                          size: 22, color: Colors.black54),
+                      dropdownColor: Colors.white,
                     ),
                   ),
 
-                  Row(
-                    children: [
-                      Text(
-                        provider.teacherMissionParticipantModel!.data!.data![index].submission==null?
-                            "Assigned" :
-                        provider.teacherMissionParticipantModel!.data!.data![index].submission!.approvedAt != null
-                            ? "Completed"
-                            : provider.teacherMissionParticipantModel!.data!.data![index].submission!.approvedAt == null && provider.teacherMissionParticipantModel!.data!.data![index].submission!.rejectedAt == null
-                                ? "Review"
-                                : provider.teacherMissionParticipantModel!.data!.data![index].submission!.rejectedAt != null
-                                    ? "Rejected"
-                                    : "Not submitted",
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                  const SizedBox(width: 12),
+
+                  /// Status Filter
+                  SizedBox(
+                    width: 160,
+                    child: DropdownButtonFormField<String>(
+                      value: selectedStatus,
+                      isExpanded: true,
+                      hint: const Text(
+                        "Status",
+                        style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: "",
+                          child: Text("All"),
+                        ),
+                        ...["Assigned", "Review", "Approved", "Rejected"].map(
+                              (s) => DropdownMenuItem<String>(
+                            value: s,
+                            child: Text(
+                              s,
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        setState(
+                                () => selectedStatus = val!.isEmpty ? null : val);
+                      },
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
                         ),
                       ),
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      Image.asset(
-                        provider.teacherMissionParticipantModel!.data!.data![index].submission==null
-                        ? ImageHelper.assesments
-                            :provider.teacherMissionParticipantModel!.data!.data![index].submission!.approvedAt == null && provider.teacherMissionParticipantModel!.data!.data![index].submission!.rejectedAt == null
-                            ? ImageHelper.reviewIcon
-                            : provider.teacherMissionParticipantModel!.data!.data![index].submission!.rejectedAt != null
-                                ? ImageHelper.rejectedIcon
-                                : ImageHelper.completedIcon2,
-                        height: 30,
-                      ),
-                    ],
+                      icon: const Icon(Icons.arrow_drop_down,
+                          size: 22, color: Colors.black54),
+                      dropdownColor: Colors.white,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-        ),
+
+          /// List
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                Provider.of<StudentProgressProvider>(context, listen: false)
+                    .getTeacherMissionParticipant(widget.missionId);
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: filteredList.length,
+                itemBuilder: (context, index) {
+                  final participant = filteredList[index];
+                  final submission = participant.submission;
+
+                  // Status setup
+                  String statusText;
+                  Color statusColor;
+                  IconData statusIcon;
+
+                  if (submission == null) {
+                    statusText = "Assigned";
+                    statusColor = Colors.blueAccent;
+                    statusIcon = Icons.assignment_outlined;
+                  } else if (submission.approvedAt != null) {
+                    statusText = "Approved";
+                    statusColor = Colors.green;
+                    statusIcon = Icons.check_circle;
+                  } else if (submission.rejectedAt != null) {
+                    statusText = "Rejected";
+                    statusColor = Colors.red;
+                    statusIcon = Icons.cancel;
+                  } else {
+                    statusText = "Review";
+                    statusColor = Colors.orange;
+                    statusIcon = Icons.rate_review;
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12.withOpacity(0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundImage: participant.user?.profileImage !=
+                              null &&
+                              participant.user!.profileImage!.isNotEmpty
+                              ? NetworkImage(ApiHelper.imgBaseUrl +
+                              participant.user!.profileImage!)
+                              : const AssetImage(ImageHelper.profileIcon)
+                          as ImageProvider,
+                        ),
+                        const SizedBox(width: 14),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                participant.user?.name ?? "",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(statusIcon, color: statusColor, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    statusText,
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        if (submission != null)
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[200],
+                              foregroundColor: Colors.black87,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              push(
+                                context: context,
+                                page: TeacherMissionSubmissionPage(
+                                  missionIndex: index,
+                                  missionStatus: submission.approvedAt == null &&
+                                      submission.rejectedAt == null,
+                                  missionId: widget.missionId,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.info_outline, size: 18),
+                            label: const Text(
+                              "Details",
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

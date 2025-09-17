@@ -6,7 +6,8 @@ class ColorCode {
   static const Color defaultBgColor = Color(0xffF4F6FA);
   static const Color buttonColor = Color(0xff6574F9);
   static const Color textBlackColor = Color(0xff7a7a7a);
-  static const Color grey =  Color(0xFF525252);
+  static const Color grey = Color(0xFF525252);
+  static const Color greywhite = Color.fromARGB(255, 202, 202, 202);
 
   // Subject List Color
   static const Color subjectListColor1 = Color(0xfffec398);
@@ -17,7 +18,4 @@ class ColorCode {
 
   // Mission
   static const challengeMissionColor = Color(0xffFBD6DA);
-
-
-
 }

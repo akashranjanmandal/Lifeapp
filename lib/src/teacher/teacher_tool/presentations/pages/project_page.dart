@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/widgets/common_appbar.dart';
 import 'package:lifelab3/src/common/widgets/common_navigator.dart';
+import 'package:lifelab3/src/teacher/teacher_tool/presentations/pages/tool_mission_page.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/presentations/pages/tool_subject_page.dart';
+import 'package:lifelab3/src/teacher/teacher_tool/provider/tool_provider.dart';
 import 'package:lifelab3/src/teacher/vision/presentations/vision_list.dart';
 import 'package:lifelab3/src/teacher/vision/providers/vision_provider.dart';
 import 'package:provider/provider.dart';
@@ -142,13 +144,18 @@ class _TeacherProjectPageState extends State<TeacherProjectPage> {
                     shadowColor: Colors.grey.withOpacity(0.5),
                   ),
                   onPressed: () {
-                    push(
-                      context: context,
-                      page: ToolSubjectListPage(
-                        projectName: "Mission",
-                        sectionId: widget.sectionId,
-                        gradeId: widget.gradeId,
-                        classId: widget.classId,
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChangeNotifierProvider(
+                          create: (_) => ToolProvider(),
+                          child: ToolMissionPage(
+                            projectName: widget.name,
+                            sectionId: widget.sectionId,
+                            gradeId: widget.gradeId,
+                            classId: widget.classId,
+                          ),
+                        ),
                       ),
                     );
                   },

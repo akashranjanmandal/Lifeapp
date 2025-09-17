@@ -1,20 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
+import '../models/vision_model.dart';
+
 class AssignmentSuccessScreen extends StatelessWidget {
   final int assignedCount;
+  final TeacherVisionVideo visionVideo; // Pass the video model to get points
 
-  const AssignmentSuccessScreen({Key? key, required this.assignedCount}) : super(key: key);
+  const AssignmentSuccessScreen({
+    Key? key,
+    required this.assignedCount,
+    required this.visionVideo,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return _AssignmentSuccessScreenBody(assignedCount: assignedCount);
+    return _AssignmentSuccessScreenBody(
+      assignedCount: assignedCount,
+      visionVideo: visionVideo,
+    );
   }
 }
 
 class _AssignmentSuccessScreenBody extends StatefulWidget {
   final int assignedCount;
-  const _AssignmentSuccessScreenBody({required this.assignedCount});
+  final TeacherVisionVideo visionVideo;
+
+  const _AssignmentSuccessScreenBody({
+    required this.assignedCount,
+    required this.visionVideo,
+  });
 
   @override
   State<_AssignmentSuccessScreenBody> createState() => _AssignmentSuccessScreenBodyState();
@@ -22,12 +37,17 @@ class _AssignmentSuccessScreenBody extends StatefulWidget {
 
 class _AssignmentSuccessScreenBodyState extends State<_AssignmentSuccessScreenBody> {
   DateTime? _entryTime;
+  int totalPoints = 0;
 
   @override
   void initState() {
     super.initState();
     _entryTime = DateTime.now();
     MixpanelService.track('Assignment Success Screen Opened');
+
+    // Calculate total points
+    final teacherAssignPoints = widget.visionVideo.levelInfo?.teacher_assign_points ?? 0;
+    totalPoints = widget.assignedCount * teacherAssignPoints;
   }
 
   @override
@@ -53,7 +73,7 @@ class _AssignmentSuccessScreenBodyState extends State<_AssignmentSuccessScreenBo
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Assigned\nSuccessfully',
+                  'Assign\nSuccessfully',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -79,15 +99,32 @@ class _AssignmentSuccessScreenBodyState extends State<_AssignmentSuccessScreenBo
                   'Students are assigned',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
+                const SizedBox(height: 20),
+
+                // Total points
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(width: 8),
+                    Text(
+                      'Total Coins Earned: $totalPoints',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+
                 const SizedBox(height: 40),
-                const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
                       MixpanelService.track('Assignment Success Done Button Clicked');
-                      Navigator.pop(context); // close current screen
-                      Navigator.pop(context);   // close current screen
+                      Navigator.pop(context);
+                      Navigator.pop(context);
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(

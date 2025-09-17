@@ -8,7 +8,6 @@ import 'package:lifelab3/src/student/mission/presentations/pages/mission_success
 import 'package:lifelab3/src/student/mission/services/complete_mission_services.dart';
 
 import '../../../common/helper/color_code.dart';
-import '../../../common/helper/string_helper.dart';
 
 class MissionProvider extends ChangeNotifier {
 

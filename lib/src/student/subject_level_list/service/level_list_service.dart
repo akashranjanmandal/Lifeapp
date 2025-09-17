@@ -45,7 +45,7 @@ class LevelListService {
     }
   }
 
-  Future getMissionData({required int type, required String subjectId, required String levelId, String params = ""}) async {
+  Future getMissionData({required int type, String? subjectId, String? levelId, String params = ""}) async {
     try {
       Response response = await dio.post(
         ApiHelper.baseUrl + ApiHelper.mission + params,

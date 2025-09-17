@@ -13,7 +13,7 @@ class ApiHelper {
 
   static const String baseUrl = "https://api.life-lab.org";
   
-  // static const String baseUrl = "https://api.gappubobo.com";
+  // static const String baseUrl = "https://staging.life-lab.org";
 
   // static const String baseUrl = "http://10.0.2.2:8000";
 

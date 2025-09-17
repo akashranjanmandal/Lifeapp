@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/vision_model.dart';
 import '../providers/vision_provider.dart';
 import 'assignment_success.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/provider/teacher_dashboard_provider.dart';
@@ -34,6 +35,7 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
   bool _isLoading = false;
   String? _errorMessage;
   late DateTime _pageOpenTime;
+  late TeacherVisionVideo videoModel;
 
   @override
   void initState() {
@@ -215,7 +217,7 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
       child: Row(
         children: [
           const CircleAvatar(
-            backgroundImage: AssetImage('assets/user.png'),
+            backgroundImage: AssetImage('assets/images/user.png'),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -365,15 +367,30 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
       );
 
       if (success) {
-        debugPrint('✅ Video assigned successfully');
+        final provider = Provider.of<VisionProvider>(context, listen: false);
+        final video = provider.getVideoById(widget.videoId);
+
+        if (video == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error: Video details not found.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => AssignmentSuccessScreen(
-                assignedCount: selectedStudentIds.length),
+              assignedCount: selectedStudentIds.length,
+              visionVideo: video,
+            ),
           ),
         );
-      } else {
+      }
+      else {
         debugPrint('❌ Assignment failed');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

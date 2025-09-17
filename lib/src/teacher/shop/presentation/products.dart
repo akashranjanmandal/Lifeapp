@@ -61,7 +61,9 @@ class _ProductsState extends State<Products> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showInvalidSchoolCodeDialog();
         });
-      } else if (budgetExceeded && !_budgetDialogShown && !widget.product.redeemed) {
+      } else if (budgetExceeded &&
+          !_budgetDialogShown &&
+          !widget.product.redeemed) {
         _budgetDialogShown = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showBudgetExceededDialog();
@@ -81,12 +83,12 @@ class _ProductsState extends State<Products> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: Row(
+          title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 30),
               SizedBox(width: 10),
               Text(
-                'Budget Exceeded',
+                'Purchase limit reached',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -95,8 +97,8 @@ class _ProductsState extends State<Products> {
               ),
             ],
           ),
-          content: Text(
-            "Your shopping budget has been exceeded for this month.\n\nYou'll need to wait until it resets before making new purchases.",
+          content: const Text(
+            "Hang tight — you can shop again once it resets!",
             style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
           actions: [
@@ -104,11 +106,14 @@ class _ProductsState extends State<Products> {
               onPressed: () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white,
-                backgroundColor: Color(0xFF6574F9),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                backgroundColor: const Color(0xFF6574F9),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
-              child: Text('Close', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('Close',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -123,7 +128,8 @@ class _ProductsState extends State<Products> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
               Icon(Icons.school, color: Colors.red, size: 30),
@@ -154,10 +160,12 @@ class _ProductsState extends State<Products> {
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white,
                 backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
-              child: Text('Update Now', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text('Update Now',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -189,7 +197,10 @@ class _ProductsState extends State<Products> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text('Products',
-            style: TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                color: Colors.black,
+                fontSize: 22,
+                fontWeight: FontWeight.w600)),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black, size: 26),
           onPressed: () {
@@ -219,14 +230,21 @@ class _ProductsState extends State<Products> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('Life App Coin Balance ',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500)),
                   Text(coinBalance.toString(),
-                      style: TextStyle(color: Colors.amber[200], fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          color: Colors.amber[200],
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold)),
                   SizedBox(width: 6),
                   SizedBox(
                     height: 20,
                     width: 20,
-                    child: Image.asset('assets/images/coin.png', color: Colors.amber[200]),
+                    child: Image.asset('assets/images/coin.png',
+                        color: Colors.amber[200]),
                   )
                 ],
               ),
@@ -263,7 +281,10 @@ class _ProductsState extends State<Products> {
                 ),
                 child: Text(
                   product.title,
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 24, color: Colors.blueAccent),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 24,
+                      color: Colors.blueAccent),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -272,7 +293,10 @@ class _ProductsState extends State<Products> {
             // Description
             SizedBox(height: 20),
             Text('Description',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 19, color: Colors.black)),
+                style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 19,
+                    color: Colors.black)),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -288,7 +312,8 @@ class _ProductsState extends State<Products> {
                 Expanded(
                   child: Text(
                     product.details,
-                    style: TextStyle(fontSize: 16, color: Colors.black87, height: 1.5),
+                    style: TextStyle(
+                        fontSize: 16, color: Colors.black87, height: 1.5),
                   ),
                 ),
               ],
@@ -312,18 +337,21 @@ class _ProductsState extends State<Products> {
                     return;
                   }
 
-                  MixpanelService.track(product.redeemed
-                      ? "Product View Order Details clicked"
-                      : "Product Redeem clicked", properties: {
-                    "product_title": product.title,
-                    "product_id": product.id ?? "",
-                    "redeemed": product.redeemed,
-                    "timestamp": DateTime.now().toIso8601String(),
-                  });
+                  MixpanelService.track(
+                      product.redeemed
+                          ? "Product View Order Details clicked"
+                          : "Product Redeem clicked",
+                      properties: {
+                        "product_title": product.title,
+                        "product_id": product.id ?? "",
+                        "redeemed": product.redeemed,
+                        "timestamp": DateTime.now().toIso8601String(),
+                      });
 
                   if (product.redeemed) {
                     await provider.loadPurchases();
-                    final purchase = provider.getPurchaseByProductId(product.id);
+                    final purchase =
+                        provider.getPurchaseByProductId(product.id);
                     if (purchase != null) {
                       Navigator.pushReplacement(
                         context,
@@ -336,7 +364,9 @@ class _ProductsState extends State<Products> {
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Product redeemed, but purchase details not found.")),
+                        SnackBar(
+                            content: Text(
+                                "Product redeemed, but purchase details not found.")),
                       );
                     }
                   } else {
@@ -345,26 +375,34 @@ class _ProductsState extends State<Products> {
                       if (newPurchase != null && provider.error == null) {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => BoughtProduct(product: product)),
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  BoughtProduct(product: product)),
                         );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(provider.error ?? 'Could not redeem product')),
+                          SnackBar(
+                              content: Text(provider.error ??
+                                  'Could not redeem product')),
                         );
                       }
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('You do not have enough coins to redeem this product.')),
+                        SnackBar(
+                            content: Text(
+                                'You do not have enough coins to redeem this product.')),
                       );
                     }
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: product.redeemed || coinBalance >= product.coin
-                      ? Color(0xFF6574F9)
-                      : Colors.grey.shade400,
+                  backgroundColor:
+                      product.redeemed || coinBalance >= product.coin
+                          ? Color(0xFF6574F9)
+                          : Colors.grey.shade400,
                   padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   elevation: 2,
                 ),
                 child: Row(
@@ -372,11 +410,17 @@ class _ProductsState extends State<Products> {
                   children: [
                     Text(
                       product.redeemed ? 'View Order Details' : 'Redeem with ',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16),
                     ),
                     if (!product.redeemed)
                       Text(product.coin.toString(),
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16)),
                     SizedBox(width: 8),
                     Image.asset('assets/images/coin.png',
                         width: 20, height: 20, color: Colors.amber[200]),

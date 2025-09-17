@@ -3,6 +3,7 @@ import 'package:lifelab3/src/common/helper/color_code.dart';
 import 'package:lifelab3/src/common/helper/image_helper.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/common_navigator.dart';
+import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/teacher_faq_page.dart';
 import 'package:lifelab3/src/utils/storage_utils.dart';
 import 'package:lifelab3/src/welcome/presentation/page/welcome_page.dart';
 
@@ -38,7 +39,6 @@ class TeacherDrawerView extends StatelessWidget {
                   title: Row(
                     children: [
                       Image.asset(ImageHelper.drawerChallengeIcon, height: 23),
-
                       const SizedBox(width: 10),
                       const Text(
                         StringHelper.teacherResources,
@@ -56,9 +56,11 @@ class TeacherDrawerView extends StatelessWidget {
                       padding: const EdgeInsets.only(left: 30, top: 8),
                       child: InkWell(
                         onTap: () {
-                          MixpanelService.track("Teacher resources - Competencies clicked", properties: {
-                            "timestamp": DateTime.now().toIso8601String(),
-                          });
+                          MixpanelService.track(
+                              "Teacher resources - Competencies clicked",
+                              properties: {
+                                "timestamp": DateTime.now().toIso8601String(),
+                              });
                           push(
                             context: context,
                             page: const TeacherSubjectListPage(
@@ -95,9 +97,11 @@ class TeacherDrawerView extends StatelessWidget {
                       padding: const EdgeInsets.only(left: 30, top: 8),
                       child: InkWell(
                         onTap: () {
-                          MixpanelService.track("Teacher resources - Concept cartoons clicked", properties: {
-                            "timestamp": DateTime.now().toIso8601String(),
-                          });
+                          MixpanelService.track(
+                              "Teacher resources - Concept cartoons clicked",
+                              properties: {
+                                "timestamp": DateTime.now().toIso8601String(),
+                              });
                           push(
                             context: context,
                             page: const CartoonHeaderPage(),
@@ -133,9 +137,10 @@ class TeacherDrawerView extends StatelessWidget {
                       child: InkWell(
                         onTap: () {
                           MixpanelService.track(
-                              "Teacher resources - Assessments clicked", properties: {
-                            "timestamp": DateTime.now().toIso8601String(),
-                          });
+                              "Teacher resources - Assessments clicked",
+                              properties: {
+                                "timestamp": DateTime.now().toIso8601String(),
+                              });
                           push(
                             context: context,
                             page: const TeacherSubjectListPage(
@@ -173,9 +178,10 @@ class TeacherDrawerView extends StatelessWidget {
                       child: InkWell(
                         onTap: () {
                           MixpanelService.track(
-                              "Teacher resources - Worksheets clicked", properties: {
-                            "timestamp": DateTime.now().toIso8601String(),
-                          });
+                              "Teacher resources - Worksheets clicked",
+                              properties: {
+                                "timestamp": DateTime.now().toIso8601String(),
+                              });
                           push(
                             context: context,
                             page: const TeacherSubjectListPage(
@@ -224,7 +230,6 @@ class TeacherDrawerView extends StatelessWidget {
                   title: Row(
                     children: [
                       Image.asset(ImageHelper.drawerRewardIcon, height: 23),
-
                       const SizedBox(width: 10),
                       const Text(
                         StringHelper.teacherTool,
@@ -243,9 +248,10 @@ class TeacherDrawerView extends StatelessWidget {
                       child: InkWell(
                         onTap: () {
                           MixpanelService.track(
-                              "Teacher tools - Project based learning clicked", properties: {
-                            "timestamp": DateTime.now().toIso8601String(),
-                          });
+                              "Teacher tools - Project based learning clicked",
+                              properties: {
+                                "timestamp": DateTime.now().toIso8601String(),
+                              });
                           push(
                             context: context,
                             page: const TeacherClassPage(),
@@ -281,9 +287,10 @@ class TeacherDrawerView extends StatelessWidget {
                       child: InkWell(
                         onTap: () {
                           MixpanelService.track(
-                              "Teacher tools - Student tracker clicked", properties: {
-                            "timestamp": DateTime.now().toIso8601String(),
-                          });
+                              "Teacher tools - Student tracker clicked",
+                              properties: {
+                                "timestamp": DateTime.now().toIso8601String(),
+                              });
                           push(
                             context: context,
                             page: const StudentProgressPage(),
@@ -325,17 +332,37 @@ class TeacherDrawerView extends StatelessWidget {
             //
             // const SizedBox(height: 10),
             // const _NotificationWidget(),
-
-
-            // Version
             const SizedBox(height: 20),
+            //faq_page
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TeacherFaqPage(),
+                  ),
+                );
+              },
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              child: const Text(
+                "${StringHelper.faq} ",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+            // Version
             const Text(
               "${StringHelper.version} 3.0.0",
               style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
-                  fontWeight: FontWeight.w600
-              ),
+                  fontWeight: FontWeight.w600),
             ),
 
             // Reset Pin
@@ -365,7 +392,11 @@ class TeacherDrawerView extends StatelessWidget {
                   "timestamp": DateTime.now().toIso8601String(),
                 });
                 StorageUtil.clearData();
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const WelComePage()), (route) => false);
+                Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const WelComePage()),
+                    (route) => false);
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
@@ -390,14 +421,12 @@ class TeacherDrawerView extends StatelessWidget {
             ),
 
             const SizedBox(height: 100),
-
           ],
         ),
       ),
     );
   }
 }
-
 
 class _DownloadWidget extends StatelessWidget {
   const _DownloadWidget();
@@ -500,5 +529,3 @@ class _NotificationWidget extends StatelessWidget {
     );
   }
 }
-
-

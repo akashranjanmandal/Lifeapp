@@ -294,6 +294,22 @@ class VisionProvider with ChangeNotifier {
       return [];
     }
   }
+  TeacherVisionVideo? getVideoById(String videoId) {
+    try {
+      return _allVideos.firstWhere(
+            (video) => video.id == videoId,
+        orElse: () {
+          return _assignedVideos.firstWhere(
+                (video) => video.id == videoId,
+            orElse: () => throw Exception('Video not found'),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('❌ Video not found for id $videoId');
+      return null;
+    }
+  }
 
   // Load more videos pagination
   Future<void> loadMoreVideos() async {

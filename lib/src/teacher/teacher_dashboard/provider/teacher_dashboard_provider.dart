@@ -68,6 +68,11 @@ class TeacherDashboardProvider extends ChangeNotifier {
   // PBL PDF mappings
   List<PblTextbookMapping> get pdfMappings =>
       pblMappingResponse?.data.pblTextbookMappings ?? [];
+  List<TeacherSubjectGradePair> subjectGradePairsWithPdf = [];
+  void setSubjectGradePairsWithPdf(List<TeacherSubjectGradePair> pairs) {
+    subjectGradePairsWithPdf = pairs;
+    notifyListeners();
+  }
 
   /// ----------------- TEACHER SUBJECT GRADE -----------------
   Future<void> getTeacherSubjectGrade() async {
@@ -100,7 +105,8 @@ class TeacherDashboardProvider extends ChangeNotifier {
     int? laBoardId,
     required int laSubjectId,
     required int laGradeId,
-  }) async {
+  })
+  async {
     try {
       Map<String, dynamic> body = {
         "language_id": languageId,

@@ -51,10 +51,8 @@ class _TeacherLevelListPageState extends State<TeacherLevelListPage> {
               page: ToolMissionPage(
                 projectName: widget.projectName,
                 classId: widget.classId,
-                subjectId: widget.subjectId,
                 gradeId: widget.gradeId,
                 sectionId: widget.sectionId,
-                levelId: provider.level!.data!.laLevels![index].id!.toString(),
               ),
             );
           },

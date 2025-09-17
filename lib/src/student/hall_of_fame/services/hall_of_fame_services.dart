@@ -10,7 +10,6 @@ import '../../../common/helper/string_helper.dart';
 import '../../../utils/storage_utils.dart';
 
 class HallOfFameServices {
-
   Dio dio = Dio();
 
   Future getHallOfFameData() async {
@@ -21,7 +20,8 @@ class HallOfFameServices {
           contentType: "application/json",
           headers: {
             HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
+            HttpHeaders.authorizationHeader:
+                "Bearer ${StorageUtil.getString(StringHelper.token)}"
           },
         ),
       );
@@ -33,7 +33,7 @@ class HallOfFameServices {
       debugPrint("Get Hall Of Fame Dio Error ${e.response}");
       Fluttertoast.showToast(msg: e.response!.data!["message"]);
       Loader.hide();
-    } on SocketException catch(e) {
+    } on SocketException catch (e) {
       Loader.hide();
       debugPrint("Get Hall Of Fame Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
@@ -43,5 +43,4 @@ class HallOfFameServices {
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
     }
   }
-
 }

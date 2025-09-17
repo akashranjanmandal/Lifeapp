@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import '../../teacher_dashboard/provider/teacher_dashboard_provider.dart';
 import '../models/vision_model.dart';
 import '../providers/vision_provider.dart';
 import 'video_player.dart';
@@ -200,7 +201,7 @@ class _VisionPageState extends State<VisionPage>
                 // Show section info if available
                 if (widget.sectionId.isNotEmpty)
                   Text(
-                    'Section: ${widget.sectionId}',
+                    'Grade: ${widget.gradeId}',
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 12,
@@ -216,7 +217,7 @@ class _VisionPageState extends State<VisionPage>
               ),
             ],
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(100),
+              preferredSize: const Size.fromHeight(160),
               child: Column(
                 children: [
                   Container(
@@ -241,11 +242,13 @@ class _VisionPageState extends State<VisionPage>
                       ),
                       tabs: const [
                         Tab(text: 'All Vision'),
-                        Tab(text: 'Track Assigned Vision'),
+                        Tab(text: 'Track Vision'),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // 🔹 Filters Row (Subject, Level, Chapter)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -260,47 +263,56 @@ class _VisionPageState extends State<VisionPage>
                           provider.setLevelFilter(value);
                         }, availableLevels),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Container(
-                            height: 36, // Slightly increased from 36 to avoid clipping
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.grey[300]!),
-                            ),
-                            alignment: Alignment.center, // Ensures child centers vertically
-                            child: TextField(
-                              controller: _searchController,
-                              textAlignVertical: TextAlignVertical.center, // ✅ Forces vertical centering
-                              style: const TextStyle(fontSize: 14),
-                              decoration: InputDecoration(
-                                hintText: 'Search...',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey[500],
-                                  fontSize: 14,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.search,
-                                  color: Colors.grey[500],
-                                  size: 20,
-                                ),
-                                border: InputBorder.none,
-                                isDense: true, // ✅ Reduces internal spacing
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, // Horizontal padding only
-                                  vertical: 0,     // Let textAlignVertical handle vertical alignment
-                                ),
-                              ),
-                              onChanged: (value) {
-                                provider.setSearchQuery(value);
-                              },
-                            ),
-                          ),
-                        ),
-
+                        // 🔹 New Chapter Dropdown (demo only, no logic)
+                        // _buildFilterChip('Chapter', '', (value) {
+                        //   // Demo only: no functionality
+                        // }, ['Chapter 1', 'Chapter 2', 'Chapter 3']),
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 12),
+
+                  // 🔹 Search Bar moved below filters
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      alignment: Alignment.center,
+                      child: TextField(
+                        controller: _searchController,
+                        textAlignVertical: TextAlignVertical.center,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Search...',
+                          hintStyle: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Colors.grey[500],
+                            size: 20,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 0,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          provider.setSearchQuery(value);
+                        },
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 16),
                 ],
               ),
@@ -423,7 +435,6 @@ class _VisionPageState extends State<VisionPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Video thumbnail with rounded corners
         ClipRRect(
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
@@ -555,6 +566,25 @@ class _VisionPageState extends State<VisionPage>
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  if (video.chapter != null && video.chapter!.title.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00FFB9).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        video.chapter!.title.length > 10
+                            ? '${video.chapter!.title.substring(0, 10)}...'
+                            : video.chapter!.title,
+                        style: const TextStyle(
+                          color: Color(0xFF000000),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],
