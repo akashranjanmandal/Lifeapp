@@ -46,7 +46,7 @@ class _AssignmentSuccessScreenBodyState extends State<_AssignmentSuccessScreenBo
     MixpanelService.track('Assignment Success Screen Opened');
 
     // Calculate total points
-    final teacherAssignPoints = widget.visionVideo.levelInfo?.teacher_assign_points ?? 0;
+    final teacherAssignPoints = widget.visionVideo.levelInfo?.teacherAssignPoints ?? 0;
     totalPoints = widget.assignedCount * teacherAssignPoints;
   }
 

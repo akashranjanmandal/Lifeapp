@@ -105,7 +105,9 @@ class _TeacherProjectPageState extends State<TeacherProjectPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => ChangeNotifierProvider(
-                          create: (_) => VisionProvider(),
+                          create: (_) => VisionProvider(
+                            gradeId: widget.gradeId,
+                          ),
                           child: VisionPage(
                             navName: 'Vision',
                             subjectName: 'Subject Name',

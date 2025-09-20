@@ -19,64 +19,131 @@ class TeacherVisionAPIService {
   Future<String?> _getAuthToken() async {
     return StorageUtil.getString(StringHelper.token);
   }
-  Future<List<TeacherVisionVideo>> _fetchVideos({
+  // Add this inside TeacherVisionAPIService
+  Future<List<Map<String, dynamic>>> getChapters({
+    required String gradeId,
+    String? boardId,
     String? subjectId,
-    String? levelId,
-    int page = 1,
-    int perPage = 10,
-    required bool isAllSubjects,
   }) async {
     try {
+      // 1️⃣ Get Auth Token
       final token = await _getAuthToken();
       if (token == null || token.isEmpty) {
+        debugPrint('❌ Authentication token not found.');
         throw Exception('Authentication token not found');
       }
+      debugPrint('🔑 Auth token retrieved.');
 
-      final Map<String, String> queryParams = {
-        'per_page': perPage.toString(),
-        'page': page.toString(),
+      // 2️⃣ Prepare query parameters
+      final queryParams = {
+        'la_grade_id': gradeId,
+        if (boardId != null && boardId.isNotEmpty) 'la_board_id': boardId,
+        if (subjectId != null && subjectId.isNotEmpty) 'la_subject_id': subjectId,
       };
+      debugPrint('📋 Query parameters: $queryParams');
 
-      if (!isAllSubjects && subjectId != null && subjectId.isNotEmpty) {
-        queryParams['la_subject_id'] = subjectId;
-      }
-      if (levelId != null && levelId.isNotEmpty) {
-        queryParams['la_level_id'] = levelId;
-      }
+      // 3️⃣ Build URI
+      final uri = Uri.parse('$baseUrl/chapters').replace(queryParameters: queryParams);
+      debugPrint('🔄 Fetching chapters from: $uri');
 
-      const endpoint = '$baseUrl/teachers/visions-list';
-      final uri = Uri.parse(endpoint).replace(queryParameters: queryParams);
-      debugPrint('🔄 Fetching videos from: $uri');
-
+      // 4️⃣ Make HTTP GET request
       final response = await http.get(
         uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: _REQUEST_TIMEOUT), onTimeout: () {
-        throw TimeoutException('Request timed out');
-      });
+      ).timeout(
+        const Duration(seconds: _REQUEST_TIMEOUT),
+        onTimeout: () => throw TimeoutException('Request timed out'),
+      );
+      debugPrint('📥 API response status: ${response.statusCode}, body: ${response.body}');
 
+      // 5️⃣ Handle response
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        if (responseData['status'] == 200 && responseData['data'] != null) {
-          final videos = _parseVideoData(responseData['data']);
-          if (videos.isEmpty) {
-            debugPrint('ℹ️ API returned empty videos list');
-          }
-          return videos;
+        debugPrint('📊 Response data parsed: $responseData');
+
+        if (responseData['chapters'] != null && responseData['chapters'] is List) {
+          final List<dynamic> chapters = responseData['chapters'];
+          debugPrint('✅ Chapters fetched: ${chapters.map((c) => c['title']).toList()}');
+
+          return chapters.map((e) => Map<String, dynamic>.from(e)).toList();
         } else {
-          throw Exception(responseData['message'] ?? 'Unknown API error');
+          debugPrint('⚠️ Chapters API returned no chapters.');
+          return []; // Return empty list instead of throwing
         }
       } else if (response.statusCode == 401) {
         await _clearAuthToken();
+        debugPrint('❌ Authentication failed (401)');
         throw Exception('Authentication failed');
       } else {
+        debugPrint('❌ HTTP Error ${response.statusCode}: ${response.reasonPhrase}');
+        throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+      }
+    } catch (e, stack) {
+      debugPrint('💥 Error fetching chapters: $e');
+      debugPrint(stack.toString());
+      rethrow;
+    }
+  }
+
+  Future<List<TeacherVisionVideo>> _fetchVideos({
+    String? subjectId,
+    String? levelId,
+    String? chapterId,
+    int page = 1,
+    int perPage = 10,
+  }) async {
+    final token = await _getAuthToken();
+    if (token == null || token.isEmpty) {
+      debugPrint('❌ No auth token found when fetching videos.');
+      throw Exception('Authentication token not found');
+    }
+
+    final Map<String, String> queryParams = {
+      'per_page': perPage.toString(),
+      'page': page.toString(),
+      if (subjectId != null && subjectId.isNotEmpty) 'la_subject_id': subjectId,
+      if (levelId != null && levelId.isNotEmpty) 'la_level_id': levelId,
+      if (chapterId != null && chapterId.isNotEmpty) 'chapter_id': chapterId,
+    };
+
+    final uri = Uri.parse('$baseUrl/teachers/visions-list').replace(queryParameters: queryParams);
+    debugPrint('🔄 Fetching videos with filters: $queryParams');
+    debugPrint('🔗 Full request URI: $uri');
+
+    try {
+      final response = await http.get(uri, headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      }).timeout(const Duration(seconds: _REQUEST_TIMEOUT));
+
+      debugPrint('📥 API response status: ${response.statusCode}');
+      debugPrint('📄 API response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        debugPrint('📊 Response parsed JSON keys: ${responseData.keys.toList()}');
+
+        if (responseData['status'] == 200 && responseData['data'] != null) {
+          final videos = _parseVideoData(responseData['data']);
+          debugPrint('✅ Number of videos parsed: ${videos.length}');
+          if (videos.isEmpty) {
+            debugPrint('⚠️ No videos returned for filters: $queryParams');
+          }
+          return videos;
+        } else {
+          debugPrint('⚠️ API returned status ${responseData['status']} or null data');
+          return [];
+        }
+      } else {
+        debugPrint('❌ HTTP error ${response.statusCode}: ${response.body}');
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('💥 Error fetching videos: $e');
+      debugPrint(stack.toString());
       rethrow;
     }
   }
@@ -100,39 +167,47 @@ class TeacherVisionAPIService {
       }
     }
 
+    debugPrint('🔍 Extracted video data count: ${videoData.length}');
+    for (var v in videoData) {
+      debugPrint('🎬 Video: ${v['title'] ?? v['name']}, ID: ${v['id'] ?? 'N/A'}, SubjectID: ${v['la_subject_id'] ?? 'N/A'}, ChapterID: ${v['chapter_id'] ?? 'N/A'}');
+    }
+
     return videoData.map((item) => TeacherVisionVideo.fromJson(item)).toList();
   }
-
   Future<void> _clearAuthToken() async {
     await SharedPreferences.getInstance()
         .then((prefs) => prefs.remove(StringHelper.token));
   }
 
   Future<List<TeacherVisionVideo>> getAllVisionVideos({
+    String? subjectId,   // ✅ add this
     String? levelId,
+    String? chapterId,   // ✅ add this
     int page = 1,
-    int perPage = 10,
-  }) async {
+    int perPage = 10
+  })
+  async {
     return await _fetchVideos(
+      subjectId: subjectId,
       levelId: levelId,
+      chapterId: chapterId,
       page: page,
       perPage: perPage,
-      isAllSubjects: true,
     );
   }
-
   Future<List<TeacherVisionVideo>> getVisionVideosBySubject(
       String subjectId, {
         String? levelId,
+        String? chapterId,
         int page = 1,
         int perPage = 10,
       }) async {
     return await _fetchVideos(
       subjectId: subjectId,
       levelId: levelId,
+      chapterId: chapterId,
       page: page,
       perPage: perPage,
-      isAllSubjects: false,
     );
   }
 // Add this to TeacherVisionAPIService
@@ -185,8 +260,8 @@ class TeacherVisionAPIService {
   Future<List<TeacherVisionVideo>> getAssignedVideos({
     String? subjectId,
     String? levelId,
-  })
-  async {
+    String? chapterId, // ✅ new
+  }) async {
     try {
       final token = await _getAuthToken();
       if (token == null) {
@@ -200,6 +275,9 @@ class TeacherVisionAPIService {
       if (levelId != null && levelId.isNotEmpty) {
         queryParams['la_level_id'] = levelId;
       }
+      if (chapterId != null && chapterId.isNotEmpty) {
+        queryParams['chapter_id'] = chapterId; // ✅ include chapter filter
+      }
 
       final endpoints = [
         '$baseUrl/teachers/visions',
@@ -212,7 +290,7 @@ class TeacherVisionAPIService {
             return result;
           }
         } catch (e) {
-          continue;
+          continue; // try next endpoint
         }
       }
 
@@ -222,22 +300,22 @@ class TeacherVisionAPIService {
       rethrow;
     }
   }
+
   Future<List<TeacherVisionVideo>> searchVisionVideos({
     String? subjectId,
     String? levelId,
+    String? chapterId, // ✅ add this
     required String searchTitle,
     required int page,
     required int perPage,
     required String authToken,
-  })
-  async {
+  }) async {
     try {
       final Map<String, String> queryParams = {
         'search_title': searchTitle,
+        'page': page.toString(),
+        'per_page': perPage.toString(),
       };
-      if (page > 0) queryParams['page'] = page.toString();
-      if (perPage > 0) queryParams['per_page'] = perPage.toString();
-
 
       if (subjectId != null && subjectId.isNotEmpty) {
         queryParams['la_subject_id'] = subjectId;
@@ -245,12 +323,11 @@ class TeacherVisionAPIService {
       if (levelId != null && levelId.isNotEmpty) {
         queryParams['la_level_id'] = levelId;
       }
+      if (chapterId != null && chapterId.isNotEmpty) { // ✅ handle chapterId
+        queryParams['chapter_id'] = chapterId;
+      }
 
       final uri = Uri.https('api.life-lab.org', '/v3/teachers/visions-list', queryParams);
-
-      debugPrint('🔍 Searching Vision Videos');
-      debugPrint('➡️ Request URI: $uri');
-      debugPrint('➡️ Request Headers: Authorization=Bearer $authToken');
 
       final response = await http.get(
         uri,
@@ -264,12 +341,8 @@ class TeacherVisionAPIService {
         onTimeout: () => throw TimeoutException('Request timed out'),
       );
 
-      debugPrint('⬅️ Response status: ${response.statusCode}');
-      debugPrint('⬅️ Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-
         if (responseData['status'] == 200 && responseData['data'] != null) {
           return _parseVideoData(responseData['data']);
         } else {

@@ -35,155 +35,133 @@ class NotificationModel {
 class NotificationData {
   final String? id;
   final String? type;
-  final String? notifiableType;
-  final int? notifiableId;
-  final NotificationInner1Data? data;
-  final dynamic readAt;
-  final String? createdAt;
-  final String? updatedAt;
-  final String? subjectId;
+  final String? createdAt; // <-- add this back
+  final NotificationInner1Data data;
 
   NotificationData({
     this.id,
     this.type,
-    this.notifiableType,
-    this.notifiableId,
-    this.data,
-    this.readAt,
     this.createdAt,
-    this.updatedAt,
-    this.subjectId,
+    required this.data,
   });
 
   factory NotificationData.fromJson(Map<String, dynamic> json) {
-    NotificationInner1Data? parsedData;
+    NotificationInner1Data parsedData;
 
     final rawData = json['data'];
-    if (rawData != null) {
-      if (rawData is String) {
-        try {
-          parsedData = NotificationInner1Data.fromJson(jsonDecode(rawData));
-        } catch (e) {
-          debugPrint('NotificationData.fromJson: failed to decode data string → $e');
+    if (rawData != null && rawData is Map<String, dynamic>) {
+      parsedData = NotificationInner1Data.fromJson(rawData);
+    } else if (rawData != null && rawData is String) {
+      try {
+        final decoded = jsonDecode(rawData);
+        if (decoded is Map<String, dynamic>) {
+          parsedData = NotificationInner1Data.fromJson(decoded);
+        } else {
+          parsedData = NotificationInner1Data(title: '', message: '', data: ActionData(action: 0));
         }
-      } else if (rawData is Map<String, dynamic>) {
-        parsedData = NotificationInner1Data.fromJson(rawData);
+      } catch (_) {
+        parsedData = NotificationInner1Data(title: '', message: '', data: ActionData(action: 0));
       }
+    } else {
+      parsedData = NotificationInner1Data(title: '', message: '', data: ActionData(action: 0));
     }
 
     return NotificationData(
-      id: json['id'] as String?,
-      type: json['type'] as String?,
-      notifiableType: json['notifiable_type'] as String?,
-      notifiableId: json['notifiable_id'] as int?,
+      id: json['id']?.toString(),
+      type: json['type']?.toString(),
+      createdAt: json['created_at']?.toString(), // <-- parse this
       data: parsedData,
-      readAt: json['read_at'],
-      createdAt: json['created_at'] as String?,
-      updatedAt: json['updated_at'] as String?,
-      subjectId: parsedData?.data?.laSubjectId?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': type,
-    'notifiable_type': notifiableType,
-    'notifiable_id': notifiableId,
-    'data': data?.toJson(),
-    'read_at': readAt,
     'created_at': createdAt,
-    'updated_at': updatedAt,
-    'subject_id': subjectId,
+    'data': data.toJson(),
   };
 }
 
 class NotificationInner1Data {
-  final String? title;
-  final String? message;
-  final ActionData? data;
+  final String title;
+  final String message;
+  final ActionData data;
 
   NotificationInner1Data({
-    this.title,
-    this.message,
-    this.data,
+    required this.title,
+    required this.message,
+    required this.data,
   });
 
   factory NotificationInner1Data.fromJson(Map<String, dynamic> json) {
-    ActionData? parsedActionData;
+    Map<String, dynamic> actionMap = {};
 
-    final rawData = json['data'];
-    if (rawData != null) {
-      if (rawData is String) {
-        try {
-          parsedActionData = ActionData.fromJson(jsonDecode(rawData));
-        } catch (e) {
-          debugPrint('NotificationInner1Data.fromJson: failed to decode action data → $e');
-        }
-      } else if (rawData is Map<String, dynamic>) {
-        parsedActionData = ActionData.fromJson(rawData);
-      }
+    final raw = json['data'];
+    if (raw != null && raw is Map<String, dynamic>) {
+      actionMap = raw;
+    } else if (raw != null && raw is String) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) actionMap = decoded;
+      } catch (_) {}
     }
 
     return NotificationInner1Data(
-      title: json['title'] as String?,
-      message: json['message'] as String?,
-      data: parsedActionData,
+      title: (json['title'] ?? '').toString(),
+      message: (json['message'] ?? '').toString(),
+      data: ActionData.fromJson(actionMap),
     );
   }
 
   Map<String, dynamic> toJson() => {
     'title': title,
     'message': message,
-    'data': data?.toJson(),
+    'data': data.toJson(),
   };
 }
 
 class ActionData {
   final int? action;
-  final dynamic actionId;
-  final dynamic mediaUrl;
-  final dynamic laSubjectId;
-  final dynamic laLevelId;
-  final dynamic missionId;
-  final dynamic visionId;
-  final int? time;
+  final int? actionId;
+  final int? laSubjectId;
+  final int? laLevelId;
+  final int? missionId;
+  final int? visionId;
+  final int? time; // <-- fix: added
   final String? visionTitle;
 
   ActionData({
     this.action,
     this.actionId,
-    this.mediaUrl,
     this.laSubjectId,
     this.laLevelId,
     this.missionId,
     this.visionId,
-    this.time,
+    this.time, // <-- fix
     this.visionTitle,
   });
 
   factory ActionData.fromJson(Map<String, dynamic> json) {
     return ActionData(
       action: json['action'] as int?,
-      actionId: json['action_id'],
-      mediaUrl: json['media_url'],
-      laSubjectId: json['la_subject_id'],
-      laLevelId: json['la_level_id'],
-      missionId: json['mission_id'],
-      visionId: json['vision_id'],
-      time: json["quiz_time"],
-      visionTitle: json["vision_title"] as String?,
+      actionId: json['action_id'] ?? json['actionId'],
+      laSubjectId: json['la_subject_id'] ?? json['laSubjectId'],
+      laLevelId: json['la_level_id'] ?? json['laLevelId'],
+      missionId: json['mission_id'] ?? json['missionId'],
+      visionId: json['vision_id'] ?? json['visionId'],
+      time: json['time'] ?? json['quiz_time'],
+      visionTitle: json['vision_title'] ?? json['visionTitle'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'action': action,
     'action_id': actionId,
-    'media_url': mediaUrl,
     'la_subject_id': laSubjectId,
     'la_level_id': laLevelId,
     'mission_id': missionId,
     'vision_id': visionId,
-    'quiz_time': time,
+    'time': time,
     'vision_title': visionTitle,
   };
 }

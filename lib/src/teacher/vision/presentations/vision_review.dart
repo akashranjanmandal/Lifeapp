@@ -1116,7 +1116,7 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
 
       // ✅ If approved, show reward modal
       if (newStatus == SubmissionStatus.approved) {
-        int coinValue = widget.video.levelInfo?.teacher_correct_submission_points ?? 0;
+        int coinValue = widget.video.levelInfo?.teacherCorrectSubmissionPoints ?? 0;
 
         // Show the coin reward popup
         WidgetsBinding.instance.addPostFrameCallback((_) {

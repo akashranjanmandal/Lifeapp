@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import '../../teacher_dashboard/provider/teacher_dashboard_provider.dart';
 import '../models/vision_model.dart';
 import '../providers/vision_provider.dart';
 import 'video_player.dart';
@@ -32,9 +31,9 @@ class VisionPage extends StatefulWidget {
 class _VisionPageState extends State<VisionPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _subjectFilter = '';
-  String _levelFilter = '';
+  String _levelFilterTitle = '';
   final TextEditingController _searchController = TextEditingController();
+  String _chapterFilter = '';
 
   @override
   void initState() {
@@ -44,9 +43,6 @@ class _VisionPageState extends State<VisionPage>
       vsync: this,
       initialIndex: widget.initialTabIndex ?? 0,
     );
-
-    // Debug: Print the sectionId to verify it's being passed
-    print('VisionPage sectionId: ${widget.sectionId}');
   }
 
   @override
@@ -57,14 +53,11 @@ class _VisionPageState extends State<VisionPage>
   }
 
   void _navigateToVideoPlayer(TeacherVisionVideo video) {
-    // Check if sectionId is available
     if (widget.sectionId.isEmpty) {
       _showSectionErrorDialog();
       return;
     }
-
     final visionProvider = Provider.of<VisionProvider>(context, listen: false);
-
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -86,7 +79,6 @@ class _VisionPageState extends State<VisionPage>
 
   void _navigateToVisionReview(TeacherVisionVideo video) {
     final visionProvider = Provider.of<VisionProvider>(context, listen: false);
-
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -111,7 +103,7 @@ class _VisionPageState extends State<VisionPage>
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.of(context).pop(); // Go back to previous page
+                Navigator.of(context).pop();
               },
               child: const Text('Go Back'),
             ),
@@ -125,42 +117,140 @@ class _VisionPageState extends State<VisionPage>
     );
   }
 
-  Widget _buildFilterChip(String label, String selectedValue,
-      Function(String) onChanged, List<String> options) {
-    return PopupMenuButton<String>(
-      onSelected: (value) => onChanged(value == 'All' ? '' : value),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: 'All', child: Text('All')),
-        ...options
-            .map((option) => PopupMenuItem(value: option, child: Text(option))),
-      ],
+  Widget _buildFilterDropdown<T extends Map<String, Object?>>({
+    required String label,
+    required String selectedId,
+    required List<T> options,
+    required Function(String) onChanged,
+  }) {
+    String displayText = '';
+    if (selectedId.isNotEmpty) {
+      final selectedItem = options.firstWhere(
+            (o) => o['id'].toString() == selectedId,
+        orElse: () => {'id': '', 'title': ''} as T,
+      );
+      displayText = (selectedItem['title'] ?? '').toString();
+      if (displayText.length > 10) displayText = '${displayText.substring(0, 10)}..';
+    }
+
+    return GestureDetector(
+      onTap: () async {
+        String? result = await showModalBottomSheet<String>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            TextEditingController searchController = TextEditingController();
+            List<T> filteredOptions = List.from(options);
+
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  height: MediaQuery.of(context).size.height * 0.5,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: filteredOptions.isEmpty
+                            ? const Center(
+                          child: Text(
+                            'No results found',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                            : ListView(
+                          children: [
+                            ListTile(
+                              title: const Text(
+                                'All',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              onTap: () => Navigator.pop(context, ''),
+                            ),
+                            ...filteredOptions.map((option) {
+                              final isSelected = selectedId == option['id'].toString();
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFF6366F1).withOpacity(0.1)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ListTile(
+                                  title: Text(
+                                    option['title']?.toString() ?? '',
+                                    style: TextStyle(
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      fontSize: 14,
+                                      color: isSelected
+                                          ? const Color(0xFF6366F1)
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                  onTap: () => Navigator.pop(context, option['id'].toString()),
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+
+        if (result != null) onChanged(result);
+      },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selectedValue.isEmpty ? Colors.white : const Color(0xFF6366F1),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selectedValue.isEmpty
-                ? Colors.grey[300]!
-                : const Color(0xFF6366F1),
+            color: selectedId.isEmpty ? Colors.grey[300]! : const Color(0xFF6366F1),
+            width: 1.2,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              selectedValue.isEmpty ? label : selectedValue,
-              style: TextStyle(
-                fontSize: 12,
-                color: selectedValue.isEmpty ? Colors.grey[700] : Colors.white,
-                fontWeight: FontWeight.w500,
+            Expanded(
+              child: Text(
+                displayText.isEmpty ? label : displayText,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: selectedId.isEmpty ? Colors.grey[700] : Colors.black87,
+                ),
               ),
             ),
             const SizedBox(width: 4),
             Icon(
               Icons.keyboard_arrow_down,
-              size: 16,
-              color: selectedValue.isEmpty ? Colors.grey[700] : Colors.white,
+              size: 18,
+              color: selectedId.isEmpty ? Colors.grey[700] : Colors.black87,
             ),
           ],
         ),
@@ -170,12 +260,11 @@ class _VisionPageState extends State<VisionPage>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer <VisionProvider>(
+    return Consumer<VisionProvider>(
       builder: (context, provider, child) {
-
-        // Get dynamic filter options from provider
-        final availableSubjects = provider.getAvailableSubjects();
-        final availableLevels = provider.availableLevels;
+        final subjects = provider.getAvailableSubjects();
+        final levels = provider.availableLevels;
+        final chapters = provider.chapters;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
@@ -198,7 +287,6 @@ class _VisionPageState extends State<VisionPage>
                     fontSize: 18,
                   ),
                 ),
-                // Show section info if available
                 if (widget.sectionId.isNotEmpty)
                   Text(
                     'Grade: ${widget.gradeId}',
@@ -247,33 +335,61 @@ class _VisionPageState extends State<VisionPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 🔹 Filters Row (Subject, Level, Chapter)
+                  // Filters Row
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
-                        _buildFilterChip('Subject', _subjectFilter, (value) {
-                          setState(() => _subjectFilter = value);
-                          provider.setSubjectFilter(value);
-                        }, availableSubjects),
+                        Expanded(
+                          child:  _buildFilterDropdown(
+                            label: 'Subject',
+                            selectedId: provider.selectedSubjectTitle ?? '',
+                            options: provider.getAvailableSubjectTitles()
+                                .map((s) => {'id': s, 'title': s})
+                                .toList(),
+                            onChanged: (title) {
+                              provider.setSubjectFilter(title);
+                            },
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        _buildFilterChip('Level', _levelFilter, (value) {
-                          setState(() => _levelFilter = value);
-                          provider.setLevelFilter(value);
-                        }, availableLevels),
+                        Expanded(
+                          child: _buildFilterDropdown(
+                            label: 'Level',
+                            selectedId: _levelFilterTitle,
+                            options: levels
+                                .map((e) => {'id': e, 'title': e})
+                                .toList(),
+                            onChanged: (title) {
+                              setState(() {
+                                _levelFilterTitle = title;
+                              });
+                              provider.setLevelFilter(title); // provider will handle ID mapping internally
+                            },
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        // 🔹 New Chapter Dropdown (demo only, no logic)
-                        // _buildFilterChip('Chapter', '', (value) {
-                        //   // Demo only: no functionality
-                        // }, ['Chapter 1', 'Chapter 2', 'Chapter 3']),
+                        Expanded(
+                          child: _buildFilterDropdown(
+                            label: 'Chapter',
+                            selectedId: _chapterFilter,
+                            options: chapters
+                                .map((c) => {
+                              'id': c['id'],
+                              'title': c['title'] ?? ''
+                            })
+                                .toList(),
+                            onChanged: (id) {
+                              setState(() => _chapterFilter = id);
+                              provider.setChapterFilter(id);
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
-                  // 🔹 Search Bar moved below filters
+                  // Search Bar
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Container(
@@ -312,7 +428,6 @@ class _VisionPageState extends State<VisionPage>
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
                 ],
               ),
@@ -323,22 +438,20 @@ class _VisionPageState extends State<VisionPage>
               TabBarView(
                 controller: _tabController,
                 children: [
-                  // All Videos Tab
                   _buildVideoList(provider.filteredNonAssignedVideos, false),
-
-                  // Assigned Videos Tab
                   _buildVideoList(provider.filteredAssignedVideos, true),
                 ],
               ),
-
-              // Add overlay loader only when initially loading
-              if (provider.isLoading && provider.filteredNonAssignedVideos.isEmpty && provider.filteredAssignedVideos.isEmpty)
+              if (provider.isLoading &&
+                  provider.filteredNonAssignedVideos.isEmpty &&
+                  provider.filteredAssignedVideos.isEmpty)
                 Positioned.fill(
                   child: Container(
                     color: Colors.white.withOpacity(0.8),
                     child: Center(
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                        valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
                       ),
                     ),
                   ),
@@ -350,9 +463,11 @@ class _VisionPageState extends State<VisionPage>
     );
   }
 
+  // Video List & Cards remain the same (no UI change)
   Widget _buildVideoList(List<TeacherVisionVideo> videos, bool isAssignedTab) {
     final provider = Provider.of<VisionProvider>(context);
-    final hasMore = isAssignedTab ? provider.hasMoreAssignedVideos : provider.hasMoreAllVideos;
+    final hasMore =
+    isAssignedTab ? provider.hasMoreAssignedVideos : provider.hasMoreAllVideos;
     final isLoadingMore = provider.isLoadingMore;
 
     if (videos.isEmpty && !provider.isLoading) {
@@ -396,7 +511,8 @@ class _VisionPageState extends State<VisionPage>
                 child: Center(
                   child: isLoadingMore
                       ? CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                    valueColor:
+                    AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
                   )
                       : const Text('\u200B'),
                 ),
@@ -404,7 +520,8 @@ class _VisionPageState extends State<VisionPage>
             }
 
             final video = videos[index];
-            final videoId = YoutubePlayer.convertUrlToId(video.youtubeUrl) ?? 'dQw4w9WgXcQ';
+            final videoId =
+                YoutubePlayer.convertUrlToId(video.youtubeUrl) ?? 'dQw4w9WgXcQ';
 
             return GestureDetector(
               onTap: () => !isAssignedTab ? _navigateToVideoPlayer(video) : null,
@@ -431,7 +548,9 @@ class _VisionPageState extends State<VisionPage>
       ),
     );
   }
+
   Widget _buildRegularVideoCard(TeacherVisionVideo video, String videoId) {
+    // same as your current card
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -463,7 +582,6 @@ class _VisionPageState extends State<VisionPage>
                   );
                 },
               ),
-              // Play button overlay
               Positioned.fill(
                 child: Center(
                   child: Container(
@@ -484,7 +602,8 @@ class _VisionPageState extends State<VisionPage>
                 top: 12,
                 right: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.orange,
                     borderRadius: BorderRadius.circular(12),
@@ -502,7 +621,6 @@ class _VisionPageState extends State<VisionPage>
             ],
           ),
         ),
-        // Video details section
         Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -534,8 +652,8 @@ class _VisionPageState extends State<VisionPage>
               Row(
                 children: [
                   Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF8B5CF6).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -551,8 +669,8 @@ class _VisionPageState extends State<VisionPage>
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF3B82F6).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -566,25 +684,6 @@ class _VisionPageState extends State<VisionPage>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  if (video.chapter != null && video.chapter!.title.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00FFB9).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        video.chapter!.title.length > 10
-                            ? '${video.chapter!.title.substring(0, 10)}...'
-                            : video.chapter!.title,
-                        style: const TextStyle(
-                          color: Color(0xFF000000),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ],
@@ -595,13 +694,13 @@ class _VisionPageState extends State<VisionPage>
   }
 
   Widget _buildAssignedVideoCard(TeacherVisionVideo video, String videoId) {
+    // same as your current card
     return GestureDetector(
       onTap: () => _navigateToVideoPlayer(video),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // Left side - Thumbnail with gradient overlay
             SizedBox(
               width: 120,
               height: 80,
@@ -609,7 +708,6 @@ class _VisionPageState extends State<VisionPage>
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
-                    // Background image
                     Positioned.fill(
                       child: Image.network(
                         video.thumbnailUrl.isNotEmpty
@@ -630,7 +728,6 @@ class _VisionPageState extends State<VisionPage>
                         },
                       ),
                     ),
-                    // Light gradient overlay
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
@@ -645,14 +742,11 @@ class _VisionPageState extends State<VisionPage>
                         ),
                       ),
                     ),
-                    // Colorful paper airplane
-
                   ],
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            // Middle - Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,7 +764,6 @@ class _VisionPageState extends State<VisionPage>
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  // Description
                   Text(
                     video.description.isNotEmpty
                         ? video.description
@@ -687,12 +780,9 @@ class _VisionPageState extends State<VisionPage>
               ),
             ),
             const SizedBox(width: 12),
-            // Right side - Submission count and Review button
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-
-                // Review button
                 ElevatedButton(
                   onPressed: () => _navigateToVisionReview(video),
                   style: ElevatedButton.styleFrom(

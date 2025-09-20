@@ -18,6 +18,11 @@ import '../../questions/models/quiz_review_model.dart';
 import '../../subject_level_list/provider/subject_level_provider.dart';
 import '../model/notification_model.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+String? safeTrim(dynamic value) {
+  if (value == null) return null;
+  final str = value.toString();
+  return str.isNotEmpty ? str.trim() : null;
+}
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
@@ -740,18 +745,9 @@ class _NotificationPageState extends State<NotificationPage> {
       debugPrint('🔍 Raw subjectId: $rawSubjectId');
       debugPrint('🔍 Raw actionId: $rawActionId');
 
-      final visionId = (rawVisionId is String && rawVisionId.trim().isNotEmpty)
-          ? rawVisionId.trim()
-          : (rawVisionId?.toString().trim().isNotEmpty == true
-          ? rawVisionId.toString().trim()
-          : (rawActionId != null ? rawActionId.toString() : null));
+      final visionId = safeTrim(rawVisionId) ?? safeTrim(rawActionId);
+      final subjectId = safeTrim(rawSubjectId);
 
-      final subjectId =
-      (rawSubjectId is String && rawSubjectId.trim().isNotEmpty)
-          ? rawSubjectId.trim()
-          : (rawSubjectId?.toString().trim().isNotEmpty == true
-          ? rawSubjectId.toString().trim()
-          : null);
       debugPrint('✅ Parsed visionId: $visionId');
       debugPrint('✅ Parsed subjectId: $subjectId');
       if (visionId == null || visionId.isEmpty) {
