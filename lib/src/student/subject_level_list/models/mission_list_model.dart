@@ -72,7 +72,6 @@ class Missions {
     "meta": meta?.toJson(),
   };
 }
-
 class MissionDatum {
   int? id;
   Level? level;
@@ -196,16 +195,19 @@ class Document {
 class Level {
   int? id;
   String? title;
-  dynamic description;
+  String? description;
   int? missionPoints;
   int? quizPoints;
   int? riddlePoints;
   int? puzzlePoints;
+  int? teacher_assign_points;
+  int? teacher_correct_submission_points;
   int? jigyasaPoints;
   int? pragyaPoints;
   int? quizTime;
   int? riddleTime;
   int? puzzleTime;
+  int? unlock;
 
   Level({
     this.id,
@@ -216,25 +218,31 @@ class Level {
     this.riddlePoints,
     this.puzzlePoints,
     this.jigyasaPoints,
+    this.teacher_assign_points,
+    this.teacher_correct_submission_points,
     this.pragyaPoints,
     this.quizTime,
     this.riddleTime,
     this.puzzleTime,
+    this.unlock,
   });
 
   factory Level.fromJson(Map<String, dynamic> json) => Level(
-    id: _safeParseInt(json["id"]),
-    title: _safeParseString(json["title"]),
+    id: json["id"],
+    title: json["title"],
     description: json["description"],
-    missionPoints: _safeParseInt(json["mission_points"]),
-    quizPoints: _safeParseInt(json["quiz_points"]),
-    riddlePoints: _safeParseInt(json["riddle_points"]),
-    puzzlePoints: _safeParseInt(json["puzzle_points"]),
-    jigyasaPoints: _safeParseInt(json["jigyasa_points"]),
-    pragyaPoints: _safeParseInt(json["pragya_points"]),
-    quizTime: _safeParseInt(json["quiz_time"]),
-    riddleTime: _safeParseInt(json["riddle_time"]),
-    puzzleTime: _safeParseInt(json["puzzle_time"]),
+    missionPoints: json["mission_points"],
+    quizPoints: json["quiz_points"],
+    riddlePoints: json["riddle_points"],
+    puzzlePoints: json["puzzle_points"],
+    jigyasaPoints: json["jigyasa_points"],
+    teacher_assign_points: json["teacher_assign_points"],
+    teacher_correct_submission_points: json["teacher_correct_submission_points"],
+    pragyaPoints: json["pragya_points"],
+    quizTime: json["quiz_time"],
+    riddleTime: json["riddle_time"],
+    puzzleTime: json["puzzle_time"],
+    unlock: json["unlock"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -245,11 +253,14 @@ class Level {
     "quiz_points": quizPoints,
     "riddle_points": riddlePoints,
     "puzzle_points": puzzlePoints,
+    "teacher_assign_points" :teacher_assign_points,
+    "teacher_correct_submission_points": teacher_correct_submission_points,
     "jigyasa_points": jigyasaPoints,
     "pragya_points": pragyaPoints,
     "quiz_time": quizTime,
     "riddle_time": riddleTime,
     "puzzle_time": puzzleTime,
+    "unlock": unlock,
   };
 }
 

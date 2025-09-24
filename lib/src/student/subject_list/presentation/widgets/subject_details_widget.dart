@@ -3,7 +3,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:lifelab3/src/common/helper/api_helper.dart';
 import 'package:lifelab3/src/common/helper/image_helper.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
-import 'package:lifelab3/src/student/home/models/subject_model.dart';  // Import Subject model
+import 'package:lifelab3/src/student/home/models/subject_model.dart'; // Import Subject model
 import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
 import '../../../../common/helper/color_code.dart';
 import '../../../subject_level_list/presentation/pages/subject_level_list_page.dart';
@@ -89,13 +89,13 @@ class SubjectDetailsWidget extends StatelessWidget {
                 ),
                 subject.image != null
                     ? Image.network(
-                  ApiHelper.imgBaseUrl + subject.image!.url!,
-                  width: MediaQuery.of(context).size.width * .3,
-                )
+                        ApiHelper.imgBaseUrl + subject.image!.url!,
+                        width: MediaQuery.of(context).size.width * .3,
+                      )
                     : Image.asset(
-                  ImageHelper.subjectListIcon,
-                  width: MediaQuery.of(context).size.width * .3,
-                ),
+                        ImageHelper.subjectListIcon,
+                        width: MediaQuery.of(context).size.width * .3,
+                      ),
               ],
             ),
           ),

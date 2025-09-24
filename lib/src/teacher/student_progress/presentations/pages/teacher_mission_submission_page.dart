@@ -87,40 +87,80 @@ class TeacherMissionSubmissionPage extends StatelessWidget {
                 ),
               ],
             ),
-
             // Description
             const SizedBox(height: 30),
             if(provider.teacherMissionParticipantModel!.data!.data![missionIndex].submission !=null)Text("Description : ${provider.teacherMissionParticipantModel!.data!.data![missionIndex].submission!.description ?? ""}"),
-
             // Image
-            if(provider.teacherMissionParticipantModel!.data!.data![missionIndex].submission !=null) const SizedBox(height: 20),
-            if(provider.teacherMissionParticipantModel!.data!.data![missionIndex].submission !=null)Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.grey),
+            if (provider.teacherMissionParticipantModel!
+                .data!.data![missionIndex].submission != null &&
+                provider.teacherMissionParticipantModel!
+                    .data!.data![missionIndex].submission!.media !=
+                    null &&
+                provider.teacherMissionParticipantModel!
+                    .data!.data![missionIndex].submission!.media!.isNotEmpty)
+              Column(
+                children: provider.teacherMissionParticipantModel!
+                    .data!.data![missionIndex].submission!.media!
+                    .map(
+                      (media) => Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Image.network(
+                        ApiHelper.imgBaseUrl + media.url!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 200,
+                      ),
+                    ),
+                  ),
+                )
+                    .toList(),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Image.network(ApiHelper.imgBaseUrl + provider.teacherMissionParticipantModel!.data!.data![missionIndex].submission!.media!.url!),
-              ),
-            ),
 
             // Approve
             if(missionStatus) const SizedBox(height: 40),
-            if(missionStatus) CustomButton(
-              name: "Approve",
-              color: Colors.blue,
-              height: 45,
-              onTap: () {
-                provider.submitApproveReject(
-                  status: 1,
-                  comment: "Approve",
-                  studentId: provider.teacherMissionParticipantModel!.data!.data![missionIndex].submission!.id!.toString(),
-                  context: context,
-                  missionId: missionId,
-                );
-              },
-            ),
+            if (missionStatus)
+              CustomButton(
+                name: "Approve",
+                color: Colors.blue,
+                height: 45,
+                textColor: Colors.white,
+                onTap: () async {
+                  final provider = Provider.of<StudentProgressProvider>(context, listen: false);
+
+                  // 1️⃣ Call API to approve
+                  final result = await provider.submitApproveReject(
+                    status: 1,
+                    comment: "Approve",
+                    studentId: provider.teacherMissionParticipantModel!
+                        .data!.data![missionIndex].submission!.id!
+                        .toString(),
+                    context: context,
+                    missionId: missionId,
+                  );
+
+                  // 2️⃣ Calculate teacher coins per student from mission list
+                  final missionList = provider.teacherMissionListModel?.data?.missions?.data ?? [];
+                  final currentMission = missionList.firstWhere(
+                        (m) => m.id.toString() == missionId,
+                  );
+                  final coinsPerStudent = currentMission?.level?.teacher_correct_submission_points ?? 0;
+
+                  // 3️⃣ Show modal with the coins
+                  await _showCongratsPopup(context, coinsPerStudent);
+
+                  // 4️⃣ Refresh participant list
+                  provider.getTeacherMissionParticipant(missionId);
+
+                  // 5️⃣ Navigate back
+                  Navigator.of(context).pop();
+                },
+              ),
 
             // Reject
             if(missionStatus) const SizedBox(height: 20),
@@ -147,3 +187,88 @@ class TeacherMissionSubmissionPage extends StatelessWidget {
     );
   }
 }
+Future<void> _showCongratsPopup(BuildContext context, int coins) {
+  return showGeneralDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierLabel: 'Congrats',
+    pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
+    transitionBuilder: (context, anim1, anim2, child) {
+      return Transform.scale(
+        scale: anim1.value,
+        child: Opacity(
+          opacity: anim1.value,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 10,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4CAF50), Color(0xFF81C784)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.emoji_events,
+                    size: 70,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Congratulations!",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "You have been credited with\n$coins coins 🎉",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 12),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+    transitionDuration: const Duration(milliseconds: 400),
+  );
+}
+

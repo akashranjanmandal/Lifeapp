@@ -168,6 +168,8 @@ class Level {
   int? quizPoints;
   int? riddlePoints;
   int? puzzlePoints;
+  int? teacher_assign_points;
+  int? teacher_correct_submission_points;
   int? jigyasaPoints;
   int? pragyaPoints;
   int? quizTime;
@@ -184,6 +186,8 @@ class Level {
     this.riddlePoints,
     this.puzzlePoints,
     this.jigyasaPoints,
+    this.teacher_assign_points,
+    this.teacher_correct_submission_points,
     this.pragyaPoints,
     this.quizTime,
     this.riddleTime,
@@ -200,6 +204,8 @@ class Level {
     riddlePoints: json["riddle_points"],
     puzzlePoints: json["puzzle_points"],
     jigyasaPoints: json["jigyasa_points"],
+    teacher_assign_points: json["teacher_assign_points"],
+    teacher_correct_submission_points: json["teacher_correct_submission_points"],
     pragyaPoints: json["pragya_points"],
     quizTime: json["quiz_time"],
     riddleTime: json["riddle_time"],
@@ -215,6 +221,8 @@ class Level {
     "quiz_points": quizPoints,
     "riddle_points": riddlePoints,
     "puzzle_points": puzzlePoints,
+    "teacher_assign_points" :teacher_assign_points,
+    "teacher_correct_submission_points": teacher_correct_submission_points,
     "jigyasa_points": jigyasaPoints,
     "pragya_points": pragyaPoints,
     "quiz_time": quizTime,

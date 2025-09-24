@@ -1,10 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import '../models/vision_model.dart';
 import '../providers/vision_provider.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
 class Answer {
@@ -662,100 +659,196 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
         break;
     }
   }
-
   void _showSubmissionDetails(StudentSubmission submission) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        scrollable: true,
-        title: Text('${submission.studentName}\'s Submission'),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Status: ${submission.status.displayName}'),
-            if (submission.submissionDate != null)
-              Text('Submitted: ${submission.submissionDate}'),
-            if (submission.feedback != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 8),
-                child: Text('Feedback: ${submission.feedback}'),
-              ),
-            const Divider(),
-            const Text(
-              "Answers:",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ...submission.answers.asMap().entries.map((entry) {
-              final index = entry.key;
-              final answer = entry.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Submission ${index + 1}: ${answer.questionText}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    if (answer.answerType == 'image')
-                      answer.imageUrl != null
-                          ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              answer.imageUrl!,
-                              height: 200,
-                              width: double.infinity,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                              const Text('⚠️ Error loading image'),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            answer.description?.isNotEmpty == true
-                                ? 'Description: ${answer.description}'
-                                : 'No description Submitted',
-                            style: const TextStyle(fontStyle: FontStyle.italic),
-                          ),
-                        ],
-                      )
-                          : const Text('📎 No image available'),
-                    if (answer.answerType == 'option') ...[
-                      Text('Selected Option: ${answer.selectedOption?.toUpperCase() ?? 'N/A'}'),
-                      Text('Correct Option: ${answer.correctOption?.toUpperCase() ?? 'N/A'}'),
-                      Text(
-                        answer.isCorrect == true ? '✅ Correct' : '❌ Incorrect',
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with back button
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Submission Details',
                         style: TextStyle(
-                          color: answer.isCorrect == true ? Colors.green : Colors.red,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black,
                         ),
                       ),
-                    ] else
-                      Text(
-                        answer.answerText.isNotEmpty ? answer.answerText : '',
-                      ),
+                    ],
+                  ),
 
-                  ],
-                ),
-              );
-            }).toList(),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+                  const SizedBox(height: 16),
+
+                  // Student Info
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundImage: submission.studentAvatar.isNotEmpty
+                            ? NetworkImage(submission.studentAvatar)
+                            : null,
+                        child: submission.studentAvatar.isEmpty
+                            ? Text(
+                          submission.studentName.isNotEmpty
+                              ? submission.studentName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(color: Colors.white),
+                        )
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            submission.studentName,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
+                          if (submission.mobileno != null && submission.mobileno!.isNotEmpty)
+                            Text(
+                              submission.mobileno!,
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          Text(
+                            '${submission.className} | ${submission.section}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Status
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: submission.status.color,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          submission.status.displayName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (submission.submissionDate != null) ...[
+                        const SizedBox(width: 12),
+                        Text(
+                          'Submitted: ${submission.submissionDate}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Answers Section
+                  const Text(
+                    "Submission Answers",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: submission.answers.length,
+                      itemBuilder: (context, index) {
+                        final answer = submission.answers[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Submission ${index + 1}: ${answer.questionText}',
+                                style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black),
+                              ),
+                              const SizedBox(height: 6),
+                              if (answer.answerType == 'image')
+                                answer.imageUrl != null
+                                    ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        answer.imageUrl!,
+                                        height: 200,
+                                        width: double.infinity,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                        const Text('⚠️ Error loading image', style: TextStyle(color: Colors.black)),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(fontSize: 14, color: Colors.black),
+                                        children: [
+                                          const TextSpan(
+                                            text: 'Description: ',
+                                            style: TextStyle(fontWeight: FontWeight.w600),
+                                          ),
+                                          TextSpan(
+                                            text: answer.description?.toUpperCase() ?? 'No description provided',
+                                            style: const TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                                    : const Text('📎 No image available', style: TextStyle(color: Colors.black)),
+                              if (answer.answerType == 'option') ...[
+                                Text('Selected Option: ${answer.selectedOption?.toUpperCase() ?? 'N/A'}', style: const TextStyle(color: Colors.black)),
+                                Text('Correct Option: ${answer.correctOption?.toUpperCase() ?? 'N/A'}', style: const TextStyle(color: Colors.black)),
+                                Text(
+                                  answer.isCorrect == true ? '✅ Correct' : '❌ Incorrect',
+                                  style: TextStyle(
+                                    color: answer.isCorrect == true ? Colors.green : Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ]
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
-
   void _showReviewDialog(StudentSubmission submission) {
     showDialog(
       context: context,
@@ -765,13 +858,34 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
           backgroundColor: Colors.transparent,
           insetPadding: EdgeInsets.zero,
           child: Scaffold(
-            backgroundColor: const Color(0xFFF8FAFC),
+            backgroundColor: Colors.white,
             body: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Header with back button
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.black),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Review Submission',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
                     // Student Info
                     Row(
                       children: [
@@ -795,12 +909,13 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                           children: [
                             Text(
                               submission.studentName,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
                             ),
-                            Text(
-                              submission.mobileno ?? '',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
+                            if (submission.mobileno != null && submission.mobileno!.isNotEmpty)
+                              Text(
+                                submission.mobileno!,
+                                style: const TextStyle(color: Colors.grey),
+                              ),
                             Text(
                               '${submission.className} | ${submission.section}',
                               style: const TextStyle(color: Colors.grey),
@@ -815,7 +930,7 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                     // Answers Section
                     const Text(
                       "Submission Answers",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
                     ),
                     const SizedBox(height: 12),
                     Expanded(
@@ -823,7 +938,6 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                         itemCount: submission.answers.length,
                         itemBuilder: (context, index) {
                           final answer = submission.answers[index];
-                          print('yuuuu ${answer.description}');
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16.0),
                             child: Column(
@@ -831,7 +945,7 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                               children: [
                                 Text(
                                   'Submission ${index + 1}: ${answer.questionText}',
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black),
                                 ),
                                 const SizedBox(height: 6),
                                 if (answer.answerType == 'image')
@@ -847,7 +961,7 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                                           width: double.infinity,
                                           fit: BoxFit.contain,
                                           errorBuilder: (context, error, stackTrace) {
-                                            return const Text('⚠️ Error loading image');
+                                            return const Text('⚠️ Error loading image', style: TextStyle(color: Colors.black));
                                           },
                                         ),
                                       ),
@@ -871,14 +985,12 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                                           ],
                                         ),
                                       ),
-
-
                                     ],
                                   )
-                                      : const Text('📎 No image available'),
+                                      : const Text('📎 No image available', style: TextStyle(color: Colors.black)),
                                 if (answer.answerType == 'option') ...[
-                                  Text('Selected Option: ${answer.selectedOption?.toUpperCase() ?? 'N/A'}'),
-                                  Text('Correct Option: ${answer.correctOption?.toUpperCase() ?? 'N/A'}'),
+                                  Text('Selected Option: ${answer.selectedOption?.toUpperCase() ?? 'N/A'}', style: const TextStyle(color: Colors.black)),
+                                  Text('Correct Option: ${answer.correctOption?.toUpperCase() ?? 'N/A'}', style: const TextStyle(color: Colors.black)),
                                   Text(
                                     answer.isCorrect == true ? '✅ Correct' : '❌ Incorrect',
                                     style: TextStyle(
@@ -886,19 +998,13 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ] else
-                                  Text(
-                                    answer.answerText.isNotEmpty ? answer.answerText : 'No answer provided',
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-
+                                ]
                               ],
                             ),
                           );
                         },
                       ),
                     ),
-
 
                     const SizedBox(height: 12),
 
@@ -915,7 +1021,6 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                                 'student_name': submission.studentName,
                               });
                               _updateSubmissionStatus(submission, SubmissionStatus.approved);
-                              _updateSubmissionStatus(submission, SubmissionStatus.approved);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF6366F1),
@@ -927,11 +1032,7 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
                             child: const Text("Approve", style: TextStyle(fontSize: 16 , color: Colors.white)),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
+                        const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
@@ -965,8 +1066,6 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
       },
     );
   }
-
-
   void _showFeedbackDialog(StudentSubmission submission) {
     showDialog(
       context: context,
@@ -989,15 +1088,14 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
       ),
     );
   }
-
   void _updateSubmissionStatus(StudentSubmission submission, SubmissionStatus newStatus) async {
     final visionProvider = Provider.of<VisionProvider>(context, listen: false);
 
     try {
-      final statusResponse = await visionProvider.getSubmissionStatus(submission.id , newStatus);
-      print('aaaaaqq ${submission.id}');
+      final statusResponse = await visionProvider.getSubmissionStatus(submission.id, newStatus);
       debugPrint("📦 API Submission Status Response: $statusResponse");
 
+      // Update local submission status
       setState(() {
         final index = _allSubmissions.indexWhere((s) => s.id == submission.id);
         if (index != -1) {
@@ -1015,6 +1113,71 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
       });
 
       _applyFilters();
+
+      // ✅ If approved, show reward modal
+      if (newStatus == SubmissionStatus.approved) {
+        int coinValue = widget.video.levelInfo?.teacherCorrectSubmissionPoints ?? 0;
+
+        // Show the coin reward popup
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showDialog(
+            context: context,
+            barrierDismissible: true,
+            builder: (context) => AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Congratulations!',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.celebration,
+                    size: 48,
+                    color: Colors.amber,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'You have been rewarded with $coinValue coins! 🎉',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              actions: [
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    ),
+                    child: const Text(
+                      'Great!',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        });
+      }
+
     } catch (e) {
       debugPrint("❌ Error calling getSubmissionStatus: $e");
     }

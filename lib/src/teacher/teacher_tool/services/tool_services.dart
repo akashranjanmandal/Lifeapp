@@ -16,35 +16,46 @@ class ToolServices {
 
   Dio dio = Dio();
 
-  Future storeToken({required deviceToken}) async {
-    deviceToken = await FirebaseMessaging.instance.getToken();
+  Future<void> storeToken() async {
     try {
-      Response response = await dio.post(
-        ApiHelper.baseUrl + ApiHelper.storeToken,
+      final deviceToken = await FirebaseMessaging.instance.getToken();
+      if (deviceToken == null) {
+        debugPrint("⚠️ Device token is null, cannot store");
+        return;
+      }
+
+      final authToken = StorageUtil.getString(StringHelper.token);
+      if (authToken == null) {
+        debugPrint("⚠️ No auth token, skipping token sync");
+        return;
+      }
+
+      Response response = await Dio().post(
+        "${ApiHelper.baseUrl}${ApiHelper.storeToken}",
         data: {
-          'device': Platform.isAndroid?"android":"ios",
-          "device_token": deviceToken
+          'device': Platform.isAndroid ? "android" : "ios",
+          'device_token': deviceToken,
         },
         options: Options(
           contentType: "application/json",
           headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}",
+            "Authorization": "Bearer $authToken",
+            "Accept": "application/json",
           },
         ),
       );
 
-      debugPrint("store token code: ${response.statusCode}");
-      debugPrint("store token data: ${response.data}");
-
-    } on SocketException catch(e) {
-      Loader.hide();
-      debugPrint("store token Socket Error: $e");
-    } on DioException catch(e) {
-      debugPrint("store token Dio Error ${e.message}");
-      Loader.hide();
+      debugPrint("✅ store token code: ${response.statusCode}");
+      debugPrint("✅ store token data: ${response.data}");
+    } on SocketException catch (e) {
+      debugPrint("❌ store token Socket Error: $e");
+    } on DioException catch (e) {
+      debugPrint("❌ store token Dio Error: ${e.message}");
+      if (e.response != null) {
+        debugPrint("Response: ${e.response!.data}");
+      }
     } catch (e) {
-      debugPrint("store token Catch Error: $e");
+      debugPrint("❌ store token Catch Error: $e");
     }
   }
 
@@ -308,34 +319,51 @@ class ToolServices {
     }
   }
 
-  Future getTeacherMission() async {
+  Future getAssignMissionData({
+    int? type,
+    String? subjectId,
+    String? levelId,
+  }) async {
     try {
+      // Build params only if values exist
+      final Map<String, dynamic> params = {"type": type};
+
+      if (subjectId != null && subjectId.isNotEmpty) {
+        params["la_subject_id"] = subjectId;
+      }
+
+      if (levelId != null && levelId.isNotEmpty) {
+        params["la_level_id"] = levelId;
+      }
+
       Response response = await dio.get(
         ApiHelper.baseUrl + ApiHelper.getTeacherMission,
+        queryParameters: params.isEmpty ? null : params, // 👈 no params if empty
         options: Options(
           contentType: "application/json",
           headers: {
             HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}",
+            HttpHeaders.authorizationHeader:
+            "Bearer ${StorageUtil.getString(StringHelper.token)}"
           },
         ),
       );
 
-      debugPrint("Get Teacher Mission Code: ${response.statusCode}");
-      log("Get Teacher Mission Code: ${jsonEncode(response.data)}");
+      debugPrint("Get Mission Params: $params");
+      debugPrint("Get Mission Code: ${response.statusCode}");
 
       return response;
-
-    } on SocketException catch(e) {
+    } on DioException catch (e) {
+      debugPrint("Get Mission Dio Error ${e.response}");
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Something went wrong");
       Loader.hide();
-      debugPrint("Get Teacher Mission Socket Error: $e");
+    } on SocketException catch (e) {
+      Loader.hide();
+      debugPrint("Get Mission Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
-    } on DioException catch(e) {
-      debugPrint("Get Teacher Mission Dio Error ${e.response}");
-      Loader.hide();
     } catch (e) {
       Loader.hide();
-      debugPrint("Get Teacher Mission Catch Error: $e");
+      debugPrint("Get Mission Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
     }
   }
@@ -371,7 +399,11 @@ class ToolServices {
     }
   }
 
-  Future submitTeacherMissionApproveReject({required String studentId, required int status, required String comment}) async {
+  Future<Response?> submitTeacherMissionApproveReject({
+    required String studentId,
+    required int status,
+    required String comment
+  }) async {
     try {
       Response response = await dio.patch(
         "${ApiHelper.baseUrl}${ApiHelper.teacherMissionApproveReject}$studentId/status",
@@ -398,14 +430,16 @@ class ToolServices {
       Loader.hide();
       debugPrint("Submit Teacher Mission Status Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } on DioException catch(e) {
       debugPrint("Submit Teacher Mission Status Dio Error ${e.response}");
       Loader.hide();
+      return null;
     } catch (e) {
       Loader.hide();
       debugPrint("Submit Teacher Mission Status Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
-
 }

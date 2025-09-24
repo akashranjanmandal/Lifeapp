@@ -13,7 +13,7 @@ import '../widgets/home_drawer.dart';
 import '../widgets/invire_friend_widget.dart';
 import '../widgets/mentor_connect_widget.dart';
 import '../widgets/reward_widget.dart';
-import '../widgets/campaign_widget.dart'; // Make sure this is your CampaignSliderWidget
+import '../widgets/campaign_widget.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
 class HomePage extends StatefulWidget {
@@ -42,8 +42,20 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /// Helper function to get first name (or first 10 letters if no space)
+  String getDisplayName(String? fullName) {
+    if (fullName == null || fullName.isEmpty) return "";
+    String firstName = fullName.split(" ").first;
+    if (firstName.length > 10) {
+      firstName = firstName.substring(0, 10);
+    }
+    return firstName;
+  }
+
   @override
   void initState() {
+    super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkStoreAppVersion();
       final provider = Provider.of<DashboardProvider>(context, listen: false);
@@ -53,78 +65,83 @@ class _HomePageState extends State<HomePage> {
       provider.getSubjectsData();
       provider.checkSubscription();
     });
-    super.initState();
+
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.white, // set status bar color to white
-      statusBarIconBrightness: Brightness.dark, // dark icons for light background
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DashboardProvider>(context);
+    final user = provider.dashboardModel?.data?.user;
 
-      return Scaffold(
-        drawer: provider.dashboardModel != null
-            ? DrawerView(
-          coin: provider.dashboardModel!.data!.user!.earnCoins!.toString(),
-          name: provider.dashboardModel!.data!.user!.name ?? "",
-        )
-            : null,
-        onDrawerChanged: (isOpened) {
-          if (!isOpened) {
-            MixpanelService.track('Drawer Closed'); // 🔥 Mixpanel Event
-          }
-        },
-        body: SafeArea(  // <-- Wrap the body in SafeArea here
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(left: 15, right: 15),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (provider.dashboardModel != null)
-                  HomeAppBar(
-                    name: provider.dashboardModel!.data!.user!.name ?? "",
-                    img: provider.dashboardModel!.data!.user!.imagePath,
-                  ),
+    return Scaffold(
+      drawer: user != null
+          ? DrawerView(
+        coin: user.earnCoins?.toString() ?? "0",
+        name: getDisplayName(user.name),
+      )
+          : null,
+      onDrawerChanged: (isOpened) {
+        if (!isOpened) {
+          MixpanelService.track('Drawer Closed');
+        }
+      },
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(left: 15, right: 15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // App Bar
+              if (user != null)
+                HomeAppBar(
+                  name: getDisplayName(user.name),
+                  img: user.imagePath,
+                ),
+              const SizedBox(height: 20),
 
-                const SizedBox(height: 20),
+              // Rewards Widget
+              if (user != null)
+                RewardsWidget(
+                  coin: user.earnCoins?.toString() ?? "0",
+                  friends: user.friends?.toString() ?? "0",
+                  ranking: user.userRank?.toString() ?? "0",
+                ),
+              const SizedBox(height: 20),
 
-                if (provider.dashboardModel != null)
-                  RewardsWidget(
-                    coin: provider.dashboardModel!.data!.user!.earnCoins!.toString(),
-                    friends: provider.dashboardModel!.data!.user!.friends!.toString(),
-                    ranking: provider.dashboardModel!.data!.user!.userRank!.toString(),
-                  ),
+              // Campaigns
+              if (provider.campaigns.isNotEmpty)
+                const CampaignSliderWidget(),
+              const SizedBox(height: 20),
 
-                const SizedBox(height: 20),
+              // Subjects
+              if (provider.subjectModel != null)
+                ExploreSubjectsWidget(
+                  subjects: provider.subjectModel!.data!.subject!,
+                ),
+              const SizedBox(height: 20),
 
-                if (provider.campaigns.isNotEmpty)
-                  const CampaignSliderWidget(),
+              const ExploreChallengesWidget(),
+              const SizedBox(height: 30),
 
-                const SizedBox(height: 20),
+              MentorConnectWidget(),
+              const SizedBox(height: 30),
 
-                if (provider.subjectModel != null)
-                  ExploreSubjectsWidget(
-                    subjects: provider.subjectModel!.data!.subject!,
-                  ),
-
-                const SizedBox(height: 20),
-                const ExploreChallengesWidget(),
-                const SizedBox(height: 30),
-                MentorConnectWidget(),
-                const SizedBox(height: 30),
-
-                if (provider.dashboardModel != null)
-                  InviteFriendWidget(name: provider.dashboardModel!.data!.user!.name!),
-
-                const SizedBox(height: 80),
-              ],
-            ),
+              // Invite Friends
+              if (user != null)
+                InviteFriendWidget(
+                  name: getDisplayName(user.name),
+                ),
+              const SizedBox(height: 80),
+            ],
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
   void showMsgDialog() {
     showGeneralDialog(

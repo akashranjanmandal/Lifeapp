@@ -6,17 +6,23 @@ import 'package:lifelab3/src/student/notification/services/notification_services
 import 'package:lifelab3/src/student/questions/services/que_services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../../student/vision/providers/vision_provider.dart';
+import '../../mission/presentations/pages/submit_mission_page.dart';
 import '../../vision/models/vision_video.dart';
 import '../../vision/presentations/video_player.dart';
 import '../../../common/widgets/common_navigator.dart';
 import '../../home/provider/dashboard_provider.dart';
-import '../../mission/presentations/pages/mission_page.dart';
 import '../../nav_bar/presentations/pages/nav_bar_page.dart';
 import '../../questions/models/quiz_review_model.dart';
 import '../../subject_level_list/provider/subject_level_provider.dart';
 import '../model/notification_model.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+String? safeTrim(dynamic value) {
+  if (value == null) return null;
+  final str = value.toString();
+  return str.isNotEmpty ? str.trim() : null;
+}
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({Key? key}) : super(key: key);
@@ -68,6 +74,187 @@ class _NotificationPageState extends State<NotificationPage> {
     }
   }
 
+  Future<void> showMissionStatusDialog(
+      BuildContext context, String status, NotificationData notification)
+  async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+
+    // Loader while fetching mission data
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const _NotificationLoader(),
+    );
+
+    try {
+      final bool isApproved = status.toLowerCase() == 'approved';
+      final bool isRejected = status.toLowerCase() == 'rejected';
+
+      final Color color = isApproved
+          ? Colors.green.shade600
+          : isRejected
+          ? Colors.red.shade600
+          : Colors.blue.shade600;
+      final IconData icon = isApproved
+          ? Icons.check_circle
+          : isRejected
+          ? Icons.cancel
+          : Icons.assignment;
+
+      final subjectId = notification.data?.data?.laSubjectId?.toString() ?? '';
+      final levelId = notification.data?.data?.laLevelId?.toString() ?? '';
+      final missionId = notification.data?.data?.actionId;
+
+      debugPrint("🔹 Mission dialog called with status: $status");
+      debugPrint("🔹 SubjectId: $subjectId, LevelId: $levelId, MissionId: $missionId");
+
+      // Check if missionId is null
+      if (missionId == null) {
+        navigator.pop(); // close loader
+        Fluttertoast.showToast(msg: "Mission ID is missing in notification");
+        debugPrint('❌ Mission ID is null, cannot find specific mission');
+        return;
+      }
+
+      final subjectProvider =
+      Provider.of<SubjectLevelProvider>(context, listen: false);
+
+      var mission;
+
+      // Fetch missions only if we have valid subject and level IDs
+      if (subjectId.isNotEmpty && levelId.isNotEmpty) {
+        Map<String, dynamic> missionData = {
+          "type": 1,
+          "la_subject_id": subjectId,
+          "la_level_id": levelId,
+        };
+        await subjectProvider.getMission(missionData);
+
+        // Find specific mission
+        mission = subjectProvider.missionListModel?.data?.missions?.data
+            ?.firstWhere((m) => m.id == missionId, );
+      }
+
+      navigator.pop(); // close loader
+
+      // If mission is null or not found, show error and return
+      if (mission == null) {
+        Fluttertoast.showToast(msg: "Mission not found for the given subject and level");
+        debugPrint('❌ Mission not found for missionId: $missionId');
+        return;
+      }
+
+      // ⚡ If assigned -> directly open mission page (skip dialog)
+      if (!isApproved && !isRejected) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SubmitMissionPage(mission: mission),
+          ),
+        );
+        return;
+      }
+
+      // Otherwise show dialog for approved/rejected
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (_) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: color.withOpacity(0.1),
+                  child: Icon(icon, size: 50, color: color),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isApproved
+                      ? "Mission Approved!"
+                      : "Mission Rejected",
+                  style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w600, color: color),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  mission.title ?? "Mission",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  notification.data?.message ?? '',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+
+                // Show earned/missed coins
+                Text(
+                  isApproved
+                      ? "+${mission.level?.missionPoints ?? 0} coins earned 🎉"
+                      : "-${mission.level?.missionPoints ?? 0} coins missed 😢",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isApproved ? Colors.green : Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                        foregroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context, rootNavigator: true).pop(); // Close dialog first
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => SubmitMissionPage(mission: mission),
+                          ),
+                        );
+                      },
+                      child: Text(isApproved ? "Go to Mission" : "Redo"),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade400,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+                      child: const Text("Done"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      navigator.pop();
+      Fluttertoast.showToast(msg: "Error loading mission details");
+      debugPrint('❌ Error in showMissionStatusDialog: $e');
+    }
+  }
   void showGiftCouponDialog(BuildContext context, String message) {
     final linkRegex = RegExp(r'https?:\/\/[^\s]+');
     final match = linkRegex.firstMatch(message);
@@ -179,7 +366,8 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Future<void> showVisionStatusDialog(
-      BuildContext context, String status, NotificationData notification) async {
+      BuildContext context, String status, NotificationData notification)
+  async {
     final navigator = Navigator.of(context, rootNavigator: true);
     showDialog(
       context: context,
@@ -443,7 +631,8 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Future<void> _handleMissionAssigned(
-      BuildContext context, NotificationData notification) async {
+      BuildContext context, NotificationData notification)
+  async {
     final navigator = Navigator.of(context, rootNavigator: true);
     showDialog(
       context: context,
@@ -453,31 +642,40 @@ class _NotificationPageState extends State<NotificationPage> {
 
     try {
       MixpanelService.track('Mission Assigned Notification Clicked');
-      if (notification.data!.data!.laLevelId != null &&
-          notification.data!.data!.laSubjectId != null) {
+
+      if (notification.data?.data?.laLevelId != null &&
+          notification.data?.data?.laSubjectId != null &&
+          notification.data?.data?.missionId != null) {
+        // Prepare API request
         Map<String, dynamic> missionData = {
           "type": 1,
-          "la_subject_id":
-          notification.data!.data!.laSubjectId.toString(),
-          "la_level_id":
-          notification.data!.data!.laLevelId.toString(),
+          "la_subject_id": notification.data!.data!.laSubjectId.toString(),
+          "la_level_id": notification.data!.data!.laLevelId.toString(),
         };
 
-        await Provider.of<SubjectLevelProvider>(context, listen: false)
-            .getMission(missionData);
+        // Fetch all missions for subject + level
+        final provider =
+        Provider.of<SubjectLevelProvider>(context, listen: false);
+        await provider.getMission(missionData);
 
-        navigator.pop(); // Close loader
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => MissionPage(
-              missionListModel:
-              Provider.of<SubjectLevelProvider>(context, listen: false)
-                  .missionListModel!,
-              subjectId: notification.data!.data!.laSubjectId.toString(),
-              levelId: notification.data!.data!.laLevelId.toString(),
-            ),
-          ),
+        navigator.pop(); // close loader
+
+        // Find the exact mission by ID
+        final mission = provider.missionListModel?.data?.missions?.data
+            ?.firstWhere(
+              (m) => m.id == notification.data!.data!.missionId,
         );
+
+        if (mission != null) {
+          // ✅ Open mission directly like GetStartedMissionWidget
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SubmitMissionPage(mission: mission),
+            ),
+          );
+        } else {
+          Fluttertoast.showToast(msg: "Mission not found");
+        }
       } else {
         navigator.pop();
         Fluttertoast.showToast(msg: "Mission data is incomplete");
@@ -490,7 +688,8 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Future<void> getQuizAnswer(
-      BuildContext context, String quizId, int index) async {
+      BuildContext context, String quizId, int index)
+  async {
     final navigator = Navigator.of(context, rootNavigator: true);
     showDialog(
       context: context,
@@ -528,7 +727,8 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Future<void> _handleVisionVideo(
-      BuildContext context, NotificationData notification) async {
+      BuildContext context, NotificationData notification)
+  async {
     final navigator = Navigator.of(context, rootNavigator: true);
     showDialog(
       context: context,
@@ -545,18 +745,9 @@ class _NotificationPageState extends State<NotificationPage> {
       debugPrint('🔍 Raw subjectId: $rawSubjectId');
       debugPrint('🔍 Raw actionId: $rawActionId');
 
-      final visionId = (rawVisionId is String && rawVisionId.trim().isNotEmpty)
-          ? rawVisionId.trim()
-          : (rawVisionId?.toString().trim().isNotEmpty == true
-          ? rawVisionId.toString().trim()
-          : (rawActionId != null ? rawActionId.toString() : null));
+      final visionId = safeTrim(rawVisionId) ?? safeTrim(rawActionId);
+      final subjectId = safeTrim(rawSubjectId);
 
-      final subjectId =
-      (rawSubjectId is String && rawSubjectId.trim().isNotEmpty)
-          ? rawSubjectId.trim()
-          : (rawSubjectId?.toString().trim().isNotEmpty == true
-          ? rawSubjectId.toString().trim()
-          : null);
       debugPrint('✅ Parsed visionId: $visionId');
       debugPrint('✅ Parsed subjectId: $subjectId');
       if (visionId == null || visionId.isEmpty) {
@@ -648,7 +839,8 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Widget _getActionButton(
-      BuildContext context, NotificationData notification, int index) {
+      BuildContext context, NotificationData notification, int index)
+  {
     final message = notification.data?.message ?? '';
     final title = notification.data?.title ?? '';
     final action = notification.data?.data?.action?.toString() ?? '';
@@ -657,23 +849,14 @@ class _NotificationPageState extends State<NotificationPage> {
     final lowerMessage = message.toLowerCase();
     final hasLink = RegExp(r'https?:\/\/[^\s]+').hasMatch(message);
 
+    // ----------------- Admin Messages -----------------
     if (type.contains('AdminMessageNotification')) {
-      if (lowerMessage.contains('gift coupon') && hasLink) {
-        return _buildButton(context, 'View', () {
-          showGiftCouponDialog(context, message);
-        });
-      } else if (lowerMessage.contains('lifeapp update') ||
-          lowerMessage.contains('new update has been rolled out')) {
-        return _buildButton(context, 'View', () {
-          showGiftCouponDialog(context, message);
-        });
-      } else {
-        return _buildButton(context, 'View', () {
-          showGiftCouponDialog(context, message);
-        });
-      }
+      return _buildButton(context, 'View', () {
+        showGiftCouponDialog(context, message);
+      });
     }
 
+    // ----------------- Vision Notifications -----------------
     if (lowerMessage.contains('vision has been approved')) {
       return _buildButton(context, 'View', () {
         showVisionStatusDialog(context, 'approved', notification);
@@ -682,40 +865,34 @@ class _NotificationPageState extends State<NotificationPage> {
       return _buildButton(context, 'View', () {
         showVisionStatusDialog(context, 'rejected', notification);
       });
-    } else if (lowerMessage.contains('mission have been rejected')) {
+    } else if (lowerMessage.contains('a new vision has been assigned to you')) {
+      MixpanelService.track('Vision Assigned Notification Clicked');
+      return _buildButton(context, 'View', () {
+        _handleVisionVideo(context, notification);
+      });
+    }
+
+    // ----------------- Mission Notifications -----------------
+    else if (lowerMessage.contains('mission') && lowerMessage.contains('approved')) {
+      return _buildButton(context, 'View', () {
+        MixpanelService.track('Mission Approved Notification Clicked');
+        showMissionStatusDialog(context, 'approved', notification);
+      });
+    } else if (lowerMessage.contains('mission') && lowerMessage.contains('rejected')) {
       return _buildButton(context, 'View', () {
         MixpanelService.track('Mission Rejected Notification Clicked');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Mission has been rejected"),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        showMissionStatusDialog(context, 'rejected', notification);
       });
-    } else if (lowerMessage.contains('mission has been approved')) {
+    } else if (lowerMessage.contains('mission') && lowerMessage.contains('assigned')) {
+      MixpanelService.track('Mission Assigned Notification Clicked');
       return _buildButton(context, 'View', () {
-        Fluttertoast.showToast(msg: "Mission has been approved");
-        MixpanelService.track('Mission Approved Notification Clicked');
         _handleMissionAssigned(context, notification);
       });
-    } else if (lowerMessage
-        .contains('teacher have assigned you a mission')) {
-      return _buildButton(context, 'View',
-              () => _handleMissionAssigned(context, notification));
-    } else if (lowerMessage
-        .contains('a new vision has been assigned to you')) {
-      MixpanelService.track('Vision Assigned Notification Clicked');
-      return _buildButton(context, 'View',
-              () => _handleVisionVideo(context, notification));
-    } else if (action == '6') {
-      return _buildButton(context, 'View', () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const NavBarPage(currentIndex: 2),
-          ),
-        );
-      });
-    } else if (action == '3' &&
+    }
+
+
+    // ----------------- Quiz Notifications -----------------
+    else if (action == '3' &&
         notification.data?.data?.actionId != null &&
         notification.data?.data?.time != null) {
       return _buildButton(context, 'View', () {
@@ -724,6 +901,18 @@ class _NotificationPageState extends State<NotificationPage> {
       });
     }
 
+    // ----------------- Other Actions -----------------
+    else if (action == '6') {
+      return _buildButton(context, 'View', () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const NavBarPage(currentIndex: 2),
+          ),
+        );
+      });
+    }
+
+    // ----------------- Default -----------------
     return const SizedBox.shrink();
   }
 

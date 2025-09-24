@@ -7,7 +7,6 @@ import 'package:lifelab3/src/common/helper/image_helper.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/custom_button.dart';
 import 'package:lifelab3/src/common/widgets/loading_widget.dart';
-
 import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
 
 import '../../provider/connect_provider.dart';
@@ -98,7 +97,6 @@ class ConnectAttendedSessionWidget extends StatelessWidget {
                             ),
                           ),
 
-
                           // Headline
                           const SizedBox(height: 5),
                           Text(
@@ -155,8 +153,8 @@ class ConnectAttendedSessionWidget extends StatelessWidget {
                               SizedBox(
                                 width: MediaQuery.of(context).size.width * .28,
                                 child: Text(
-                                  DateFormat("hh:mm a").format(DateTime.parse("2024-12-12 ${provider.attendedSessionModel!.data!.sessions!
-                                      .data![index].time!}")),
+                                  DateFormat("hh:mm a").format(DateTime.parse(
+                                      "2024-12-12 ${provider.attendedSessionModel!.data!.sessions!.data![index].time!}")),
                                   style: const TextStyle(
                                     color: Colors.black38,
                                     fontSize: 14,

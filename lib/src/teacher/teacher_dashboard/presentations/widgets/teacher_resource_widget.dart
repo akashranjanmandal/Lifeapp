@@ -38,7 +38,14 @@ class TeacherResourceWidget extends StatelessWidget {
             context: context,
             page: const CartoonHeaderPage(),
           );
-        } else if (name == StringHelper.competencies ||
+        }
+        else if (name == StringHelper.pblTextBookMapping) {
+          push(
+            context: context,
+            page: const PblTextBookMappingPage(),
+          );
+        }
+        else if (name == StringHelper.competencies ||
             name == StringHelper.assesments ||
             name == StringHelper.worksheet) {
           push(
@@ -47,7 +54,9 @@ class TeacherResourceWidget extends StatelessWidget {
               name: name,
             ),
           );
-        } else {
+        }
+
+        else {
           // Lesson Plan resources
           if (name == StringHelper.lifeLabDemoModelLesson && isSubscribe) {
             push(
@@ -70,12 +79,7 @@ class TeacherResourceWidget extends StatelessWidget {
               page: const LessonPlanPage(type: "4"),
             );
           }
-          else if (name == StringHelper.pblTextBookMapping) {
-            push(
-              context: context,
-              page: const PblTextBookMappingPage(),
-            );
-          }
+
           else {
             // If not subscribed
             push(

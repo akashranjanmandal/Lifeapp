@@ -440,7 +440,7 @@ class _TeacherVideoPlayerPageState extends State<TeacherVideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final videoId = extractYoutubeVideoId(widget.video.youtubeUrl);
+    final videoId = extractYoutubeVideoId(widget.video.youtubeUrl.toString());
     if (videoId.isEmpty) {
       return Scaffold(
         backgroundColor: Colors.black,

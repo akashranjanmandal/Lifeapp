@@ -7,7 +7,6 @@ import 'package:lifelab3/src/common/helper/image_helper.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/custom_button.dart';
 import 'package:lifelab3/src/common/widgets/loading_widget.dart';
-
 import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
 
 import '../../provider/connect_provider.dart';
@@ -34,7 +33,8 @@ class ConnectUpcomingSessionWidget extends StatelessWidget {
                 mainAxisSpacing: 20,
                 mainAxisExtent: 380,
               ),
-              itemCount: provider.upcomingSessionModel!.data!.sessions!.data!.length,
+              itemCount:
+                  provider.upcomingSessionModel!.data!.sessions!.data!.length,
               itemBuilder: (context, index) => Container(
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(15),
@@ -59,9 +59,15 @@ class ConnectUpcomingSessionWidget extends StatelessWidget {
                               topRight: Radius.circular(15),
                               topLeft: Radius.circular(15),
                             ),
-                            child: CachedNetworkImage(imageUrl: ApiHelper.imgBaseUrl +
-                                provider.upcomingSessionModel!.data!.sessions!
-                                    .data![index].user!.profileImage),
+                            child: CachedNetworkImage(
+                                imageUrl: ApiHelper.imgBaseUrl +
+                                    provider
+                                        .upcomingSessionModel!
+                                        .data!
+                                        .sessions!
+                                        .data![index]
+                                        .user!
+                                        .profileImage),
                           )
                         : ClipRRect(
                             borderRadius: const BorderRadius.only(
@@ -148,8 +154,8 @@ class ConnectUpcomingSessionWidget extends StatelessWidget {
                               SizedBox(
                                 width: MediaQuery.of(context).size.width * .28,
                                 child: Text(
-                                  DateFormat("hh:mm a").format(DateTime.parse("2024-12-12 ${provider.upcomingSessionModel!.data!.sessions!
-                                      .data![index].time!}")),
+                                  DateFormat("hh:mm a").format(DateTime.parse(
+                                      "2024-12-12 ${provider.upcomingSessionModel!.data!.sessions!.data![index].time!}")),
                                   style: const TextStyle(
                                     color: Colors.black38,
                                     fontSize: 14,
@@ -177,7 +183,9 @@ class ConnectUpcomingSessionWidget extends StatelessWidget {
                               PersistentNavBarNavigator.pushNewScreen(
                                 context,
                                 screen: ConnectSessionDetailsWidget(
-                                  id: provider.upcomingSessionModel!.data!.sessions!.data![index].id!.toString(),
+                                  id: provider.upcomingSessionModel!.data!
+                                      .sessions!.data![index].id!
+                                      .toString(),
                                 ),
                                 withNavBar: false,
                               );

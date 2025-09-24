@@ -16,10 +16,11 @@ import 'package:lifelab3/src/mentor/mentor_profile/provider/mentor_profile_provi
 import 'package:lifelab3/src/student/connect/provider/connect_provider.dart';
 import 'package:lifelab3/src/student/friend/provider/friend_provider.dart';
 import 'package:lifelab3/src/student/hall_of_fame/provider/hall_of_fame_provider.dart';
+import 'package:lifelab3/src/student/notification/model/notification_model.dart';
 import 'package:lifelab3/src/student/home/provider/dashboard_provider.dart';
-import 'package:lifelab3/src/student/mission/presentations/pages/mission_page.dart';
 import 'package:lifelab3/src/student/mission/provider/mission_provider.dart';
 import 'package:lifelab3/src/student/nav_bar/presentations/pages/nav_bar_page.dart';
+import 'package:lifelab3/src/student/notification/presentations/notification_handler.dart';
 import 'package:lifelab3/src/student/profile/provider/profile_provider.dart';
 import 'package:lifelab3/src/student/puzzle/provider/puzzle_provider.dart';
 import 'package:lifelab3/src/student/questions/provider/question_provider.dart';
@@ -30,6 +31,7 @@ import 'package:lifelab3/src/student/student_login/provider/student_login_provid
 import 'package:lifelab3/src/student/subject_level_list/provider/subject_level_provider.dart';
 import 'package:lifelab3/src/student/subject_list/provider/subject_list_provider.dart';
 import 'package:lifelab3/src/student/tracker/provider/tracker_provider.dart';
+import 'package:lifelab3/src/teacher/Notifiction/Presentation/notification_handler.dart';
 import 'package:lifelab3/src/teacher/shop/provider/provider.dart';
 import 'package:lifelab3/src/teacher/shop/services/services.dart';
 import 'package:lifelab3/src/teacher/student_progress/provider/student_progress_provider.dart';
@@ -43,7 +45,6 @@ import 'package:lifelab3/src/utils/storage_utils.dart';
 import 'package:lifelab3/src/welcome/presentation/page/welcome_page.dart';
 import 'package:provider/provider.dart';
 import 'package:lifelab3/src/student/vision/providers/vision_provider.dart';
-import 'src/common/widgets/common_navigator.dart';
 import 'package:lifelab3/src/common/utils/version_check_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
@@ -355,41 +356,98 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-void navigateToScreen(var data) {
-  debugPrint("Not Data: $data");
-  if (data["action"].toString() == "6") {
+int _safeInt(dynamic value, {int fallback = 0}) {
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+String _safeString(dynamic value, {String fallback = ""}) {
+  if (value == null) return fallback;
+  return value.toString().trim();
+}
+
+void navigateToScreen(Map<String, dynamic> data) {
+  debugPrint("=== Raw Notification Data ===");
+  debugPrint(data.toString());
+
+  final bool isStudent = StorageUtil.getBool(StringHelper.isLoggedIn) ?? false;
+  final bool isTeacher = StorageUtil.getBool(StringHelper.isTeacher) ?? false;
+  final bool isMentor = StorageUtil.getBool(StringHelper.isMentor) ?? false;
+
+  final context = navKey.currentState?.overlay?.context;
+  if (context == null) {
+    debugPrint("Navigator context is null, cannot navigate or show popup.");
+    return;
+  }
+
+  if (isStudent) {
     try {
-      push(
-        page: const NavBarPage(currentIndex: 2),
-        withNavbar: true,
-        context: navKey.currentState!.context,
-      );
-    } catch (e) {
-      print("Navigation Error: $e");
-    }
-  } else if (data["action"].toString() == "2") {
-    if (data["la_subject_id"] != null && data["la_level_id"] != null) {
-      Map<String, dynamic> missionData = {
-        "type": 1,
-        "la_subject_id": data["la_subject_id"].toString(),
-        "la_level_id": data["la_level_id"].toString(),
+      dynamic rawDataDynamic = data['data'];
+      Map<String, dynamic> rawData = {};
+
+      if (rawDataDynamic is String) {
+        try {
+          final decoded = jsonDecode(rawDataDynamic);
+          if (decoded is Map<String, dynamic>) rawData = decoded;
+        } catch (e) {
+          debugPrint("Failed to decode rawData string → $e");
+        }
+      } else if (rawDataDynamic is Map<String, dynamic>) {
+        rawData = rawDataDynamic;
+      }
+
+      // Build payload
+      final studentPayload = {
+        "id": null,
+        "type": _safeString(data['type']),
+        "data": {
+          "title": _safeString(data['title'], fallback: "Notification"),
+          "message": _safeString(data['message']),
+          "data": {
+            "action": _safeInt(rawData['action']),
+            "actionId": _safeInt(rawData['action_id'] ?? rawData['actionId']),
+            "laSubjectId":
+                _safeInt(rawData['la_subject_id'] ?? rawData['laSubjectId']),
+            "laLevelId":
+                _safeInt(rawData['la_level_id'] ?? rawData['laLevelId']),
+            "missionId":
+                _safeInt(rawData['mission_id'] ?? rawData['missionId']),
+            "visionId": _safeInt(rawData['vision_id'] ?? rawData['visionId']),
+            "admin_message_id": _safeInt(rawData['admin_message_id']),
+            "time": _safeInt(rawData['time']),
+          },
+        },
       };
-      Provider.of<SubjectLevelProvider>(navKey.currentState!.context,
-              listen: false)
-          .getMission(missionData)
-          .whenComplete(() {
-        push(
-          context: navKey.currentState!.context,
-          page: MissionPage(
-            missionListModel: Provider.of<SubjectLevelProvider>(
-                    navKey.currentState!.context,
-                    listen: false)
-                .missionListModel!,
-            levelId: data["la_level_id"],
-            subjectId: data["la_subject_id"],
-          ),
-        );
-      });
+
+      debugPrint("=== Notification Payload Sent to Handler ===");
+      debugPrint(jsonEncode(studentPayload));
+
+      final notification = NotificationData.fromJson(studentPayload);
+
+      // Log parsed data
+      debugPrint("=== Parsed NotificationData Object ===");
+      debugPrint("Title: ${notification.data?..title}");
+      debugPrint("Message: ${notification.data?.message}");
+      debugPrint("Action ID: ${notification.data?.data?.actionId}");
+      debugPrint("Mission ID: ${notification.data?.data?.missionId}");
+      debugPrint("Vision ID: ${notification.data?.data?.visionId}");
+      debugPrint("Subject ID: ${notification.data?.data?.laSubjectId}");
+      debugPrint("Level ID: ${notification.data?.data?.laLevelId}");
+
+      NotificationActionHandler.handleNotification(context, notification);
+    } catch (e, s) {
+      debugPrint("Error parsing notification for student: $e\n$s");
     }
+  } else if (isTeacher) {
+    TeacherNotificationHandler.show(context, data);
+  } else if (isMentor) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const MentorHomePage()),
+    );
+  } else {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const WelComePage()),
+    );
   }
 }

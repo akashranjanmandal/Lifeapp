@@ -7,7 +7,6 @@ import 'package:lifelab3/src/student/sign_up/model/section_model.dart';
 import 'package:lifelab3/src/student/subject_level_list/models/level_model.dart';
 import 'package:lifelab3/src/student/subject_level_list/models/mission_list_model.dart';
 import 'package:lifelab3/src/student/subject_level_list/models/quiz_topic_model.dart';
-import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/teacher_dashboard_page.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/model/all_student_report_model.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/model/class_student_model.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/services/tool_services.dart';
@@ -61,13 +60,17 @@ class ToolProvider extends ChangeNotifier {
   }
 
   void getMission(Map<String, dynamic> data) async {
+    int type = data["type"] ?? 1; // default to 1 if not provided
+    String? subjectId = data["la_subject_id"];
+    String? levelId = data["la_level_id"];
+
     Response response = await LevelListService().getMissionData(
-      type: data["type"],
-      subjectId: data["la_subject_id"],
-      levelId: data["la_level_id"],
+      type: type,
+      subjectId: subjectId,
+      levelId: levelId,
     );
 
-    if(response.statusCode == 200) {
+    if (response.statusCode == 200) {
       missionListModel = MissionListModel.fromJson(response.data);
     } else {
       missionListModel = null;
@@ -95,12 +98,11 @@ class ToolProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-
-  Future<void> assignMission(BuildContext context, Map<String, dynamic> data) async {
-
+  Future<bool> assignMission(BuildContext context, Map<String, dynamic> data)
+  async {
     Loader.show(
       context,
-      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
+      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor),
       overlayColor: Colors.black54,
     );
 
@@ -108,22 +110,17 @@ class ToolProvider extends ChangeNotifier {
 
     Loader.hide();
 
-    if(response.statusCode == 200) {
+    if (response.statusCode == 200) {
       Fluttertoast.showToast(msg: "Submitted");
-      if(context.mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const TeacherDashboardPage()), (route) => false,
-        );
-      }
+      return true; // ✅ success
     }
+    return false; // ✅ failure
   }
 
-  Future<void> assignTopic(BuildContext context, Map<String, dynamic> data) async {
-
+  Future<bool> assignTopic(BuildContext context, Map<String, dynamic> data) async {
     Loader.show(
       context,
-      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
+      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor),
       overlayColor: Colors.black54,
     );
 
@@ -131,15 +128,11 @@ class ToolProvider extends ChangeNotifier {
 
     Loader.hide();
 
-    if(response.statusCode == 200) {
+    if (response.statusCode == 200) {
       Fluttertoast.showToast(msg: "Submitted");
-      if(context.mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const TeacherDashboardPage()), (route) => false,
-        );
-      }
+      return true;
     }
+    return false;
   }
 
   void getTeacherGrade() async {

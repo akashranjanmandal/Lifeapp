@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/image_helper.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
-import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
 import 'package:lifelab3/src/student/shop/presentations/shop_page.dart';
+import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
 
 import '../../../connect/presentations/pages/connect_page.dart';
 import '../../../home/presentations/pages/home_page.dart';
@@ -12,7 +12,6 @@ import '../widgets/nav_icon_widget.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
 class NavBarPage extends StatefulWidget {
-
   final int currentIndex;
 
   const NavBarPage({required this.currentIndex, super.key});
@@ -22,7 +21,6 @@ class NavBarPage extends StatefulWidget {
 }
 
 class _NavBarPageState extends State<NavBarPage> {
-
   int preIndex = 0;
 
   late PersistentTabController _controller;
@@ -56,7 +54,9 @@ class _NavBarPageState extends State<NavBarPage> {
           navImageIcon(ImageHelper.trackerIcon, 1, StringHelper.tracker),
           navImageIcon(ImageHelper.connectIcon, 2, StringHelper.connect),
           navImageIcon(ImageHelper.shopIcon, 3, StringHelper.shop),
-          navImageIcon(ImageHelper.notificationIcon, 4, StringHelper.notification, context: context),
+          navImageIcon(
+              ImageHelper.notificationIcon, 4, StringHelper.notification,
+              context: context),
         ],
         navBarHeight: 80,
         stateManagement: true,
@@ -74,6 +74,7 @@ class _NavBarPageState extends State<NavBarPage> {
             ),
           ],
         ),
+
         /// ✅ Mixpanel tracking added here
         onItemSelected: (int index) {
           _controller.index = index;
@@ -99,6 +100,4 @@ class _NavBarPageState extends State<NavBarPage> {
       ),
     );
   }
-
-
 }

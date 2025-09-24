@@ -7,7 +7,6 @@ import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
 import '../../../profile/presentations/pages/profile_page.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
-
 class HomeAppBar extends StatelessWidget {
   final String name;
   final String? img;

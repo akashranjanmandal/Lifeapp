@@ -88,7 +88,7 @@ class _ProductsState extends State<Products> {
               Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 30),
               SizedBox(width: 10),
               Text(
-                'Budget Exceeded',
+                'Purchase limit reached',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -98,7 +98,7 @@ class _ProductsState extends State<Products> {
             ],
           ),
           content: const Text(
-            "Your shopping budget has been exceeded for this month.\n\nYou'll need to wait until it resets before making new purchases.",
+            "Hang tight — you can shop again once it resets!",
             style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
           actions: [

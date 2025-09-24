@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/api_helper.dart';
 import 'package:lifelab3/src/student/subject_level_list/models/mission_list_model.dart';
-import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
 class CompletedMissionWidget extends StatelessWidget {
   final MissionDatum data;

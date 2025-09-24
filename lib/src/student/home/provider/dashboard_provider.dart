@@ -40,9 +40,8 @@ class DashboardProvider extends ChangeNotifier {
   }
 
   Future<void> storeToken() async {
-    await ToolServices().storeToken(deviceToken: StorageUtil.getString(StringHelper.fcmToken));
+    await ToolServices().storeToken(); // no deviceToken parameter
   }
-
   Future<void> getSubjectsData() async {
     Response response = await DashboardServices().getSubjectData();
 

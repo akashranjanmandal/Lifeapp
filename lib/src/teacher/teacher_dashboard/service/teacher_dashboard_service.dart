@@ -326,6 +326,9 @@ class TeacherDashboardService {
         body.remove('la_board_id');
       }
 
+      // Debug: Print request body
+      debugPrint("🔹 API Request Body: ${body.toString()}");
+
       Response response = await dio.post(
         "https://api.life-lab.org/v3/pbl-textbook-mappings/",
         data: body,
@@ -338,9 +341,14 @@ class TeacherDashboardService {
           },
         ),
       );
+
+      // Debug: Print full response
+      debugPrint("✅ API Response [${response.statusCode}]: ${response.data}");
+
       return response;
-    } catch (e) {
-      debugPrint("PBL Textbook Mappings Error: $e");
+    } catch (e, stacktrace) {
+      debugPrint("❌ PBL Textbook Mappings Error: $e");
+      debugPrint("❌ Stacktrace: $stacktrace");
       return null;
     }
   }

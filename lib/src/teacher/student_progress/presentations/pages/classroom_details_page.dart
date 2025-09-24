@@ -1,3 +1,4 @@
+//class report page
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/common_appbar.dart';
@@ -14,7 +15,12 @@ class ClassroomDetailsPage extends StatefulWidget {
   final String gradeId;
   final String subjectName;
 
-  const ClassroomDetailsPage({super.key, required this.gradeId,required this.gradeName,required this.sectionName, required this.subjectName});
+  const ClassroomDetailsPage(
+      {super.key,
+      required this.gradeId,
+      required this.gradeName,
+      required this.sectionName,
+      required this.subjectName});
 
   @override
   State<ClassroomDetailsPage> createState() => _ClassroomDetailsPageState();
@@ -25,7 +31,8 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Provider.of<StudentProgressProvider>(context, listen: false).getClassStudent(widget.gradeId);
+      Provider.of<StudentProgressProvider>(context, listen: false)
+          .getClassStudent(widget.gradeId);
     });
     super.initState();
     _startTime = DateTime.now();
@@ -36,15 +43,18 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
       "subject_name": widget.subjectName,
     });
   }
+
   @override
   void dispose() {
     final durationSecs = DateTime.now().difference(_startTime).inSeconds;
-    MixpanelService.track("IndividualClassroomScreen_ActivityTime", properties: {
-      "duration_seconds": durationSecs,
-      "grade_id": widget.gradeId,
-    });
+    MixpanelService.track("IndividualClassroomScreen_ActivityTime",
+        properties: {
+          "duration_seconds": durationSecs,
+          "grade_id": widget.gradeId,
+        });
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<StudentProgressProvider>(context);
@@ -64,164 +74,162 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
         //   ),
         // ),
       ),
-      body: provider.allStudentReportModel != null ? SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 15, right: 15),
-        child: Column(
-          children: [
-            Text(
-              "Class ${widget.gradeName} ${widget.sectionName}",
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 23,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-
-            Text(
-              "Subject : ${widget.subjectName}",
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 15,
-              ),
-            ),
-
-            const SizedBox(height: 5),
-            if(provider.allStudentReportModel!.data != null) Text(
-              "${provider.allStudentReportModel!.data!.student!.length} Student",
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-            if(provider.allStudentReportModel!.data != null) Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
+      body: provider.allStudentReportModel != null
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.only(left: 15, right: 15),
+              child: Column(
+                children: [
+                  Text(
+                    "Class ${widget.gradeName} ${widget.sectionName}",
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 23,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    "Subject : ${widget.subjectName}",
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  if (provider.allStudentReportModel!.data != null)
                     Text(
-                      "${provider.allStudentReportModel!.data!.totalMission ?? ""}",
+                      "${provider.allStudentReportModel!.data!.student!.length} Student",
                       style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
+                        color: Colors.black54,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const Text(
-                      "Mission",
+                  const SizedBox(height: 20),
+                  if (provider.allStudentReportModel!.data != null)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          children: [
+                            Text(
+                              "${provider.allStudentReportModel!.data!.totalMission ?? ""}",
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const Text(
+                              "Mission",
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          height: 35,
+                          width: 1,
+                          color: Colors.black54,
+                        ),
+                        Column(
+                          children: [
+                            Text(
+                              "${provider.allStudentReportModel!.data!.totalQuiz ?? ""}",
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const Text(
+                              "Quiz",
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          height: 35,
+                          width: 1,
+                          color: Colors.black54,
+                        ),
+                        Column(
+                          children: [
+                            Text(
+                              "${provider.allStudentReportModel!.data!.totalPuzzle ?? ""}",
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const Text(
+                              "Puzzles",
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          height: 35,
+                          width: 1,
+                          color: Colors.black54,
+                        ),
+                        Column(
+                          children: [
+                            Text(
+                              "${provider.allStudentReportModel!.data!.totalCoins ?? ""}",
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const Text(
+                              "Coins",
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 20),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Classroom students",
                       style: TextStyle(
                         color: Colors.black54,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-
-                Container(
-                  height: 35,
-                  width: 1,
-                  color: Colors.black54,
-                ),
-                Column(
-                  children: [
-                    Text(
-                      "${provider.allStudentReportModel!.data!.totalQuiz ?? ""}",
-                      style: const TextStyle(
-                        color: Colors.black,
                         fontSize: 15,
-                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const Text(
-                      "Quiz",
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13,
+                  ),
+                  const SizedBox(height: 20),
+                  if (provider.allStudentReportModel!.data != null)
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount:
+                          provider.allStudentReportModel!.data!.student!.length,
+                      itemBuilder: (context, index) => CommonStudentWidget(
+                        index: index,
+                        provider: provider,
+                        sectionName: widget.sectionName,
                       ),
                     ),
-                  ],
-                ),
-
-                Container(
-                  height: 35,
-                  width: 1,
-                  color: Colors.black54,
-                ),
-                Column(
-                  children: [
-                    Text(
-                      "${provider.allStudentReportModel!.data!.totalPuzzle ?? ""}",
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Text(
-                      "Puzzles",
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-
-                Container(
-                  height: 35,
-                  width: 1,
-                  color: Colors.black54,
-                ),
-                Column(
-                  children: [
-                    Text(
-                      "${provider.allStudentReportModel!.data!.totalCoins ?? ""}",
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Text(
-                      "Coins",
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Classroom students",
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 15,
-                ),
+                ],
               ),
-            ),
-
-            const SizedBox(height: 20),
-            if(provider.allStudentReportModel!.data != null) ListView.builder(
-              shrinkWrap: true,
-              physics: const BouncingScrollPhysics(),
-              itemCount: provider.allStudentReportModel!.data!.student!.length,
-              itemBuilder: (context, index) => CommonStudentWidget(
-                index: index,
-                provider: provider,
-                sectionName: widget.sectionName,
-              ),
-            ),
-          ],
-        ),
-      ) : const LoadingWidget(),
+            )
+          : const LoadingWidget(),
     );
   }
 }

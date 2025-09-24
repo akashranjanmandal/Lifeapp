@@ -275,7 +275,6 @@ class _CoinCard extends StatelessWidget {
     required this.title,
     required this.coinCount,
     required this.coinColor,
-    super.key,
   });
 
   @override

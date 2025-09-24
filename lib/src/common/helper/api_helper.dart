@@ -13,7 +13,7 @@ class ApiHelper {
 
   static const String baseUrl = "https://api.life-lab.org";
   
-  // static const String baseUrl = "https://api.gappubobo.com";
+  // static const String baseUrl = "https://staging.life-lab.org";
 
   // static const String baseUrl = "http://10.0.2.2:8000";
 
@@ -22,9 +22,6 @@ class ApiHelper {
   // static const String baseUrl = "https://stg.gappubobo.com";
 
   static const String imgBaseUrl = "https://lifeappmedia.blr1.digitaloceanspaces.com/";
-
-  static const String chatGptToken =
-      "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";
 
   /// [Student]
   static const String sendOtp = "/v3/otp/send";

@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-// import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:lifelab3/src/teacher/student_progress/model/teacher_grade_section_model.dart';
 import 'package:lifelab3/src/teacher/student_progress/model/teacher_mission_list_model.dart';
 import 'package:lifelab3/src/teacher/student_progress/model/teacher_mission_participant_model.dart';
@@ -78,9 +77,12 @@ class StudentProgressProvider extends ChangeNotifier {
     }
   }
 
-  void getTeacherMission() async {
-    Response response = await ToolServices().getTeacherMission();
-
+  void getTeacherMission(Map<String, dynamic> data) async {
+    Response response = await ToolServices().getAssignMissionData(
+      type: data["type"],
+      subjectId: data["la_subject_id"],
+      levelId: data["la_level_id"],
+    );
     if(response.statusCode == 200) {
       teacherMissionListModel = TeacherMissionListModel.fromJson(response.data);
       notifyListeners();
@@ -101,31 +103,43 @@ class StudentProgressProvider extends ChangeNotifier {
     }
   }
 
-  void submitApproveReject({required int status, required String comment, required String studentId, required BuildContext context, required String missionId}) async {
-
+  Future<SubmitMissionResponse?> submitApproveReject({
+    required int status,
+    required String comment,
+    required String studentId,
+    required BuildContext context,
+    required String missionId,
+  }) async {
     Loader.show(
       context,
       progressIndicator: const CircularProgressIndicator(),
       overlayColor: Colors.black54,
     );
 
-    Response response = await ToolServices().submitTeacherMissionApproveReject(
-      status: status,
-      comment: comment,
-      studentId: studentId,
-    );
+    try {
+      Response? response = await ToolServices().submitTeacherMissionApproveReject(
+        status: status,
+        comment: comment,
+        studentId: studentId,
+      );
 
-    Loader.hide();
+      Loader.hide();
 
-    if(response.statusCode == 200) {
-      Fluttertoast.showToast(msg: response.data["message"]);
-      Navigator.pop(context);
-      getTeacherMissionParticipant(missionId);
-    } else {
+      if (response != null && response.statusCode == 200) {
+        Fluttertoast.showToast(msg: response.data["message"]);
+
+        // Parse and return the API response
+        return SubmitMissionResponse.fromJson(response.data);
+      } else {
+        Fluttertoast.showToast(msg: "Try again later");
+      }
+    } catch (e) {
+      Loader.hide();
       Fluttertoast.showToast(msg: "Try again later");
     }
-  }
 
+    return null;
+  }
   void downloadImage(BuildContext context) async {
     int androidVersion = 0;
     if (Platform.isAndroid) {
