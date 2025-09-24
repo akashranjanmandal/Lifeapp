@@ -6,58 +6,68 @@ import 'package:lifelab3/src/teacher/student_progress/provider/student_progress_
 
 import '../../../../common/helper/image_helper.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+
 class CommonStudentWidget extends StatelessWidget {
   final String sectionName;
   final int index;
   final StudentProgressProvider provider;
 
-  const CommonStudentWidget({super.key, required this.sectionName, required this.index, required this.provider});
+  const CommonStudentWidget(
+      {super.key,
+      required this.sectionName,
+      required this.index,
+      required this.provider});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: MediaQuery.of(context).size.width,
-      margin: const EdgeInsets.only(top: 8, bottom: 8),
-      padding: const EdgeInsets.all(15),
+      margin: const EdgeInsets.only(top: 15, bottom: 8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            offset: Offset(1, 1),
-            blurRadius: 2,
-            spreadRadius: 2,
-          ),
-        ]
-      ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              offset: Offset(1, 1),
+              blurRadius: 2,
+              spreadRadius: 2,
+            ),
+          ]),
       child: Column(
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              provider.allStudentReportModel!.data!.student![index].user!.profileImage != null ? CircleAvatar(
-                radius: 30,
-                backgroundImage: NetworkImage(ApiHelper.imgBaseUrl + provider.allStudentReportModel!.data!.student![index].user!.profileImage!),
-              ) : const CircleAvatar(
-                radius: 30,
-                backgroundImage: AssetImage(ImageHelper.profileImg),
-              ),
-
+              provider.allStudentReportModel!.data!.student![index].user!
+                          .profileImage !=
+                      null
+                  ? CircleAvatar(
+                      radius: 30,
+                      backgroundImage: NetworkImage(ApiHelper.imgBaseUrl +
+                          provider.allStudentReportModel!.data!.student![index]
+                              .user!.profileImage!),
+                    )
+                  : const CircleAvatar(
+                      radius: 30,
+                      backgroundImage: AssetImage(ImageHelper.profileImg),
+                    ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      provider.allStudentReportModel!.data!.student![index].user!.name ?? "",
+                      provider.allStudentReportModel!.data!.student![index]
+                              .user!.name ??
+                          "",
                       style: const TextStyle(
                         color: Colors.black,
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-
                     Text(
                       "Class: $sectionName",
                       style: const TextStyle(
@@ -66,7 +76,9 @@ class CommonStudentWidget extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      provider.allStudentReportModel!.data!.student![index].user!.school?.name ?? "",
+                      provider.allStudentReportModel!.data!.student![index]
+                              .user!.school?.name ??
+                          "",
                       style: const TextStyle(
                         color: Colors.black54,
                         fontSize: 11,
@@ -83,34 +95,41 @@ class CommonStudentWidget extends StatelessWidget {
                   ],
                 ),
               ),
-
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   // Details
                   InkWell(
                     onTap: () {
-                      final student = provider.allStudentReportModel!.data!.student![index];
+                      final student =
+                          provider.allStudentReportModel!.data!.student![index];
                       final studentName = student.user!.name ?? "Unknown";
                       final studentId = student.user!.id?.toString() ?? "";
 
-                      MixpanelService.track("CommonStudentWidget_ViewDetailedReportClicked", properties: {
-                        "student_name": studentName,
-                        "student_id": studentId,
-                        "section_name": sectionName,
-                      });
+                      MixpanelService.track(
+                          "CommonStudentWidget_ViewDetailedReportClicked",
+                          properties: {
+                            "student_name": studentName,
+                            "student_id": studentId,
+                            "section_name": sectionName,
+                          });
                       push(
                         context: context,
-                        page: StudentProgressDetailsPage(index: index, provider: provider, sectionName: sectionName,),
+                        page: StudentProgressDetailsPage(
+                          index: index,
+                          provider: provider,
+                          sectionName: sectionName,
+                        ),
                       );
                     },
                     splashColor: Colors.transparent,
                     highlightColor: Colors.transparent,
                     child: Container(
-                      height: 30,
-                      width: 140,
+                      height: 25,
+                      width: 113,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius:
+                            BorderRadius.circular(16), // reduced radius
                         color: Colors.blue,
                       ),
                       child: const Center(
@@ -118,7 +137,7 @@ class CommonStudentWidget extends StatelessWidget {
                           "View detailed report",
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 11,
+                            fontSize: 10, // reduced from 11
                           ),
                         ),
                       ),
@@ -143,14 +162,15 @@ class CommonStudentWidget extends StatelessWidget {
               ),
             ],
           ),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               Column(
                 children: [
                   Text(
-                    provider.allStudentReportModel!.data!.student![index].vision!.toString(),
+                    provider
+                        .allStudentReportModel!.data!.student![index].vision!
+                        .toString(),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 15,
@@ -174,7 +194,9 @@ class CommonStudentWidget extends StatelessWidget {
               Column(
                 children: [
                   Text(
-                    provider.allStudentReportModel!.data!.student![index].mission!.toString(),
+                    provider
+                        .allStudentReportModel!.data!.student![index].mission!
+                        .toString(),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 15,
@@ -190,7 +212,6 @@ class CommonStudentWidget extends StatelessWidget {
                   ),
                 ],
               ),
-
               Container(
                 height: 35,
                 width: 1,
@@ -199,7 +220,8 @@ class CommonStudentWidget extends StatelessWidget {
               Column(
                 children: [
                   Text(
-                    provider.allStudentReportModel!.data!.student![index].quiz!.toString(),
+                    provider.allStudentReportModel!.data!.student![index].quiz!
+                        .toString(),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 15,
@@ -215,7 +237,6 @@ class CommonStudentWidget extends StatelessWidget {
                   ),
                 ],
               ),
-
               Container(
                 height: 35,
                 width: 1,
@@ -224,7 +245,9 @@ class CommonStudentWidget extends StatelessWidget {
               Column(
                 children: [
                   Text(
-                    provider.allStudentReportModel!.data!.student![index].puzzle!.toString(),
+                    provider
+                        .allStudentReportModel!.data!.student![index].puzzle!
+                        .toString(),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 15,
@@ -240,7 +263,6 @@ class CommonStudentWidget extends StatelessWidget {
                   ),
                 ],
               ),
-
               Container(
                 height: 35,
                 width: 1,
@@ -249,7 +271,8 @@ class CommonStudentWidget extends StatelessWidget {
               Column(
                 children: [
                   Text(
-                    provider.allStudentReportModel!.data!.student![index].coins!.toString(),
+                    provider.allStudentReportModel!.data!.student![index].coins!
+                        .toString(),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 15,

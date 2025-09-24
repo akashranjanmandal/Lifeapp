@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../common/helper/color_code.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+
 class StudentListPage extends StatefulWidget {
   const StudentListPage({super.key});
 
@@ -20,12 +21,14 @@ class _StudentListPageState extends State<StudentListPage> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Provider.of<StudentProgressProvider>(context, listen: false).getAllStudent();
+      Provider.of<StudentProgressProvider>(context, listen: false)
+          .getAllStudent();
       MixpanelService.track("AllStudentsScreen_View");
     });
     super.initState();
     _startTime = DateTime.now();
   }
+
   @override
   void dispose() {
     final duration = DateTime.now().difference(_startTime).inSeconds;
@@ -34,6 +37,7 @@ class _StudentListPageState extends State<StudentListPage> {
     });
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<StudentProgressProvider>(context);
@@ -42,33 +46,40 @@ class _StudentListPageState extends State<StudentListPage> {
         context: context,
         name: StringHelper.yourStudent,
       ),
-      body: provider.allStudentReportModel != null ? SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 15, right: 15),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            provider.allStudentReportModel!.data != null ? ListView.builder(
-              shrinkWrap: true,
-              physics: const BouncingScrollPhysics(),
-              itemCount: provider.allStudentReportModel!.data!.student!.length,
-              itemBuilder: (context, index) => CommonStudentWidget(
-                index: index,
-                provider: provider,
-                sectionName: provider.allStudentReportModel!.data!.student![index].user?.section?.name ?? "",
+      body: provider.allStudentReportModel != null
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.only(left: 15, right: 15),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  provider.allStudentReportModel!.data != null
+                      ? ListView.builder(
+                          shrinkWrap: true,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: provider
+                              .allStudentReportModel!.data!.student!.length,
+                          itemBuilder: (context, index) => CommonStudentWidget(
+                            index: index,
+                            provider: provider,
+                            sectionName: provider.allStudentReportModel!.data!
+                                    .student![index].user?.section?.name ??
+                                "",
+                          ),
+                        )
+                      : const Center(
+                          child: Text(
+                            "No Student Available",
+                            style: TextStyle(
+                              color: ColorCode.textBlackColor,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                ],
               ),
-            ) : const Center(
-              child: Text(
-                "No Student Available",
-                style: TextStyle(
-                  color: ColorCode.textBlackColor,
-                  fontSize: 25,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ) : const LoadingWidget(),
+            )
+          : const LoadingWidget(),
     );
   }
 }

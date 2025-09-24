@@ -28,7 +28,7 @@ class _TeacherFaqListviewState extends State<TeacherFaqListview> {
     try {
       final faqs = await _faqService.getFaqsByCategory();
 
-      //extra safeguard: only keep teacher audience
+      // Extra safeguard: only keep teacher audience
       final teacherFaqs = faqs.where((f) => f.audience == 'teacher').toList();
 
       setState(() {
@@ -43,33 +43,33 @@ class _TeacherFaqListviewState extends State<TeacherFaqListview> {
     }
   }
 
+  // Dynamically build categories from FAQs
+  List<TeacherFaqCategory> get categories {
+    final Map<String, TeacherFaqCategory> map = {};
+
+    for (final faq in _allFaqs) {
+      map.putIfAbsent(
+        faq.categoryKey,
+        () => TeacherFaqCategory(
+          key: faq.categoryKey,
+          name: faq.categoryName,
+        ),
+      );
+
+      map[faq.categoryKey] = map[faq.categoryKey]!.copyWith(
+        faqItems: [...map[faq.categoryKey]!.faqItems, faq],
+      );
+    }
+
+    return map.values.toList();
+  }
+
   void _openCategory(BuildContext context, TeacherFaqCategory category) {
-    final filtered = _allFaqs.where((f) {
-      return f.categoryKey == category.key && f.audience == 'teacher';
-    }).toList();
-
-    final categoryWithFaqs = category.copyWith(faqItems: filtered);
-
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TeacherFaqDetailPage(category: categoryWithFaqs),
+        builder: (context) => TeacherFaqDetailPage(category: category),
       ),
-    );
-  }
-
-  Widget _buildCategoryIcon(String icon) {
-    if (icon.endsWith('.png')) {
-      return Image.asset(
-        icon,
-        width: 35,
-        height: 35,
-        fit: BoxFit.contain,
-      );
-    }
-    return Text(
-      icon,
-      style: const TextStyle(fontSize: 35),
     );
   }
 
@@ -83,9 +83,10 @@ class _TeacherFaqListviewState extends State<TeacherFaqListview> {
     }
 
     return ListView.builder(
-      itemCount: predefinedTeacherCategories.length,
+      itemCount: categories.length,
       itemBuilder: (BuildContext context, int index) {
-        final category = predefinedTeacherCategories[index];
+        final category = categories[index];
+
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
           child: GestureDetector(
@@ -96,26 +97,16 @@ class _TeacherFaqListviewState extends State<TeacherFaqListview> {
                 color: ColorCode.buttonColor,
                 borderRadius: BorderRadius.circular(20.0),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Text(
-                      category.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildCategoryIcon(category.icon),
-                  ),
-                ],
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                category.name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

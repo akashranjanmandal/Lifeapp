@@ -1,5 +1,7 @@
+//dashboard student progress widget
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/widgets/common_navigator.dart';
+import 'package:lifelab3/src/teacher/student_progress/presentations/pages/classroom_list_page.dart';
 import 'package:lifelab3/src/teacher/student_progress/presentations/pages/students_progress_page.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/presentations/pages/teacher_class_page.dart';
 import '../../../../common/helper/image_helper.dart';
@@ -155,7 +157,7 @@ class TeacherToolWidget extends StatelessWidget {
                     push(
                       context: context,
                       //route to myClassroom page
-                      page: const StudentProgressPage(),
+                      page: const ClassroomListPage(),
                     );
                   },
                   child: Container(

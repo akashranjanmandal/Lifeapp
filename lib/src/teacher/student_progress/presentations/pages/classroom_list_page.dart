@@ -1,4 +1,4 @@
-//my classrooms
+//my classrooms(1st figma page)
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/common_appbar.dart';
@@ -45,7 +45,7 @@ class _ClassroomListPageState extends State<ClassroomListPage> {
     return Scaffold(
       appBar: commonAppBar(
         context: context,
-        name: StringHelper.classroom,
+        name: StringHelper.myClassrooms,
         // Assuming commonAppBar has an onBack callback or customized widget
         onBack: () {
           MixpanelService.track("ClassroomListPage_BackClicked");
@@ -87,7 +87,7 @@ class _ClassroomListPageState extends State<ClassroomListPage> {
                   splashColor: Colors.transparent,
                   highlightColor: Colors.transparent,
                   child: Container(
-                    height: 50,
+                    height: 60,
                     width: MediaQuery.of(context).size.width,
                     margin: const EdgeInsets.only(bottom: 15),
                     padding: const EdgeInsets.only(left: 15, right: 15),
