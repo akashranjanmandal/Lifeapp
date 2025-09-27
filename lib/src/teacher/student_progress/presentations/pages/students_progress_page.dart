@@ -1,4 +1,3 @@
-//dont need this page anymore
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/common_appbar.dart';
@@ -8,7 +7,6 @@ import 'package:lifelab3/src/teacher/student_progress/presentations/pages/projec
 import 'package:lifelab3/src/teacher/student_progress/presentations/pages/student_list_page.dart';
 import 'package:lifelab3/src/teacher/student_progress/presentations/widget/common_track_widget.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
-
 class StudentProgressPage extends StatelessWidget {
   const StudentProgressPage({super.key});
 
@@ -27,8 +25,7 @@ class StudentProgressPage extends StatelessWidget {
             CommonTrackWidget(
               name: StringHelper.individualStudent,
               onTap: () {
-                MixpanelService.track(
-                    "StudentProgressPage_Tap_IndividualStudent");
+                MixpanelService.track("StudentProgressPage_Tap_IndividualStudent");
                 push(
                   context: context,
                   page: const StudentListPage(),

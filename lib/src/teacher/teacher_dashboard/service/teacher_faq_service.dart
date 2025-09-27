@@ -10,7 +10,7 @@ class TeacherFaqService {
   /// Fetch raw FAQ list (optionally filtered by category and audience)
   Future<List<dynamic>> getTeacherFaqsRaw({
     String? categoryId,
-    String? audience, // 'teacher', 'student', or 'all'
+    String audience = 'teacher', // default to teacher
   }) async {
     try {
       final token = await StorageUtil.getString(StringHelper.token);
@@ -18,7 +18,7 @@ class TeacherFaqService {
       final queryParams = {
         if (categoryId != null && categoryId.isNotEmpty)
           'categoryId': categoryId,
-        if (audience != null && audience.isNotEmpty) 'audience': audience,
+        'audience': audience, // always include audience
       };
 
       final response = await dio.get(
@@ -33,7 +33,7 @@ class TeacherFaqService {
         ),
       );
 
-      print("Raw API response: ${response.data}");
+      print("Raw API response (Teacher): ${response.data}");
 
       if (response.data != null && response.data['data'] != null) {
         return response.data['data'] as List<dynamic>;
@@ -45,18 +45,18 @@ class TeacherFaqService {
     }
   }
 
-  /// Returns strongly typed TeacherFaq objects with optional audience filter
+  /// Returns strongly typed TeacherFaq objects
   Future<List<TeacherFaq>> getFaqsByCategory({
     String? categoryId,
-    String audience = 'teacher', // default to teacher
+    String audience = 'teacher',
   }) async {
     final raw =
         await getTeacherFaqsRaw(categoryId: categoryId, audience: audience);
 
-    // include items for the specific audience OR 'all'
+    // include items for the teacher audience OR 'all'
     return raw
         .map((json) => TeacherFaq.fromJson(json))
-        .where((faq) => faq.audience == audience)
+        .where((faq) => faq.audience == audience || faq.audience == 'all')
         .toList();
   }
 }

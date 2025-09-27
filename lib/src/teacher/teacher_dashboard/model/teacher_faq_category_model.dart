@@ -10,8 +10,8 @@ class TeacherFaq {
   final String question;
   final String answer;
   final String audience; // "student" | "teacher" | "all"
-  final String categoryKey; // normalized key (e.g., "coins", "profile")
-  final String categoryName; // original display name from API
+  final String categoryKey;
+  final String categoryName;
 
   TeacherFaq({
     required this.id,
@@ -39,11 +39,10 @@ class TeacherFaq {
   }
 }
 
-/// Represents a UI category (purely API-driven)
 class TeacherFaqCategory {
-  final String key; // normalized key
-  final String name; // display name from API
-  final List<TeacherFaq> faqItems; // FAQs in this category
+  final String key;
+  final String name;
+  final List<TeacherFaq> faqItems;
 
   TeacherFaqCategory({
     required this.key,

@@ -54,7 +54,6 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
   var data = jsonDecode(notificationResponse.payload!);
   navigateToScreen(data);
 }
-
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint('Handling a background message ${message.messageId}');
@@ -84,8 +83,7 @@ void main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // Optional: show content under status/nav bars (edge-to-edge)
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
-      overlays: SystemUiOverlay.values);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge, overlays: SystemUiOverlay.values);
 
   await StorageUtil.getInstance();
   await Firebase.initializeApp();
@@ -94,8 +92,7 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   channel = const AndroidNotificationChannel(
-    'lifelab',
-    'High Importance Notifications',
+    'lifelab', 'High Importance Notifications',
     description: 'This channel is used for important notifications.',
     importance: Importance.high,
   );
@@ -103,8 +100,7 @@ void main() async {
   flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
   await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
@@ -114,8 +110,7 @@ void main() async {
   );
 
   if (Platform.isIOS) {
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
+    const InitializationSettings initializationSettings = InitializationSettings(
       iOS: DarwinInitializationSettings(
         requestSoundPermission: true,
         requestBadgePermission: true,
@@ -139,6 +134,8 @@ class VersionCheckWrapper extends StatefulWidget {
   @override
   State<VersionCheckWrapper> createState() => _VersionCheckWrapperState();
 }
+
+
 
 class _VersionCheckWrapperState extends State<VersionCheckWrapper> {
   final VersionCheckService _versionCheckService = VersionCheckService();
@@ -171,6 +168,8 @@ class _MyAppState extends State<MyApp> {
   bool? isLogin;
   bool isMentor = false;
   bool isTeacher = false;
+
+
 
   getFcmToken() async {
     await FirebaseMessaging.instance.requestPermission();
@@ -254,9 +253,10 @@ class _MyAppState extends State<MyApp> {
     debugPrint("Is Mentor: $isMentor");
     debugPrint("Is Teacher: $isTeacher");
     super.initState();
+
   }
 
-  Widget _buildHomeScreen() {
+   Widget _buildHomeScreen() {
     Widget homeWidget = isLogin!
         ? const NavBarPage(currentIndex: 0)
         : isMentor
@@ -267,6 +267,7 @@ class _MyAppState extends State<MyApp> {
 
     return VersionCheckWrapper(child: homeWidget);
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -296,8 +297,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => QuizProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(
-          create: (_) => ProductProvider(
-              ProductService('https://your.api/baseurl')), // ✅ Correct
+          create: (_) => ProductProvider(ProductService('https://your.api/baseurl')), // ✅ Correct
         ),
         ChangeNotifierProvider(create: (_) => MentorProfileProvider()),
         ChangeNotifierProvider(create: (_) => ToolProvider()),
@@ -308,15 +308,19 @@ class _MyAppState extends State<MyApp> {
         navigatorKey: navKey,
         title: 'Life App',
         debugShowCheckedModeBanner: false,
+
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
+
         supportedLocales: const [
           Locale('en', ''), // English
+
         ],
-        builder: (context, child) {
+
+         builder: (context, child) {
           return MaterialApp(
             // Remove the title and navigatorKey as they're in the parent MaterialApp
             debugShowCheckedModeBanner: false,
@@ -332,6 +336,7 @@ class _MyAppState extends State<MyApp> {
             ],
           );
         },
+
         theme: ThemeData(
           appBarTheme: const AppBarTheme(
             titleTextStyle: TextStyle(
@@ -350,7 +355,9 @@ class _MyAppState extends State<MyApp> {
           fontFamily: "Avenir",
           textTheme: const TextTheme().apply(displayColor: Colors.white),
         ),
-        home: _buildHomeScreen(),
+
+          home: _buildHomeScreen(),
+
       ),
     );
   }
@@ -407,12 +414,9 @@ void navigateToScreen(Map<String, dynamic> data) {
           "data": {
             "action": _safeInt(rawData['action']),
             "actionId": _safeInt(rawData['action_id'] ?? rawData['actionId']),
-            "laSubjectId":
-                _safeInt(rawData['la_subject_id'] ?? rawData['laSubjectId']),
-            "laLevelId":
-                _safeInt(rawData['la_level_id'] ?? rawData['laLevelId']),
-            "missionId":
-                _safeInt(rawData['mission_id'] ?? rawData['missionId']),
+            "laSubjectId": _safeInt(rawData['la_subject_id'] ?? rawData['laSubjectId']),
+            "laLevelId": _safeInt(rawData['la_level_id'] ?? rawData['laLevelId']),
+            "missionId": _safeInt(rawData['mission_id'] ?? rawData['missionId']),
             "visionId": _safeInt(rawData['vision_id'] ?? rawData['visionId']),
             "admin_message_id": _safeInt(rawData['admin_message_id']),
             "time": _safeInt(rawData['time']),
@@ -436,6 +440,7 @@ void navigateToScreen(Map<String, dynamic> data) {
       debugPrint("Level ID: ${notification.data?.data?.laLevelId}");
 
       NotificationActionHandler.handleNotification(context, notification);
+
     } catch (e, s) {
       debugPrint("Error parsing notification for student: $e\n$s");
     }

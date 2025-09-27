@@ -3,9 +3,8 @@ import 'package:lifelab3/src/common/helper/api_helper.dart';
 import 'package:lifelab3/src/common/helper/image_helper.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/teacher/teacher_profile/presentations/pages/teacher_profile_page.dart';
-import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
-
+import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 class TeacherHomeAppBar extends StatelessWidget {
   final String name;
   final String? img;
@@ -25,10 +24,13 @@ class TeacherHomeAppBar extends StatelessWidget {
           ? ApiHelper.imgBaseUrl
           : '${ApiHelper.imgBaseUrl}/';
 
-      final path = img!.startsWith('/') ? img!.substring(1) : img!;
+      final path = img!.startsWith('/')
+          ? img!.substring(1)
+          : img!;
 
       finalImageUrl = img!.startsWith('http') ? img : '$base$path';
     }
+
 
     debugPrint('👤 Final Profile Image URL: $finalImageUrl');
 
@@ -64,13 +66,11 @@ class TeacherHomeAppBar extends StatelessWidget {
                   children: [
                     const Text(
                       "Hello! ",
-                      style:
-                          TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                     ),
                     Text(
                       name,
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w800),
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
@@ -111,8 +111,7 @@ class _ProfileImageWithFallback extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<_ProfileImageWithFallback> createState() =>
-      _ProfileImageWithFallbackState();
+  State<_ProfileImageWithFallback> createState() => _ProfileImageWithFallbackState();
 }
 
 class _ProfileImageWithFallbackState extends State<_ProfileImageWithFallback> {
@@ -159,3 +158,4 @@ class _ProfileImageWithFallbackState extends State<_ProfileImageWithFallback> {
     );
   }
 }
+

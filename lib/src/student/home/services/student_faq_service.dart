@@ -54,7 +54,7 @@ class StudentFaqService {
     final raw =
         await getStudentFaqsRaw(categoryId: categoryId, audience: audience);
 
-    // include items for the specific audience OR 'all'
+    // include items for the student audience OR 'all'
     return raw
         .map((json) => StudentFaq.fromJson(json))
         .where((faq) => faq.audience == audience || faq.audience == 'all')

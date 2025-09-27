@@ -14,6 +14,7 @@ import '../../../common/helper/color_code.dart';
 import '../model/hall_of_fame_model.dart';
 
 class HallOfFameProvider extends ChangeNotifier {
+
   HallOfFameModel? hall;
 
   final GlobalKey heartPointKey = GlobalKey();
@@ -28,14 +29,11 @@ class HallOfFameProvider extends ChangeNotifier {
   void shareHearPoint(BuildContext context) async {
     Loader.show(
       context,
-      progressIndicator: const CircularProgressIndicator(
-        color: ColorCode.buttonColor,
-      ),
+      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
       overlayColor: Colors.black54,
     );
 
-    RenderRepaintBoundary? boundary = heartPointKey.currentContext!
-        .findRenderObject() as RenderRepaintBoundary?;
+    RenderRepaintBoundary? boundary = heartPointKey.currentContext!.findRenderObject() as RenderRepaintBoundary?;
     var image = await boundary!.toImage(pixelRatio: 10);
     ByteData? byteData = await image.toByteData(format: ImageByteFormat.png);
     Uint8List pngByte = byteData!.buffer.asUint8List();
@@ -44,10 +42,8 @@ class HallOfFameProvider extends ChangeNotifier {
     await imgPath.create(recursive: true);
     final file = await File('${imgPath.path}/lifelab.png').create();
     await file.writeAsBytes(pngByte);
-    await Share.shareXFiles(
-      [XFile(file.path)],
-    );
-    if (await file.exists()) {
+    await Share.shareXFiles([XFile(file.path)],);
+    if(await file.exists()) {
       file.delete();
     }
 
@@ -75,15 +71,12 @@ class HallOfFameProvider extends ChangeNotifier {
   void shareBrainPoint(BuildContext context) async {
     Loader.show(
       context,
-      progressIndicator: const CircularProgressIndicator(
-        color: ColorCode.buttonColor,
-      ),
+      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
       overlayColor: Colors.black54,
     );
 
-    try {
-      RenderRepaintBoundary? boundary = brainPointKey.currentContext!
-          .findRenderObject() as RenderRepaintBoundary?;
+    try{
+      RenderRepaintBoundary? boundary = brainPointKey.currentContext!.findRenderObject() as RenderRepaintBoundary?;
       var image = await boundary!.toImage(pixelRatio: 10);
       ByteData? byteData = await image.toByteData(format: ImageByteFormat.png);
       Uint8List pngByte = byteData!.buffer.asUint8List();
@@ -92,10 +85,8 @@ class HallOfFameProvider extends ChangeNotifier {
       await imgPath.create(recursive: true);
       final file = await File('${imgPath.path}/lifelab.png').create();
       await file.writeAsBytes(pngByte);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-      );
-      if (await file.exists()) {
+      await Share.shareFiles([file.path],);
+      if(await file.exists()) {
         file.delete();
       }
 
@@ -128,15 +119,12 @@ class HallOfFameProvider extends ChangeNotifier {
   void shareActivityPoint(BuildContext context) async {
     Loader.show(
       context,
-      progressIndicator: const CircularProgressIndicator(
-        color: ColorCode.buttonColor,
-      ),
+      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
       overlayColor: Colors.black54,
     );
 
-    try {
-      RenderRepaintBoundary? boundary = activityKey.currentContext!
-          .findRenderObject() as RenderRepaintBoundary?;
+    try{
+      RenderRepaintBoundary? boundary = activityKey.currentContext!.findRenderObject() as RenderRepaintBoundary?;
       var image = await boundary!.toImage(pixelRatio: 10);
       ByteData? byteData = await image.toByteData(format: ImageByteFormat.png);
       Uint8List pngByte = byteData!.buffer.asUint8List();
@@ -145,10 +133,8 @@ class HallOfFameProvider extends ChangeNotifier {
       await imgPath.create(recursive: true);
       final file = await File('${imgPath.path}/lifelab.png').create();
       await file.writeAsBytes(pngByte);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-      );
-      if (await file.exists()) {
+      await Share.shareFiles([file.path],);
+      if(await file.exists()) {
         file.delete();
       }
 
@@ -181,9 +167,7 @@ class HallOfFameProvider extends ChangeNotifier {
   Future getHallOfFameData(BuildContext context) async {
     Loader.show(
       context,
-      progressIndicator: const CircularProgressIndicator(
-        color: ColorCode.buttonColor,
-      ),
+      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
       overlayColor: Colors.black54,
     );
 
@@ -191,11 +175,12 @@ class HallOfFameProvider extends ChangeNotifier {
 
     Loader.hide();
 
-    if (response.statusCode == 200) {
+    if(response.statusCode == 200) {
       hall = HallOfFameModel.fromJson(response.data);
     } else {
       hall = null;
     }
     notifyListeners();
   }
+
 }

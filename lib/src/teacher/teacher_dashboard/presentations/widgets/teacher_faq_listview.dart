@@ -28,8 +28,10 @@ class _TeacherFaqListviewState extends State<TeacherFaqListview> {
     try {
       final faqs = await _faqService.getFaqsByCategory();
 
-      // Extra safeguard: only keep teacher audience
-      final teacherFaqs = faqs.where((f) => f.audience == 'teacher').toList();
+      //
+      final teacherFaqs = faqs
+          .where((f) => f.audience == 'teacher' || f.audience == 'all')
+          .toList();
 
       setState(() {
         _allFaqs = teacherFaqs;
