@@ -34,6 +34,7 @@ class _VisionPageState extends State<VisionPage>
   String _levelFilterTitle = '';
   final TextEditingController _searchController = TextEditingController();
   String _chapterFilter = '';
+  String _selectedBoardId = '';
 
   @override
   void initState() {
@@ -57,7 +58,7 @@ class _VisionPageState extends State<VisionPage>
       _showSectionErrorDialog();
       return;
     }
-    final visionProvider = Provider.of<VisionProvider>(context, listen: false);
+    final visionProvider = Provider.of<TeacherVisionProvider>(context, listen: false);
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -78,7 +79,7 @@ class _VisionPageState extends State<VisionPage>
   }
 
   void _navigateToVisionReview(TeacherVisionVideo video) {
-    final visionProvider = Provider.of<VisionProvider>(context, listen: false);
+    final visionProvider = Provider.of<TeacherVisionProvider>(context, listen: false);
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -256,15 +257,135 @@ class _VisionPageState extends State<VisionPage>
         ),
       ),
     );
+    }
+
+  Widget _buildBoardChapterDropdown() {
+    final provider = Provider.of<TeacherVisionProvider>(context, listen: true);
+    final boards = provider.boards;
+    final chapters = provider.chapters;
+
+    // Get display text for the dropdown
+    String displayText = 'Chapters';
+    if (_selectedBoardId.isNotEmpty) {
+      final selectedBoard = boards.firstWhere(
+            (b) => b['id'].toString() == _selectedBoardId,
+        orElse: () => {'title': '', 'name': ''},
+      );
+      final boardName =
+          selectedBoard['title']?.toString() ?? selectedBoard['name']?.toString() ?? 'Board';
+
+      if (_chapterFilter.isNotEmpty) {
+        final selectedChapter = chapters.firstWhere(
+              (c) => c['id']?.toString() == _chapterFilter,
+          orElse: () => {'title': ''},
+        );
+        final chapterName = selectedChapter['title']?.toString() ?? '';
+        displayText = '$boardName • $chapterName';
+      } else {
+        displayText = boardName;
+      }
+    } else if (_chapterFilter.isNotEmpty) {
+      final selectedChapter = chapters.firstWhere(
+            (c) => c['id']?.toString() == _chapterFilter,
+        orElse: () => {'title': ''},
+      );
+      displayText = selectedChapter['title']?.toString() ?? 'Chapter';
+    }
+
+    return GestureDetector(
+      onTap: () async {
+        await showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return ChangeNotifierProvider.value(
+              value: provider,
+              child: _BoardChapterModalContent(
+                selectedBoardId: _selectedBoardId,
+                chapterFilter: _chapterFilter,
+                onBoardSelected: (String boardId, String boardTitle) {
+                  setState(() {
+                    _selectedBoardId = boardId;
+                    _chapterFilter = '';
+                  });
+                  provider.setBoardFilter(boardTitle);
+                  provider.setChapterFilter(null);
+                },
+                onChapterSelected: (String chapterId) {
+                  setState(() {
+                    _chapterFilter = chapterId;
+                  });
+                  provider.setChapterFilter(chapterId);
+                },
+                onClearAll: () {
+                  setState(() {
+                    _selectedBoardId = '';
+                    _chapterFilter = '';
+                  });
+                  provider.setBoardFilter(null);
+                  provider.setChapterFilter(null);
+                },
+              ),
+            );
+          },
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _selectedBoardId.isEmpty && _chapterFilter.isEmpty
+                ? Colors.grey[300]!
+                : const Color(0xFF6366F1),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: Text(
+                displayText,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _selectedBoardId.isEmpty && _chapterFilter.isEmpty
+                      ? Colors.grey[700]
+                      : Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: _selectedBoardId.isEmpty && _chapterFilter.isEmpty
+                  ? Colors.grey[700]
+                  : Colors.black87,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<VisionProvider>(
+    return Consumer<TeacherVisionProvider>(
       builder: (context, provider, child) {
         final subjects = provider.getAvailableSubjects();
         final levels = provider.availableLevels;
-        final chapters = provider.chapters;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
@@ -341,7 +462,7 @@ class _VisionPageState extends State<VisionPage>
                     child: Row(
                       children: [
                         Expanded(
-                          child:  _buildFilterDropdown(
+                          child: _buildFilterDropdown(
                             label: 'Subject',
                             selectedId: provider.selectedSubjectTitle ?? '',
                             options: provider.getAvailableSubjectTitles()
@@ -364,26 +485,13 @@ class _VisionPageState extends State<VisionPage>
                               setState(() {
                                 _levelFilterTitle = title;
                               });
-                              provider.setLevelFilter(title); // provider will handle ID mapping internally
+                              provider.setLevelFilter(title);
                             },
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _buildFilterDropdown(
-                            label: 'Chapter',
-                            selectedId: _chapterFilter,
-                            options: chapters
-                                .map((c) => {
-                              'id': c['id'],
-                              'title': c['title'] ?? ''
-                            })
-                                .toList(),
-                            onChanged: (id) {
-                              setState(() => _chapterFilter = id);
-                              provider.setChapterFilter(id);
-                            },
-                          ),
+                          child: _buildBoardChapterDropdown(), // Combined Board & Chapter dropdown
                         ),
                       ],
                     ),
@@ -433,29 +541,58 @@ class _VisionPageState extends State<VisionPage>
               ),
             ),
           ),
+// In your VisionPage build method, replace the body section with this:
+
           body: Stack(
             children: [
-              TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildVideoList(provider.filteredNonAssignedVideos, false),
-                  _buildVideoList(provider.filteredAssignedVideos, true),
-                ],
-              ),
-              if (provider.isLoading &&
-                  provider.filteredNonAssignedVideos.isEmpty &&
-                  provider.filteredAssignedVideos.isEmpty)
+              // Show loading indicator only during initial load
+              if (provider.isLoading && !provider.isInitialized)
                 Positioned.fill(
                   child: Container(
                     color: Colors.white.withOpacity(0.8),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        valueColor:
-                        AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Loading videos...',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
+
+              // Main content
+              Column(
+                children: [
+                  // Show initialization progress
+                  if (!provider.isInitialized)
+                    const LinearProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                      backgroundColor: Colors.transparent,
+                      minHeight: 2,
+                    ),
+
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildVideoList(provider.filteredNonAssignedVideos, false, provider),
+                        _buildVideoList(provider.filteredAssignedVideos, true, provider),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         );
@@ -463,13 +600,33 @@ class _VisionPageState extends State<VisionPage>
     );
   }
 
-  // Video List & Cards remain the same (no UI change)
-  Widget _buildVideoList(List<TeacherVisionVideo> videos, bool isAssignedTab) {
-    final provider = Provider.of<VisionProvider>(context);
-    final hasMore =
-    isAssignedTab ? provider.hasMoreAssignedVideos : provider.hasMoreAllVideos;
+  Widget _buildVideoList(List<TeacherVisionVideo> videos, bool isAssignedTab, TeacherVisionProvider provider) {
+    final hasMore = isAssignedTab ? provider.hasMoreAssignedVideos : provider.hasMoreAllVideos;
     final isLoadingMore = provider.isLoadingMore;
 
+    // Show loading state
+    if (provider.isLoading && videos.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading videos...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show empty state
     if (videos.isEmpty && !provider.isLoading) {
       return const Center(
         child: Column(
@@ -478,7 +635,7 @@ class _VisionPageState extends State<VisionPage>
             Icon(Icons.video_library_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
-              '',
+              'No videos found',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
@@ -491,8 +648,7 @@ class _VisionPageState extends State<VisionPage>
 
     return NotificationListener<ScrollNotification>(
       onNotification: (scrollNotification) {
-        if (scrollNotification.metrics.pixels ==
-            scrollNotification.metrics.maxScrollExtent) {
+        if (scrollNotification.metrics.pixels == scrollNotification.metrics.maxScrollExtent) {
           if (hasMore && !isLoadingMore) {
             provider.loadMoreVideos();
           }
@@ -511,17 +667,15 @@ class _VisionPageState extends State<VisionPage>
                 child: Center(
                   child: isLoadingMore
                       ? CircularProgressIndicator(
-                    valueColor:
-                    AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
                   )
-                      : const Text('\u200B'),
+                      : const SizedBox.shrink(),
                 ),
               );
             }
 
             final video = videos[index];
-            final videoId =
-                YoutubePlayer.convertUrlToId(video.youtubeUrl) ?? 'dQw4w9WgXcQ';
+            final videoId = YoutubePlayer.convertUrlToId(video.youtubeUrl) ?? 'dQw4w9WgXcQ';
 
             return GestureDetector(
               onTap: () => !isAssignedTab ? _navigateToVideoPlayer(video) : null,
@@ -548,9 +702,7 @@ class _VisionPageState extends State<VisionPage>
       ),
     );
   }
-
   Widget _buildRegularVideoCard(TeacherVisionVideo video, String videoId) {
-    // same as your current card
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -649,8 +801,27 @@ class _VisionPageState extends State<VisionPage>
                 ),
               ],
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
+                  if (video.laBoardId != null && video.laBoardId!.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Board: ${video.laBoardId}',
+                        style: const TextStyle(
+                          color: Color(0xFF10B981),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
@@ -667,7 +838,6 @@ class _VisionPageState extends State<VisionPage>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
@@ -694,7 +864,6 @@ class _VisionPageState extends State<VisionPage>
   }
 
   Widget _buildAssignedVideoCard(TeacherVisionVideo video, String videoId) {
-    // same as your current card
     return GestureDetector(
       onTap: () => _navigateToVideoPlayer(video),
       child: Padding(
@@ -767,7 +936,7 @@ class _VisionPageState extends State<VisionPage>
                   Text(
                     video.description.isNotEmpty
                         ? video.description
-                        : 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+                        : 'No description available',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey[700],
@@ -776,6 +945,16 @@ class _VisionPageState extends State<VisionPage>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 4),
+                  if (video.laBoardId != null && video.laBoardId!.isNotEmpty)
+                    Text(
+                      'Board: ${video.laBoardId}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -809,6 +988,453 @@ class _VisionPageState extends State<VisionPage>
           ],
         ),
       ),
+    );
+  }
+}
+class _BoardChapterModalContent extends StatefulWidget {
+  final String selectedBoardId;
+  final String chapterFilter;
+  final Function(String, String) onBoardSelected;
+  final Function(String) onChapterSelected;
+  final VoidCallback onClearAll;
+
+  const _BoardChapterModalContent({
+    Key? key,
+    required this.selectedBoardId,
+    required this.chapterFilter,
+    required this.onBoardSelected,
+    required this.onChapterSelected,
+    required this.onClearAll,
+  }) : super(key: key);
+
+  @override
+  State<_BoardChapterModalContent> createState() => _BoardChapterModalContentState();
+}
+
+class _BoardChapterModalContentState extends State<_BoardChapterModalContent> {
+  late TextEditingController _boardSearchController;
+  List<Map<String, Object?>> _filteredBoards = [];
+  String _currentSearchQuery = '';
+
+  // Track current selection locally for immediate UI updates
+  String _currentSelectedBoardId = '';
+  String _currentChapterFilter = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _boardSearchController = TextEditingController();
+    _currentSelectedBoardId = widget.selectedBoardId;
+    _currentChapterFilter = widget.chapterFilter;
+    _updateFilteredBoards();
+  }
+
+  void _updateFilteredBoards() {
+    final provider = Provider.of<TeacherVisionProvider>(context, listen: false);
+    if (_currentSearchQuery.isEmpty) {
+      _filteredBoards = List.from(provider.boards);
+    } else {
+      _filteredBoards = provider.boards.where((board) {
+        final boardTitle = board['title']?.toString() ?? board['name']?.toString() ?? '';
+        return boardTitle.toLowerCase().contains(_currentSearchQuery.toLowerCase());
+      }).toList();
+    }
+  }
+
+  void _filterBoards(String query) {
+    setState(() {
+      _currentSearchQuery = query;
+      _updateFilteredBoards();
+    });
+  }
+
+  void _handleBoardSelection(String boardId, String boardTitle) {
+    // Update local state immediately for UI response
+    setState(() {
+      _currentSelectedBoardId = boardId;
+      _currentChapterFilter = '';
+    });
+
+    // Call the parent callback
+    widget.onBoardSelected(boardId, boardTitle);
+    _boardSearchController.clear();
+    _filterBoards('');
+  }
+
+  void _handleChapterSelection(String chapterId) {
+    setState(() {
+      _currentChapterFilter = chapterId;
+    });
+    widget.onChapterSelected(chapterId);
+    _handleClose();
+  }
+
+  void _handleClearAll() {
+    setState(() {
+      _currentSelectedBoardId = '';
+      _currentChapterFilter = '';
+    });
+    widget.onClearAll();
+    _boardSearchController.clear();
+    _filterBoards('');
+  }
+
+  void _handleClose() {
+    Navigator.pop(context);
+  }
+
+  @override
+  void dispose() {
+    _boardSearchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<TeacherVisionProvider>(
+      builder: (context, provider, child) {
+        final boards = provider.boards;
+        final chapters = provider.chapters;
+
+        // Update filtered boards when boards change
+        if (_filteredBoards.isEmpty || _filteredBoards.length != boards.length) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _updateFilteredBoards();
+          });
+        }
+
+        // Reorder selected board/chapter to appear first
+        final sortedBoards = [
+          ..._filteredBoards.where((b) => b['id']?.toString() == _currentSelectedBoardId),
+          ..._filteredBoards.where((b) => b['id']?.toString() != _currentSelectedBoardId),
+        ];
+        final sortedChapters = [
+          ...chapters.where((c) => c['id']?.toString() == _currentChapterFilter),
+          ...chapters.where((c) => c['id']?.toString() != _currentChapterFilter),
+        ];
+
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.9,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Header with close button
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Select Board & Chapter',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: _handleClose,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Board Search Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: TextField(
+                    controller: _boardSearchController,
+                    onChanged: _filterBoards,
+                    decoration: InputDecoration(
+                      hintText: 'Search boards...',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey[500],
+                        size: 20,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: Row(
+                  children: [
+                    // Boards section
+                    Expanded(
+                      flex: 5,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            right: BorderSide(
+                              color: Colors.grey[300]!,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Boards',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: _filteredBoards.isEmpty
+                                  ? const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.search_off, size: 48, color: Colors.grey),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'No boards found',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                                  : ListView(
+                                children: [
+                                  // All Boards
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _currentSelectedBoardId.isEmpty
+                                          ? const Color(0xFF6366F1).withOpacity(0.1)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ListTile(
+                                      leading: Icon(
+                                        Icons.all_inclusive,
+                                        color: _currentSelectedBoardId.isEmpty
+                                            ? const Color(0xFF6366F1)
+                                            : Colors.grey,
+                                      ),
+                                      title: const Text('All Boards', style: TextStyle(fontWeight: FontWeight.w500)),
+                                      onTap: _handleClearAll,
+                                    ),
+                                  ),
+
+                                  // Board options
+                                  ...sortedBoards.map((board) {
+                                    final boardId = board['id']?.toString() ?? '';
+                                    final boardTitle = board['title']?.toString() ?? board['name']?.toString() ?? 'Unknown Board';
+                                    final isSelected = _currentSelectedBoardId == boardId;
+
+                                    return Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? const Color(0xFF6366F1).withOpacity(0.1)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: ListTile(
+                                        leading: Icon(
+                                          Icons.school,
+                                          color: isSelected ? const Color(0xFF6366F1) : Colors.grey,
+                                        ),
+                                        title: Text(
+                                          boardTitle,
+                                          style: TextStyle(
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                            color: isSelected ? const Color(0xFF6366F1) : Colors.black87,
+                                          ),
+                                        ),
+                                        onTap: () => _handleBoardSelection(boardId, boardTitle),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Chapters section
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Chapters',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: _currentSelectedBoardId.isEmpty
+                                ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.menu_book, size: 48, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Select Board to get Chapters',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                                : provider.isLoadingChapters
+                                ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                                  ),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'Loading chapters...',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                                : sortedChapters.isEmpty
+                                ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.menu_book, size: 48, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'No chapters available\nfor selected board',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                                : ListView(
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: _currentChapterFilter.isEmpty
+                                        ? const Color(0xFF10B981).withOpacity(0.1)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    leading: Icon(
+                                      Icons.all_inclusive,
+                                      color: _currentChapterFilter.isEmpty ? const Color(0xFF10B981) : Colors.grey,
+                                    ),
+                                    title: const Text('All Chapters', style: TextStyle(fontWeight: FontWeight.w500)),
+                                    onTap: () => _handleChapterSelection(''),
+                                  ),
+                                ),
+                                ...sortedChapters.map((chapter) {
+                                  final chapterId = chapter['id']?.toString() ?? '';
+                                  final chapterTitle = chapter['title']?.toString() ?? 'Unknown Chapter';
+                                  final isSelected = _currentChapterFilter == chapterId;
+
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF10B981).withOpacity(0.1)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ListTile(
+                                      leading: Icon(
+                                        Icons.menu_book,
+                                        color: isSelected ? const Color(0xFF10B981) : Colors.grey,
+                                      ),
+                                      title: Text(
+                                        chapterTitle,
+                                        style: TextStyle(
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                          color: isSelected ? const Color(0xFF10B981) : Colors.black87,
+                                        ),
+                                      ),
+                                      onTap: () => _handleChapterSelection(chapterId),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

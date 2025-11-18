@@ -3,7 +3,17 @@
 //     final teacherMissonParticipantModel = teacherMissonParticipantModelFromJson(jsonString);
 
 import 'dart:convert';
+List<dynamic> _parseDocument(dynamic documentData) {
+  if (documentData == null) return [];
 
+  if (documentData is List) {
+    return List<dynamic>.from(documentData);
+  } else if (documentData is Map) {
+    return documentData.values.toList();
+  } else {
+    return [documentData];
+  }
+}
 TeacherMissionParticipantModel teacherMissionParticipantModelFromJson(String str) => TeacherMissionParticipantModel.fromJson(json.decode(str));
 
 String teacherMissionParticipantModelToJson(TeacherMissionParticipantModel data) => json.encode(data.toJson());
@@ -276,7 +286,7 @@ class LaMission {
   int? id;
   Title? title;
   Description? description;
-  Image? image;
+  MissionImage? image; // ✅ CHANGED: Image → MissionImage
   int? laSubjectId;
   List<dynamic>? document;
   Question? question;
@@ -311,9 +321,9 @@ class LaMission {
     id: json["id"],
     title: json["title"] == null ? null : Title.fromJson(json["title"]),
     description: json["description"] == null ? null : Description.fromJson(json["description"]),
-    image: json["image"] == null ? null : Image.fromJson(json["image"]),
+    image: json["image"] == null ? null : MissionImage.fromJson(json["image"]), // ✅ UPDATED
     laSubjectId: json["la_subject_id"],
-    document: json["document"] == null ? [] : List<dynamic>.from(json["document"]!.map((x) => x)),
+    document: json["document"] == null ? [] : _parseDocument(json["document"]),
     question: json["question"] == null ? null : Question.fromJson(json["question"]),
     status: json["status"],
     index: json["index"],
@@ -360,15 +370,15 @@ class Description {
   };
 }
 
-class Image {
+class MissionImage {
   String? en;
 
-  Image({
+  MissionImage({
     this.en,
   });
 
-  factory Image.fromJson(Map<String, dynamic> json) => Image(
-    en: json["en"],
+  factory MissionImage.fromJson(Map<String, dynamic> json) => MissionImage(
+    en: json["en"]?.toString(), // ✅ Convert any type to string
   );
 
   Map<String, dynamic> toJson() => {
@@ -499,6 +509,51 @@ class Media {
     "id": id,
     "name": name,
     "url": url,
+  };
+}
+
+// ✅ ADDED: This is the Image class that was causing the conflict
+class Image {
+  int? id;
+  String? name;
+  String? path;
+  String? type;
+  int? imageableId;
+  String? imageableType;
+  DateTime? createdAt;
+  DateTime? updatedAt;
+
+  Image({
+    this.id,
+    this.name,
+    this.path,
+    this.type,
+    this.imageableId,
+    this.imageableType,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory Image.fromJson(Map<String, dynamic> json) => Image(
+    id: json["id"],
+    name: json["name"],
+    path: json["path"],
+    type: json["type"],
+    imageableId: json["imageable_id"],
+    imageableType: json["imageable_type"],
+    createdAt: json["created_at"] == null ? null : DateTime.parse(json["created_at"]),
+    updatedAt: json["updated_at"] == null ? null : DateTime.parse(json["updated_at"]),
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "name": name,
+    "path": path,
+    "type": type,
+    "imageable_id": imageableId,
+    "imageable_type": imageableType,
+    "created_at": createdAt?.toIso8601String(),
+    "updated_at": updatedAt?.toIso8601String(),
   };
 }
 

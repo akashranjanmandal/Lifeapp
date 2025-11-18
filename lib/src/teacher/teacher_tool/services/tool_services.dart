@@ -302,7 +302,7 @@ class ToolServices {
           },
         ),
       );
-
+      debugPrint("📡 API Payload: $response");
       debugPrint("Class Student Code: ${response.statusCode}");
       return response;
     } on SocketException catch (e) {

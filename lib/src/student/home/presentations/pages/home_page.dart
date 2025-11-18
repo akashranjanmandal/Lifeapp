@@ -15,6 +15,8 @@ import '../widgets/mentor_connect_widget.dart';
 import '../widgets/reward_widget.dart';
 import '../widgets/campaign_widget.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+// ADD THIS IMPORT
+import 'package:lifelab3/main.dart'; // Import main.dart to access deepLinkManager
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,6 +28,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String appUrl = "";
   bool isAppUpdate = false;
+  bool _hasProcessedDeepLinks = false; // ADD THIS
 
   void checkStoreAppVersion() async {
     final status = await NewVersionPlus(
@@ -52,6 +55,29 @@ class _HomePageState extends State<HomePage> {
     return firstName;
   }
 
+  // ADD THIS METHOD: Process pending deep links after login
+  void _processPendingDeepLinks() {
+    if (_hasProcessedDeepLinks) return;
+
+    final pendingContentId = deepLinkManager.getPendingDeepLink();
+    if (pendingContentId != null && pendingContentId.isNotEmpty) {
+      debugPrint('🔄 Student Home: Processing pending deep link: $pendingContentId');
+
+      // Wait for the UI to settle
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (deepLinkManager.canUserAccessVideos()) {
+          debugPrint('✅ Student can access videos, opening deep link');
+          deepLinkManager.processPendingDeepLinkAfterLogin();
+          _hasProcessedDeepLinks = true;
+        } else {
+          debugPrint('❌ Student cannot access videos');
+        }
+      });
+    } else {
+      debugPrint('📭 Student Home: No pending deep links');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +90,9 @@ class _HomePageState extends State<HomePage> {
       provider.getTodayCampaigns(); // Fetch campaigns
       provider.getSubjectsData();
       provider.checkSubscription();
+
+      // ADD THIS: Process pending deep links when home page loads
+      _processPendingDeepLinks();
     });
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(

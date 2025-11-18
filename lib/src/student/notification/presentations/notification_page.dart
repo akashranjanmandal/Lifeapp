@@ -103,16 +103,22 @@ class _NotificationPageState extends State<NotificationPage> {
 
       final subjectId = notification.data?.data?.laSubjectId?.toString() ?? '';
       final levelId = notification.data?.data?.laLevelId?.toString() ?? '';
-      final missionId = notification.data?.data?.actionId;
+      final missionId = notification.data?.data?.missionId ?? notification.data?.data?.actionId;
 
-      debugPrint("🔹 Mission dialog called with status: $status");
+      // ✅ ADDED: Get mission type from notification
+      final action = notification.data?.data?.action?.toString() ?? '2';
+      String missionType = 'Mission';
+      if (action == '9') missionType = 'Jigyasa';
+      if (action == '10') missionType = 'Pragya';
+
+      debugPrint("🔹 $missionType dialog called with status: $status");
       debugPrint("🔹 SubjectId: $subjectId, LevelId: $levelId, MissionId: $missionId");
 
       // Check if missionId is null
       if (missionId == null) {
         navigator.pop(); // close loader
-        Fluttertoast.showToast(msg: "Mission ID is missing in notification");
-        debugPrint('❌ Mission ID is null, cannot find specific mission');
+        Fluttertoast.showToast(msg: "$missionType ID is missing in notification");
+        debugPrint('❌ $missionType ID is null, cannot find specific mission');
         return;
       }
 
@@ -137,10 +143,9 @@ class _NotificationPageState extends State<NotificationPage> {
 
       navigator.pop(); // close loader
 
-      // If mission is null or not found, show error and return
       if (mission == null) {
-        Fluttertoast.showToast(msg: "Mission not found for the given subject and level");
-        debugPrint('❌ Mission not found for missionId: $missionId');
+        Fluttertoast.showToast(msg: "$missionType not found for the given subject and level");
+        debugPrint('❌ $missionType not found for missionId: $missionId');
         return;
       }
 
@@ -173,14 +178,14 @@ class _NotificationPageState extends State<NotificationPage> {
                 const SizedBox(height: 16),
                 Text(
                   isApproved
-                      ? "Mission Approved!"
-                      : "Mission Rejected",
+                      ? "$missionType Approved!"  // ✅ UPDATED: Use missionType
+                      : "$missionType Rejected",  // ✅ UPDATED: Use missionType
                   style: TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w600, color: color),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  mission.title ?? "Mission",
+                  mission.title ?? missionType,  // ✅ UPDATED: Fallback to missionType
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w500),
@@ -229,7 +234,7 @@ class _NotificationPageState extends State<NotificationPage> {
                           ),
                         );
                       },
-                      child: Text(isApproved ? "Go to Mission" : "Redo"),
+                      child: Text(isApproved ? "Go to $missionType" : "Redo"), // ✅ UPDATED: Use missionType
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -251,7 +256,7 @@ class _NotificationPageState extends State<NotificationPage> {
       );
     } catch (e) {
       navigator.pop();
-      Fluttertoast.showToast(msg: "Error loading mission details");
+      Fluttertoast.showToast(msg: "Error loading details"); // ✅ UPDATED: Use missionType
       debugPrint('❌ Error in showMissionStatusDialog: $e');
     }
   }
@@ -646,14 +651,12 @@ class _NotificationPageState extends State<NotificationPage> {
       if (notification.data?.data?.laLevelId != null &&
           notification.data?.data?.laSubjectId != null &&
           notification.data?.data?.missionId != null) {
-        // Prepare API request
         Map<String, dynamic> missionData = {
           "type": 1,
           "la_subject_id": notification.data!.data!.laSubjectId.toString(),
           "la_level_id": notification.data!.data!.laLevelId.toString(),
         };
 
-        // Fetch all missions for subject + level
         final provider =
         Provider.of<SubjectLevelProvider>(context, listen: false);
         await provider.getMission(missionData);
@@ -750,6 +753,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
       debugPrint('✅ Parsed visionId: $visionId');
       debugPrint('✅ Parsed subjectId: $subjectId');
+
       if (visionId == null || visionId.isEmpty) {
         navigator.pop();
         Fluttertoast.showToast(msg: "Vision ID is missing");
@@ -757,31 +761,36 @@ class _NotificationPageState extends State<NotificationPage> {
         return;
       }
 
-      final visionProvider =
-      Provider.of<VisionProvider>(context, listen: false);
+      final visionProvider = Provider.of<VisionProvider>(context, listen: false);
       VisionVideo? video;
 
-      if (subjectId == null) {
-        debugPrint(
-            '⚠️ Subject ID is null, fetching videos without subject filtering');
-        for (int level = 1; level <= 4; level++) {
-          await visionProvider.initWithSubject('', level.toString());
-          video = visionProvider.getVideoById(visionId);
-          if (video != null) {
-            debugPrint('🎯 Video found at level $level: ${video.title}');
-            break;
-          }
-        }
-      } else {
-        for (int level = 1; level <= 4; level++) {
-          debugPrint(
-              '🔄 Fetching videos for subjectId: $subjectId, level: $level');
-          await visionProvider.initWithSubject(subjectId, level.toString());
+      // FIRST: Try direct API call (no pagination issues)
+      debugPrint('🔄 Trying direct API call for vision ID: $visionId');
+      video = await visionProvider.getVisionVideoDirectly(visionId);
 
-          video = visionProvider.getVideoById(visionId);
-          if (video != null) {
-            debugPrint('🎯 Video found at level $level: ${video.title}');
-            break;
+      // SECOND: If direct call fails, try searching through paginated results
+      if (video == null) {
+        debugPrint('⚠️ Direct API call failed, trying paginated search');
+
+        if (subjectId == null) {
+          debugPrint('⚠️ Subject ID is null, fetching videos without subject filtering');
+          for (int level = 1; level <= 4; level++) {
+            await visionProvider.initWithSubject('', level.toString());
+            video = visionProvider.getVideoById(visionId);
+            if (video != null) {
+              debugPrint('🎯 Video found at level $level: ${video.title}');
+              break;
+            }
+          }
+        } else {
+          for (int level = 1; level <= 4; level++) {
+            debugPrint('🔄 Fetching videos for subjectId: $subjectId, level: $level');
+            await visionProvider.initWithSubject(subjectId, level.toString());
+            video = visionProvider.getVideoById(visionId);
+            if (video != null) {
+              debugPrint('🎯 Video found at level $level: ${video.title}');
+              break;
+            }
           }
         }
       }
@@ -839,8 +848,7 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Widget _getActionButton(
-      BuildContext context, NotificationData notification, int index)
-  {
+      BuildContext context, NotificationData notification, int index) {
     final message = notification.data?.message ?? '';
     final title = notification.data?.title ?? '';
     final action = notification.data?.data?.action?.toString() ?? '';
@@ -849,6 +857,37 @@ class _NotificationPageState extends State<NotificationPage> {
     final lowerMessage = message.toLowerCase();
     final hasLink = RegExp(r'https?:\/\/[^\s]+').hasMatch(message);
 
+    // ----------------- ALL MISSION TYPES -----------------
+    if (action == '2' || action == '9' || action == '10') {
+      if (lowerMessage.contains('assigned')) {
+        String missionType = 'Mission';
+        if (action == '9') missionType = 'Jigyasa';
+        if (action == '10') missionType = 'Pragya';
+
+        MixpanelService.track('${missionType} Assigned Notification Clicked');
+        return _buildButton(context, 'View', () {
+          _handleMissionAssigned(context, notification);
+        });
+      } else if (lowerMessage.contains('approved')) {
+        String missionType = 'Mission';
+        if (action == '9') missionType = 'Jigyasa';
+        if (action == '10') missionType = 'Pragya';
+
+        return _buildButton(context, 'View', () {
+          MixpanelService.track('${missionType} Approved Notification Clicked');
+          showMissionStatusDialog(context, 'approved', notification);
+        });
+      } else if (lowerMessage.contains('rejected')) {
+        String missionType = 'Mission';
+        if (action == '9') missionType = 'Jigyasa';
+        if (action == '10') missionType = 'Pragya';
+
+        return _buildButton(context, 'View', () {
+          MixpanelService.track('${missionType} Rejected Notification Clicked');
+          showMissionStatusDialog(context, 'rejected', notification);
+        });
+      }
+    }
     // ----------------- Admin Messages -----------------
     if (type.contains('AdminMessageNotification')) {
       return _buildButton(context, 'View', () {
@@ -871,25 +910,6 @@ class _NotificationPageState extends State<NotificationPage> {
         _handleVisionVideo(context, notification);
       });
     }
-
-    // ----------------- Mission Notifications -----------------
-    else if (lowerMessage.contains('mission') && lowerMessage.contains('approved')) {
-      return _buildButton(context, 'View', () {
-        MixpanelService.track('Mission Approved Notification Clicked');
-        showMissionStatusDialog(context, 'approved', notification);
-      });
-    } else if (lowerMessage.contains('mission') && lowerMessage.contains('rejected')) {
-      return _buildButton(context, 'View', () {
-        MixpanelService.track('Mission Rejected Notification Clicked');
-        showMissionStatusDialog(context, 'rejected', notification);
-      });
-    } else if (lowerMessage.contains('mission') && lowerMessage.contains('assigned')) {
-      MixpanelService.track('Mission Assigned Notification Clicked');
-      return _buildButton(context, 'View', () {
-        _handleMissionAssigned(context, notification);
-      });
-    }
-
 
     // ----------------- Quiz Notifications -----------------
     else if (action == '3' &&

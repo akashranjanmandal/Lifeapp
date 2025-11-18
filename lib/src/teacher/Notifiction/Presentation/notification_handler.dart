@@ -7,11 +7,8 @@ class TeacherNotificationHandler {
       debugPrint("TeacherNotificationHandler: context is null, cannot show popup");
       return;
     }
-
     final title = data['title']?.toString() ?? "Notification";
     final message = data['message']?.toString() ?? "";
-
-    // Use addPostFrameCallback to ensure dialog shows after frame rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
       showDialog(
         context: context,

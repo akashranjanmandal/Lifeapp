@@ -6,7 +6,6 @@ import 'package:lifelab3/src/common/widgets/common_appbar.dart';
 import 'package:lifelab3/src/student/mission/models/mission_details_model.dart' as details;
 import 'package:lifelab3/src/teacher/teacher_tool/presentations/pages/assign_mission_page.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
-import 'package:lifelab3/src/common/helper/color_code.dart';
 import 'package:lifelab3/src/common/helper/api_helper.dart';
 
 import '../../../../common/widgets/common_navigator.dart';
@@ -20,6 +19,7 @@ class ToolMissionPage extends StatefulWidget {
   final String gradeId;
   final String sectionId;
   final String? levelId;
+  final int type;
 
   const ToolMissionPage({
     super.key,
@@ -29,6 +29,7 @@ class ToolMissionPage extends StatefulWidget {
     required this.gradeId,
     required this.sectionId,
     this.levelId,
+    required this.type,
   });
 
   @override
@@ -67,7 +68,7 @@ class _ToolMissionPageState extends State<ToolMissionPage> {
 
     // Fetch all missions
     toolProvider.getMission({
-      "type": 1,
+      "type": widget.type,
       "la_subject_id": selectedSubject ?? '',
       "la_level_id": selectedLevel ?? '',
     });
@@ -75,7 +76,7 @@ class _ToolMissionPageState extends State<ToolMissionPage> {
     // Fetch assigned missions if toggle active
     if (_showAssignedMissions) {
       studentProvider.getTeacherMission({
-        "type": 1,
+        "type": widget.type,
         "la_subject_id": selectedSubject ?? '',
         "la_level_id": selectedLevel ?? '',
       });
@@ -260,7 +261,7 @@ class _ToolMissionPageState extends State<ToolMissionPage> {
               subjectId: widget.subjectId.toString(),
               gradeId: widget.gradeId,
               sectionId: widget.sectionId,
-              type: '1',
+              type: widget.type.toString(),
             ),
           ),
         );

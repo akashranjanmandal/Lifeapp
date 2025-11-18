@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/common_appbar.dart';
@@ -21,118 +22,170 @@ class VisionPage extends StatefulWidget {
   @override
   State<VisionPage> createState() => _VisionPageState();
 }
+
 class _VisionPageState extends State<VisionPage> {
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
   DateTime? _enterTime;
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
     MixpanelService.track("Vision screen opened");
     _enterTime = DateTime.now();
+
+    // Setup scroll listener for lazy loading
+    _scrollController.addListener(_onScroll);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = Provider.of<VisionProvider>(context, listen: false);
       print("subject ${widget.subjectId}");
-
-      print('Loaded videos: ${provider.videos.length}');
       print('Current Level ID: ${widget.levelId}');
-      // Fetch videos first
+
       await provider.initWithSubject(widget.subjectId, widget.levelId);
-
-      print('Is current level completed? ${provider.isCurrentLevelCompleted()}');
-      // Then check if level is completed
-      final currentLevel = int.tryParse(widget.levelId ?? '');
-      const finalLevel = 4; // or make dynamic later
-
-      if (provider.isCurrentLevelCompleted()) {
-        String message = currentLevel == finalLevel
-            ? '🎉 Congratulations!\nYou have completed all levels!'
-            : '✅ You have successfully completed Level $currentLevel!';
-        if (context.mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) {
-              return Dialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                backgroundColor: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.emoji_events,
-                        color: Colors.amber.shade600,
-                        size: 60,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        "Level Complete!",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16, color: Colors.black87),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context); // close dialog
-
-                            final nextLevel = (int.tryParse(widget.levelId) ?? 1) + 1;
-
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VisionPage(
-                                  navName: widget.navName,
-                                  subjectId: widget.subjectId,
-                                  levelId: nextLevel.toString(),
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Text("Continue to Level 2",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,color: Colors.white ),
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        }
-      }
+      _checkLevelCompletion(provider);
     });
+  }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final provider = Provider.of<VisionProvider>(context, listen: false);
+
+    // Load more when 200px from bottom
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (provider.currentFilter.isNotEmpty) {
+        // Load more filter results
+        provider.loadMoreFilterResults();
+      } else if (provider.searchQuery.isNotEmpty) {
+        // Load more search results
+        provider.loadMoreSearchResults();
+      } else {
+        // Load more regular videos
+        provider.loadMoreVideos();
+      }
+    }
+  }
+  void _onSearchChanged(String value) {
+    // Cancel previous debounce timer
+    _searchDebounce?.cancel();
+
+    // Set up new debounce timer
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      final provider = Provider.of<VisionProvider>(context, listen: false);
+      provider.setSearchText(value);
+      MixpanelService.track("Vision searched", properties: {
+        'search_query': value,
+        'subject_id': widget.subjectId,
+        'level_id': widget.levelId,
+      });
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    final provider = Provider.of<VisionProvider>(context, listen: false);
+    provider.clearSearch();
+  }
+
+  void _checkLevelCompletion(VisionProvider provider) {
+    if (provider.isCurrentLevelCompleted()) {
+      final currentLevel = int.tryParse(widget.levelId ?? '');
+      const finalLevel = 4;
+
+      String message = currentLevel == finalLevel
+          ? '🎉 Congratulations!\nYou have completed all levels!'
+          : '✅ You have successfully completed Level $currentLevel!';
+
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              backgroundColor: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.emoji_events,
+                      color: Colors.amber.shade600,
+                      size: 60,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Level Complete!",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          final nextLevel = (int.tryParse(widget.levelId) ?? 1) + 1;
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => VisionPage(
+                                navName: widget.navName,
+                                subjectId: widget.subjectId,
+                                levelId: nextLevel.toString(),
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          "Continue to Level ${(int.tryParse(widget.levelId) ?? 1) + 1}",
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       appBar: commonAppBar(
         context: context,
         name: StringHelper.navName,
       ),
-
       body: Consumer<VisionProvider>(
         builder: (context, provider, child) {
           return Column(
@@ -147,6 +200,7 @@ class _VisionPageState extends State<VisionPage> {
       ),
     );
   }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -156,7 +210,7 @@ class _VisionPageState extends State<VisionPage> {
       case 'submitted':
         return Colors.black;
       case 'rejected':
-        return Colors.black; // you can use red or orange based on UI preference
+        return Colors.black;
       case 'skipped':
         return Colors.black;
       default:
@@ -193,9 +247,14 @@ class _VisionPageState extends State<VisionPage> {
           // Search bar
           Expanded(
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search',
+                hintText: 'Search videos...',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: provider.searchQuery.isNotEmpty ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: _clearSearch,
+                ) : null,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(25),
@@ -204,23 +263,45 @@ class _VisionPageState extends State<VisionPage> {
                 filled: true,
                 fillColor: Colors.grey.shade200,
               ),
-              onChanged: (value) {
-                provider.setSearchText(value);
-                MixpanelService.track("Vision searched");
-              },
-
+              onChanged: _onSearchChanged,
             ),
           ),
         ],
       ),
     );
   }
+
   Widget _buildVisionCardsList(BuildContext context, VisionProvider provider) {
-    if (provider.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+    // Show initial loading
+    if (provider.isLoading && provider.videos.isEmpty && !provider.isSearching) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading videos...'),
+          ],
+        ),
+      );
     }
 
-    if (provider.error.isNotEmpty && provider.videos.isEmpty) {
+    // Show search loading
+    if (provider.isSearching && provider.searchResults.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Searching videos...'),
+          ],
+        ),
+      );
+    }
+
+    // Show error state
+    if (provider.error.isNotEmpty && provider.videos.isEmpty && provider.searchResults.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -237,18 +318,76 @@ class _VisionPageState extends State<VisionPage> {
     }
 
     final filteredVideos = provider.filteredVideos;
-    if (filteredVideos.isEmpty) {
+
+    // Show empty state for search
+    if (provider.searchQuery.isNotEmpty && filteredVideos.isEmpty && !provider.isSearching) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              'No videos found for "${provider.searchQuery}"',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try different search terms',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _clearSearch,
+              child: const Text('Clear Search'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show empty state for no videos
+    if (filteredVideos.isEmpty && !provider.isLoading && !provider.isSearching) {
       return const Center(
         child: Text('No vision videos found', style: TextStyle(fontSize: 16)),
       );
     }
 
+    final canLoadMore = provider.currentFilter.isNotEmpty
+        ? provider.canLoadMoreFilter
+        : provider.searchQuery.isNotEmpty
+        ? provider.canLoadMoreSearch
+        : provider.canLoadMore;
+
+    final totalVideos = provider.currentFilter.isNotEmpty
+        ? provider.filterTotalVideos
+        : provider.searchQuery.isNotEmpty
+        ? provider.searchTotalVideos
+        : provider.totalVideos;
+
     return RefreshIndicator(
-      onRefresh: () => provider.fetchVideos(),
+      onRefresh: () => provider.refreshVideos(),
       child: ListView.builder(
+        controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        itemCount: filteredVideos.length,
+        itemCount: filteredVideos.length + (canLoadMore ? 1 : 0),
         itemBuilder: (context, index) {
+          // Show loading indicator at the end when loading more
+          if (index >= filteredVideos.length) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          }
+
           final video = filteredVideos[index];
           return _buildVisionVideoCard(
             context,
@@ -261,14 +400,17 @@ class _VisionPageState extends State<VisionPage> {
   }
 
   Widget _buildVisionVideoCard(
-    BuildContext context, {
-    required VisionVideo video,
-    required VisionProvider provider,
-  }) {
+      BuildContext context, {
+        required VisionVideo video,
+        required VisionProvider provider,
+      }) {
     final statusBgColor = _getStatusColor(video.status);
+    final isCompleted = video.status.toLowerCase() == 'completed';
 
     return InkWell(
-      onTap: () {
+      onTap: isCompleted ? () {
+        _showCompletionToast(context);
+      } : () {
         _navigateToVideoPlayer(context, video, provider);
       },
       child: Container(
@@ -328,11 +470,9 @@ class _VisionPageState extends State<VisionPage> {
                     top: 12,
                     right: 12,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 255, 255, 255)
-                            .withOpacity(0.9),
+                        color: Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -343,7 +483,6 @@ class _VisionPageState extends State<VisionPage> {
                           fontSize: 12,
                         ),
                       ),
-
                     ),
                   ),
                 ],
@@ -379,6 +518,24 @@ class _VisionPageState extends State<VisionPage> {
     );
   }
 
+  void _showCompletionToast(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'This vision is already completed!',
+          style: TextStyle(fontSize: 16),
+        ),
+        backgroundColor: Colors.black.withOpacity(0.5),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   void _navigateToVideoPlayer(
       BuildContext context, VisionVideo video, VisionProvider provider) {
     MixpanelService.track("Vision video item clicked");
@@ -393,6 +550,7 @@ class _VisionPageState extends State<VisionPage> {
             navName: widget.navName,
             subjectId: widget.subjectId,
             onVideoCompleted: () {
+              // This will be handled in the video player
             },
           ),
         ),

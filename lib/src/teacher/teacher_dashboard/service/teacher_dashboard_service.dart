@@ -174,7 +174,39 @@ class TeacherDashboardService {
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
     }
   }
+// In TeacherDashboardService class
+  Future<Response?> getPblLanguages() async {
+    try {
+      Response response = await dio.get(
+        ApiHelper.baseUrl + ApiHelper.PblLanguage,
+        options: Options(
+          contentType: "application/json",
+          headers: {
+            HttpHeaders.acceptHeader: "application/json",
+            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
+          },
+          sendTimeout: const Duration(seconds: 3),
+        ),
+      );
 
+      debugPrint("PBL Languages API Response: ${response.statusCode}");
+      debugPrint("PBL Languages API Data: ${response.data}");
+
+      return response;
+    } on DioException catch (e) {
+      debugPrint("PBL Languages API Dio Error: ${e.response?.data}");
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Failed to load PBL languages");
+      return null;
+    } on SocketException catch(e) {
+      debugPrint("PBL Languages API Socket Error: $e");
+      Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
+    } catch (e) {
+      debugPrint("PBL Languages API Catch Error: $e");
+      Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
+    }
+  }
   Future getLessonLanguage() async {
     try {
       Response response = await dio.get(
@@ -235,6 +267,28 @@ class TeacherDashboardService {
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
     }
   }
+  Future<Response?> getBoards() async {
+    try {
+      Response response = await dio.get(
+        ApiHelper.baseUrl + ApiHelper.getBoard,
+        options: Options(
+          headers: {
+            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
+          },
+        ),
+      );
+
+      debugPrint("Boards API Response: ${response.statusCode}");
+      return response;
+    } on DioException catch (e) {
+      debugPrint("Boards API Error: ${e.response?.data}");
+      return null;
+    } catch (e) {
+      debugPrint("Boards API Exception: $e");
+      return null;
+    }
+  }
+
   Future getGrades() async {
     try {
       Response response = await dio.get(

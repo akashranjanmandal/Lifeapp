@@ -227,7 +227,7 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
     setState(() => _isLoading = true);
 
     try {
-      final provider = Provider.of<VisionProvider>(context, listen: false);
+      final provider = Provider.of<TeacherVisionProvider>(context, listen: false);
       final participants = await provider.getVisionParticipants(
         widget.video.id,
         _selectedClassFilter, // Pass the class filter
@@ -1089,7 +1089,7 @@ class _VisionReviewPageState extends State<VisionReviewPage> with SingleTickerPr
     );
   }
   void _updateSubmissionStatus(StudentSubmission submission, SubmissionStatus newStatus) async {
-    final visionProvider = Provider.of<VisionProvider>(context, listen: false);
+    final visionProvider = Provider.of<TeacherVisionProvider>(context, listen: false);
 
     try {
       final statusResponse = await visionProvider.getSubmissionStatus(submission.id, newStatus);

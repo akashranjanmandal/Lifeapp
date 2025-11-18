@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import '../../mission/presentations/pages/submit_mission_page.dart';
 import '../../nav_bar/presentations/pages/nav_bar_page.dart';
 import '../../questions/models/quiz_review_model.dart';
@@ -57,14 +56,19 @@ class NotificationActionHandler {
         break;
 
       case NotificationAction.mission:
-        if (lowerMessage.contains('mission') && lowerMessage.contains('approved')) {
-          MixpanelService.track('Mission Approved Notification Clicked');
+        final actionId = notification.data?.data?.action ?? 2;
+        String missionType = 'Mission';
+        if (actionId == 9) missionType = 'Jigyasa';
+        if (actionId == 10) missionType = 'Pragya';
+
+        if (lowerMessage.contains('approved')) {
+          MixpanelService.track('${missionType} Approved Notification Clicked');
           _showMissionStatusDialog(context, 'approved', notification);
-        } else if (lowerMessage.contains('mission') && lowerMessage.contains('rejected')) {
-          MixpanelService.track('Mission Rejected Notification Clicked');
+        } else if (lowerMessage.contains('rejected')) {
+          MixpanelService.track('${missionType} Rejected Notification Clicked');
           _showMissionStatusDialog(context, 'rejected', notification);
-        } else if (lowerMessage.contains('mission') && lowerMessage.contains('assigned')) {
-          MixpanelService.track('Mission Assigned Notification Clicked');
+        } else if (lowerMessage.contains('assigned')) {
+          MixpanelService.track('${missionType} Assigned Notification Clicked');
           _handleMissionAssigned(context, notification);
         }
         break;
@@ -86,7 +90,9 @@ class NotificationActionHandler {
 
   static NotificationAction _getNotificationAction(int actionId) {
     switch (actionId) {
-      case 2:
+      case 2:  // Regular Mission
+      case 9:  // Jigyasa Mission
+      case 10: // Pragya Mission
         return NotificationAction.mission;
       case 3:
         return NotificationAction.quiz;
@@ -179,7 +185,7 @@ class NotificationActionHandler {
         borderRadius: BorderRadius.circular(20),
         onTap: () {
           try {
-            Navigator.of(context, rootNavigator: true).pop(); // safely close the dialog
+            Navigator.of(context, rootNavigator: true).pop();
           } catch (_) {}
         },
         child: Container(
@@ -203,8 +209,7 @@ class NotificationActionHandler {
       BuildContext context,
       String status,
       NotificationData notification,
-      )
-  async {
+      ) async {
     final navigator = Navigator.of(context, rootNavigator: true);
     showNotificationLoader(context);
 
@@ -225,14 +230,20 @@ class NotificationActionHandler {
 
       final subjectId = notification.data?.data?.laSubjectId?.toString() ?? '';
       final levelId = notification.data?.data?.laLevelId?.toString() ?? '';
-      final missionId = notification.data?.data?.actionId;
+      final missionId = notification.data?.data?.missionId ?? notification.data?.data?.actionId;
 
-      debugPrint("🔹 Mission dialog called with status: $status");
+      // Get mission type for display
+      final actionId = notification.data?.data?.action ?? 2;
+      String missionType = 'Mission';
+      if (actionId == 9) missionType = 'Jigyasa';
+      if (actionId == 10) missionType = 'Pragya';
+
+      debugPrint("🔹 $missionType dialog called with status: $status");
       debugPrint("🔹 SubjectId: $subjectId, LevelId: $levelId, MissionId: $missionId");
 
       if (missionId == null) {
         if (navigator.canPop()) navigator.pop();
-        Fluttertoast.showToast(msg: "Mission ID is missing in notification");
+        Fluttertoast.showToast(msg: "$missionType ID is missing in notification");
         return;
       }
 
@@ -242,7 +253,7 @@ class NotificationActionHandler {
       try {
         await subjectProvider.getMission({"mission_id": missionId});
         final list = subjectProvider.missionListModel?.data?.missions?.data;
-        final matches = list?.where((m) =>m.id.toString() == missionId.toString());
+        final matches = list?.where((m) => m.id.toString() == missionId.toString());
         mission = (matches != null && matches.isNotEmpty) ? matches.first : null;
         debugPrint("⚠️ Fetch by mission_id found: ${mission != null}");
       } catch (e) {
@@ -266,13 +277,16 @@ class NotificationActionHandler {
       if (navigator.canPop()) navigator.pop();
 
       if (mission == null) {
-        Fluttertoast.showToast(msg: "Mission not found for the given subject and level");
-        debugPrint('❌ Mission not found for missionId: $missionId');
+        Fluttertoast.showToast(msg: "$missionType not found for the given subject and level");
+        debugPrint('❌ $missionType not found for missionId: $missionId');
         return;
       }
 
       if (!isApproved && !isRejected) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => SubmitMissionPage(mission: mission!)));
+        // Use root navigator for direct navigation
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(builder: (_) => SubmitMissionPage(mission: mission!)),
+        );
         return;
       }
 
@@ -293,12 +307,12 @@ class NotificationActionHandler {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  isApproved ? "Mission Approved!" : "Mission Rejected",
+                  isApproved ? "$missionType Approved!" : "$missionType Rejected",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: color),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  mission?.title ?? "Mission",
+                  mission?.title ?? missionType,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
@@ -330,10 +344,15 @@ class NotificationActionHandler {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () {
+                        // Close dialog first, then navigate using root navigator
                         Navigator.of(context, rootNavigator: true).pop();
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => SubmitMissionPage(mission: mission!)));
+                        Future.delayed(Duration.zero, () {
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(builder: (_) => SubmitMissionPage(mission: mission!)),
+                          );
+                        });
                       },
-                      child: Text(isApproved ? "Go to Mission" : "Redo"),
+                      child: Text(isApproved ? "Go to $missionType" : "Redo"),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -353,10 +372,11 @@ class NotificationActionHandler {
       );
     } catch (e) {
       if (navigator.canPop()) navigator.pop();
-      Fluttertoast.showToast(msg: "Error loading mission details");
+      Fluttertoast.showToast(msg: "Error loading details");
       debugPrint('❌ Error in _showMissionStatusDialog: $e');
     }
   }
+
   // ----------------- Vision -----------------
   static Future<void> _showVisionStatusDialog(BuildContext context, String status, NotificationData notification) async {
     final color = status.toLowerCase() == 'approved' ? Colors.green.shade600 : Colors.red.shade600;
@@ -369,7 +389,8 @@ class NotificationActionHandler {
       final rawVisionId = notification.data?.data?.visionId ?? notification.data?.data?.actionId;
       final rawSubjectId = notification.data?.data?.laSubjectId;
 
-      final video = await _fetchVisionVideo(visionProvider, rawVisionId, rawSubjectId);
+      // Use direct API call first, then fallback to paginated search
+      final video = await _fetchVisionVideoDirect(visionProvider, rawVisionId, rawSubjectId);
       hideNotificationLoader(context);
 
       if (video == null || video.youtubeUrl == null || video.youtubeUrl!.isEmpty) {
@@ -421,7 +442,9 @@ class NotificationActionHandler {
                       style: ElevatedButton.styleFrom(backgroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       onPressed: () {
                         Navigator.of(context, rootNavigator: true).pop();
-                        _openVisionVideo(context, video, rawSubjectId?.toString() ?? '');
+                        Future.delayed(Duration.zero, () {
+                          _openVisionVideo(context, video, rawSubjectId?.toString() ?? '');
+                        });
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
@@ -461,6 +484,40 @@ class NotificationActionHandler {
     );
   }
 
+  // NEW: Direct API call for vision videos
+  static Future<VisionVideo?> _fetchVisionVideoDirect(VisionProvider provider, dynamic visionIdRaw, dynamic subjectIdRaw) async {
+    final visionId = _safeString(visionIdRaw);
+
+    if (visionId.isEmpty) {
+      debugPrint('❌ Vision ID is empty');
+      return null;
+    }
+
+    debugPrint('🔄 Trying direct API call for vision ID: $visionId');
+
+    // FIRST: Try direct API call (no pagination issues)
+    VisionVideo? video = await provider.getVisionVideoDirectly(visionId);
+
+    // SECOND: If direct call fails, try searching through paginated results as fallback
+    if (video == null) {
+      debugPrint('⚠️ Direct API call failed, trying paginated search');
+      final subjectId = _safeString(subjectIdRaw);
+
+      for (int level = 1; level <= 4; level++) {
+        await provider.initWithSubject(subjectId, level.toString());
+        video = provider.getVideoById(visionId);
+        if (video != null) {
+          debugPrint('🎯 Video found at level $level: ${video.title}');
+          break;
+        }
+      }
+    } else {
+      debugPrint('✅ Direct API call successful: ${video.title}');
+    }
+
+    return video;
+  }
+
   static Future<VisionVideo?> _fetchVisionVideo(VisionProvider provider, dynamic visionIdRaw, dynamic subjectIdRaw) async {
     final visionId = _safeString(visionIdRaw);
     final subjectId = _safeString(subjectIdRaw);
@@ -474,32 +531,70 @@ class NotificationActionHandler {
     return video;
   }
 
-
   // ----------------- Mission Assigned -----------------
   static Future<void> _handleMissionAssigned(BuildContext context, NotificationData notification) async {
     showNotificationLoader(context);
-
     try {
       final subjectId = notification.data?.data?.laSubjectId?.toString();
       final levelId = notification.data?.data?.laLevelId?.toString();
       final missionId = notification.data?.data?.missionId ?? notification.data?.data?.actionId;
 
+      // Get mission type for display
+      final actionId = notification.data?.data?.action ?? 2;
+      String missionType = 'Mission';
+      if (actionId == 9) missionType = 'Jigyasa';
+      if (actionId == 10) missionType = 'Pragya';
+
+      debugPrint("🎯 Handling $missionType Assigned - MissionId: $missionId, Subject: $subjectId, Level: $levelId");
+
       if (subjectId == null || levelId == null || missionId == null) {
         hideNotificationLoader(context);
-        Fluttertoast.showToast(msg: "Mission data incomplete");
+        Fluttertoast.showToast(msg: "$missionType data incomplete");
+        debugPrint("❌ Missing data - Subject: $subjectId, Level: $levelId, MissionId: $missionId");
         return;
       }
 
       final provider = Provider.of<SubjectLevelProvider>(context, listen: false);
-      await provider.getMission({"type": 1, "la_subject_id": subjectId, "la_level_id": levelId});
 
-      final mission = provider.missionListModel?.data?.missions?.data?.firstWhere((m) => m.id == missionId,);
+      // Try multiple approaches to find the mission
+      MissionDatum? mission;
+
+      // Approach 1: Try fetching by mission_id directly
+      try {
+        await provider.getMission({"mission_id": missionId});
+        final list = provider.missionListModel?.data?.missions?.data;
+        final matches = list?.where((m) => m.id.toString() == missionId.toString());
+        mission = (matches != null && matches.isNotEmpty) ? matches.first : null;
+        debugPrint("✅ Fetch by mission_id successful: ${mission != null}");
+      } catch (e) {
+        debugPrint("⚠️ Fetch by mission_id failed: $e");
+      }
+
+      // Approach 2: Fetch by subject and level
+      if (mission == null) {
+        await provider.getMission({
+          "type": 1,
+          "la_subject_id": subjectId,
+          "la_level_id": levelId,
+        });
+
+        final list = provider.missionListModel?.data?.missions?.data;
+        debugPrint("📋 Missions fetched: ${list?.length}");
+
+        final matches = list?.where((m) => m.id == missionId);
+        mission = (matches != null && matches.isNotEmpty) ? matches.first : null;
+      }
+
       hideNotificationLoader(context);
 
       if (mission != null) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => SubmitMissionPage(mission: mission)));
+        // Use root navigator to ensure navigation works from any context
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(builder: (_) => SubmitMissionPage(mission :mission!)),
+        );
       } else {
-        Fluttertoast.showToast(msg: "Mission not found");
+        Fluttertoast.showToast(msg: "$missionType not found");
+        debugPrint("❌ Mission not found after all attempts");
       }
     } catch (e) {
       hideNotificationLoader(context);
@@ -513,11 +608,12 @@ class NotificationActionHandler {
     showNotificationLoader(context);
 
     try {
-      final video = await _fetchVisionVideo(
-        Provider.of<VisionProvider>(context, listen: false),
-        notification.data?.data?.visionId ?? notification.data?.data?.actionId,
-        notification.data?.data?.laSubjectId,
-      );
+      final visionProvider = Provider.of<VisionProvider>(context, listen: false);
+      final rawVisionId = notification.data?.data?.visionId ?? notification.data?.data?.actionId;
+      final rawSubjectId = notification.data?.data?.laSubjectId;
+
+      // Use the new direct API call method
+      final video = await _fetchVisionVideoDirect(visionProvider, rawVisionId, rawSubjectId);
 
       hideNotificationLoader(context);
 
@@ -526,9 +622,9 @@ class NotificationActionHandler {
         return;
       }
 
-      Navigator.of(context).push(MaterialPageRoute(
+      Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider.value(
-          value: Provider.of<VisionProvider>(context, listen: false),
+          value: visionProvider,
           child: VideoPlayerPage(
             video: video,
             navName: "Notification",

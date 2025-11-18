@@ -45,13 +45,13 @@ class TeacherMissionSubmissionPage extends StatelessWidget {
               children: [
                 provider.teacherMissionParticipantModel!.data!.data![missionIndex].user!.profileImage != null
                     ? CircleAvatar(
-                        radius: 30,
-                        backgroundImage: NetworkImage(ApiHelper.imgBaseUrl + provider.teacherMissionParticipantModel!.data!.data![missionIndex].user!.profileImage!),
-                      )
+                  radius: 30,
+                  backgroundImage: NetworkImage(ApiHelper.imgBaseUrl + provider.teacherMissionParticipantModel!.data!.data![missionIndex].user!.profileImage!),
+                )
                     : const CircleAvatar(
-                        radius: 30,
-                        backgroundImage: AssetImage(ImageHelper.profileIcon),
-                      ),
+                  radius: 30,
+                  backgroundImage: AssetImage(ImageHelper.profileIcon),
+                ),
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,14 +169,26 @@ class TeacherMissionSubmissionPage extends StatelessWidget {
               color: Colors.black26,
               height: 45,
               textColor: Colors.black,
-              onTap: () {
-                provider.submitApproveReject(
+              onTap: () async {
+                final provider = Provider.of<StudentProgressProvider>(context, listen: false);
+
+                // 1️⃣ Call API to reject
+                final result = await provider.submitApproveReject(
                   status: 0,
                   comment: "Reject",
                   studentId: provider.teacherMissionParticipantModel!.data!.data![missionIndex].submission!.id!.toString(),
                   context: context,
                   missionId: missionId,
                 );
+
+                // 2️⃣ Show rejection message
+                await _showRejectionPopup(context);
+
+                // 3️⃣ Refresh participant list
+                provider.getTeacherMissionParticipant(missionId);
+
+                // 4️⃣ Navigate back
+                Navigator.of(context).pop();
               },
             ),
 
@@ -187,6 +199,7 @@ class TeacherMissionSubmissionPage extends StatelessWidget {
     );
   }
 }
+
 Future<void> _showCongratsPopup(BuildContext context, int coins) {
   return showGeneralDialog(
     context: context,
@@ -272,3 +285,87 @@ Future<void> _showCongratsPopup(BuildContext context, int coins) {
   );
 }
 
+Future<void> _showRejectionPopup(BuildContext context) {
+  return showGeneralDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierLabel: 'Rejected',
+    pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
+    transitionBuilder: (context, anim1, anim2, child) {
+      return Transform.scale(
+        scale: anim1.value,
+        child: Opacity(
+          opacity: anim1.value,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 10,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF44336), Color(0xFFE57373)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.cancel,
+                    size: 70,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Mission Rejected",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "The mission has been rejected.\nStudent can resubmit.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 12),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+    transitionDuration: const Duration(milliseconds: 400),
+  );
+}

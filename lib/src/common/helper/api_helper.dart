@@ -87,7 +87,7 @@ class ApiHelper {
 // Staging endpoints
   static const String classStudentStaging = "/v3/reports/class-students/";
   static const String getAllStudentStaging = "/v3/reports/all-students";
-
+  static const String PblLanguage = "/v3/languages/";
   static const String assignMission = "/v3/teachers/assign-missions";
   static const String assignTopic = "/v3/teachers/assign-topics";
   static const String teachersGrade = "/v3/teachers/grade-sections";

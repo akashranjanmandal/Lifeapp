@@ -11,7 +11,7 @@ import 'package:lifelab3/src/teacher/teacher_dashboard/model/competencies_model.
 import 'package:lifelab3/src/teacher/teacher_dashboard/model/concept_cartoon_header_model.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/model/concept_cartoon_model.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/model/language_model.dart';
-import 'package:lifelab3/src/teacher/teacher_dashboard/model/lesson_plan_model.dart';
+import 'package:lifelab3/src/teacher/teacher_dashboard/model/lesson_plan_model.dart' hide Board;
 import 'package:lifelab3/src/teacher/teacher_dashboard/model/work_sheet_model.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/lesson_download_page.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/service/teacher_dashboard_service.dart';
@@ -20,7 +20,8 @@ import '../../../student/home/services/dashboard_services.dart';
 import '../../../student/subject_level_list/service/level_list_service.dart';
 import '../../teacher_sign_up/model/board_model.dart';
 import '../../teacher_sign_up/services/teacher_sign_up_services.dart';
-import '../model/pbl_model.dart';
+import '../model/language_pbl_model.dart';
+import '../model/pbl_model.dart' hide Board;
 import '../model/teacher_subject_grade_model.dart';
 
 class TeacherDashboardProvider extends ChangeNotifier {
@@ -47,6 +48,15 @@ class TeacherDashboardProvider extends ChangeNotifier {
   int subjectId = 0;
   int gradeId = 0;
 
+  // PBL Language specific properties (different names)
+  PblLanguageModel? pblLanguageModel;
+  String pblSelectedLanguage = "";
+  int pblLanguageId = 0;
+
+  // NEW: Add subject-grade mapping for PBL
+  Map<int, List<TeacherSubjectGradePair>> subjectToGradesMap = {};
+  List<TeacherSubjectGradePair> subjectGradePairsWithPdf = [];
+
   /// ----------------- GETTERS -----------------
   // All subject-grade pairs
   List<TeacherSubjectGradePair> get subjectGradePairs =>
@@ -68,9 +78,131 @@ class TeacherDashboardProvider extends ChangeNotifier {
   // PBL PDF mappings
   List<PblTextbookMapping> get pdfMappings =>
       pblMappingResponse?.data.pblTextbookMappings ?? [];
-  List<TeacherSubjectGradePair> subjectGradePairsWithPdf = [];
+
+  // Available boards for dropdown
+  List<Board> get availableBoards => boardModel?.data?.boards ?? [];
+
+  // Available PBL languages
+  List<PblLanguageItem> get availablePblLanguages => pblLanguageModel?.data.pblLanguages ?? [];
+
+  // NEW: Get subject title for display
+  String get selectedSubjectTitle {
+    if (subjectGradePairsWithPdf.isEmpty) return '';
+    try {
+      final pair = subjectGradePairsWithPdf.firstWhere(
+            (p) => p.subject?.id == subjectId,
+        orElse: () => subjectGradePairsWithPdf.first,
+      );
+      return pair.subject?.title ?? '';
+    } catch (e) {
+      return subjectGradePairsWithPdf.first.subject?.title ?? '';
+    }
+  }
+
+  // NEW: Get grade name for display
+  String get selectedGradeName {
+    if (subjectGradePairsWithPdf.isEmpty) return '';
+    try {
+      final pair = subjectGradePairsWithPdf.firstWhere(
+            (p) => p.grade?.id == gradeId,
+        orElse: () => subjectGradePairsWithPdf.first,
+      );
+      return pair.grade?.name ?? '';
+    } catch (e) {
+      return subjectGradePairsWithPdf.first.grade?.name ?? '';
+    }
+  }
+
   void setSubjectGradePairsWithPdf(List<TeacherSubjectGradePair> pairs) {
     subjectGradePairsWithPdf = pairs;
+    notifyListeners();
+  }
+
+  // NEW: Subject-grade mapping methods
+  void setSubjectToGradesMap(Map<int, List<TeacherSubjectGradePair>> map) {
+    subjectToGradesMap = map;
+    notifyListeners();
+  }
+
+  List<TeacherSubjectGradePair> getGradesForSubject(int subjectId) {
+    return subjectToGradesMap[subjectId] ?? [];
+  }
+
+  /// ----------------- PBL LANGUAGE MANAGEMENT -----------------
+  Future<void> getPblLanguages() async {
+    try {
+      final response = await TeacherDashboardService().getPblLanguages();
+      if (response != null && response.statusCode == 200) {
+        pblLanguageModel = PblLanguageModel.fromJson(response.data);
+
+        // Auto-select English if available
+        if (pblLanguageModel?.data.pblLanguages != null &&
+            pblLanguageModel!.data.pblLanguages.isNotEmpty) {
+          final englishLang = pblLanguageModel!.data.pblLanguages.firstWhere(
+                (lang) => (lang.pblLangSlug ?? '').toLowerCase() == 'en',
+            orElse: () => pblLanguageModel!.data.pblLanguages.first,
+          );
+
+          pblLanguageId = englishLang.pblLangId ?? 0;
+          pblSelectedLanguage = englishLang.pblLangTitle ?? englishLang.pblLangName ?? '';
+        }
+
+        debugPrint("✅ Loaded ${pblLanguageModel?.data.pblLanguages.length ?? 0} PBL languages");
+        notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load PBL languages: ${response?.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching PBL languages: $e");
+    }
+  }
+
+  void setPblLanguage(int id, String languageName) {
+    pblLanguageId = id;
+    pblSelectedLanguage = languageName;
+    debugPrint("🎯 PBL Language changed to: $pblSelectedLanguage (ID: $pblLanguageId)");
+    notifyListeners();
+  }
+
+  void clearPblLanguageSelection() {
+    pblSelectedLanguage = "";
+    pblLanguageId = 0;
+    notifyListeners();
+  }
+
+  /// ----------------- BOARD MANAGEMENT -----------------
+  Future<void> getBoard() async {
+    try {
+      Response response = await TeacherSignUpServices().getBoard();
+      if (response.statusCode == 200) {
+        boardModel = BoardModel.fromJson(response.data);
+
+        // Set default board if not already set
+        if (boardId == 0 && boardModel?.data?.boards != null && boardModel!.data!.boards!.isNotEmpty) {
+          boardId = boardModel!.data!.boards!.first.id!;
+          board = boardModel!.data!.boards!.first.name ?? "";
+        }
+
+        debugPrint("✅ Loaded ${boardModel?.data?.boards?.length ?? 0} boards");
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching board data: $e');
+    }
+  }
+
+  void setSelectedBoard(int id, String boardName) {
+    boardId = id;
+    board = boardName;
+
+    // Clear dependent selections when board changes
+    subjectId = 0;
+    gradeId = 0;
+    subjectGradePairsWithPdf.clear();
+    pblMappingResponse = null;
+    subjectToGradesMap.clear();
+
+    debugPrint("🎯 Board changed to: $board (ID: $boardId)");
     notifyListeners();
   }
 
@@ -100,151 +232,196 @@ class TeacherDashboardProvider extends ChangeNotifier {
   }
 
   /// ----------------- PBL FUNCTIONS -----------------
+// Replace the existing getCombinedSubjectGradePairs method with this:
+  List<TeacherSubjectGradePair> getCombinedSubjectGradePairs() {
+    final List<TeacherSubjectGradePair> combinedPairs = [];
+    final Set<String> uniqueKeys = {};
+
+    for (final pair in subjectGradePairsWithPdf) {
+      final subjectId = pair.subject?.id ?? 0;
+      final gradeId = pair.grade?.id ?? 0;
+      final uniqueKey = '$subjectId-$gradeId';
+
+      // Only add if we haven't seen this combination before
+      if (!uniqueKeys.contains(uniqueKey)) {
+        uniqueKeys.add(uniqueKey);
+        combinedPairs.add(pair);
+      }
+    }
+
+    return combinedPairs;
+  }  List<TeacherSubjectGradePair> get combinedSubjectGradePairs => getCombinedSubjectGradePairs();
+
   Future<void> getPblTextbookMappings({
-    required int languageId,
-    int? laBoardId,
     required int laSubjectId,
     required int laGradeId,
-  })
-  async {
+  }) async {
     try {
       Map<String, dynamic> body = {
-        "language_id": languageId,
-        "la_board_id": laBoardId,
+        "language_id": pblLanguageId, // Use PBL language ID
+        "la_board_id": boardId,
         "la_subject_id": laSubjectId,
         "la_grade_id": laGradeId,
       };
 
       debugPrint("Loading PDF mappings with: $body");
 
-      final response =
-      await TeacherDashboardService().postPblTextbookMappings(body);
+      final response = await TeacherDashboardService().postPblTextbookMappings(body);
 
       if (response != null && response.statusCode == 200) {
         pblMappingResponse = PblTextbookMappingResponse.fromJson(response.data);
-        debugPrint("Loaded ${pdfMappings.length} PDF mappings");
-        notifyListeners();
+        debugPrint("✅ Loaded ${pdfMappings.length} PDF mappings for board: $board");
+        // REMOVE notifyListeners() from here - call it only once at the end
       } else {
         pblMappingResponse = null;
-        notifyListeners();
+        debugPrint("❌ No PDF mappings found for the selected criteria");
+        // REMOVE notifyListeners() from here
       }
     } catch (e) {
       pblMappingResponse = null;
-      notifyListeners();
-      debugPrint("PBL Mapping Provider Error: $e");
+      debugPrint("❌ PBL Mapping Provider Error: $e");
+      // REMOVE notifyListeners() from here
     }
+
+    // CALL notifyListeners() ONLY ONCE at the end
+    notifyListeners();
   }
 
   void clearPblMapping() {
     pblMappingResponse = null;
     subjectId = 0;
     gradeId = 0;
+    subjectToGradesMap.clear();
     notifyListeners();
   }
 
   /// ----------------- DASHBOARD -----------------
   Future<void> getDashboardData() async {
-    Response response = await DashboardServices().getDashboardData();
-    if (response.statusCode == 200) {
-      dashboardModel = DashboardModel.fromJson(response.data);
+    try {
+      Response response = await DashboardServices().getDashboardData();
+      if (response.statusCode == 200) {
+        dashboardModel = DashboardModel.fromJson(response.data);
 
-      // Safely parse boardId from dashboard
-      boardId = int.tryParse(dashboardModel?.data?.user?.la_board_id ?? '');
+        // Safely parse boardId from dashboard
+        boardId = int.tryParse(dashboardModel?.data?.user?.la_board_id ?? '');
 
-      notifyListeners();
+        // Set board name if available
+        if (dashboardModel?.data?.user?.board_name != null &&
+            dashboardModel!.data!.user!.board_name!.isNotEmpty) {
+          board = dashboardModel!.data!.user!.board_name!;
+        }
+
+        debugPrint("✅ Dashboard loaded - Board: $board, BoardID: $boardId");
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading dashboard: $e");
     }
   }
 
+  // ... rest of your existing methods remain the same
   Future<void> getSubjectsData() async {
-    Response response = await TeacherDashboardService().getSubject();
-    if (response.statusCode == 200) {
-      subjectModel = SubjectModel.fromJson(response.data);
-      notifyListeners();
+    try {
+      Response response = await TeacherDashboardService().getSubject();
+      if (response.statusCode == 200) {
+        subjectModel = SubjectModel.fromJson(response.data);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading subjects: $e");
     }
   }
 
   void getLevel() async {
-    Response response = await LevelListService().getLevelData();
-    if (response.statusCode == 200) {
-      levels = LevelModel.fromJson(response.data);
-      notifyListeners();
+    try {
+      Response response = await LevelListService().getLevelData();
+      if (response.statusCode == 200) {
+        levels = LevelModel.fromJson(response.data);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading levels: $e");
     }
   }
 
   void getCompetency({required Map<String, dynamic> body}) async {
-    Response response = await TeacherDashboardService().getCompetencies(body);
-    if (response.statusCode == 200) {
-      competenciesModel = CompetenciesModel.fromJson(response.data);
-      notifyListeners();
+    try {
+      Response response = await TeacherDashboardService().getCompetencies(body);
+      if (response.statusCode == 200) {
+        competenciesModel = CompetenciesModel.fromJson(response.data);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading competencies: $e");
     }
   }
 
   void getConceptCartoon({required Map<String, dynamic> body}) async {
-    Response response = await TeacherDashboardService().getConceptCartoon(body);
-    if (response.statusCode == 200) {
-      cartoonModel = ConceptCartoonModel.fromJson(response.data);
-      notifyListeners();
+    try {
+      Response response = await TeacherDashboardService().getConceptCartoon(body);
+      if (response.statusCode == 200) {
+        cartoonModel = ConceptCartoonModel.fromJson(response.data);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading concept cartoons: $e");
     }
   }
 
   void getConceptCartoonHeader() async {
-    Response response = await TeacherDashboardService().getConceptCartoonHeader();
-    if (response.statusCode == 200) {
-      headerModel = ConceptCartoonHeaderModel.fromJson(response.data);
-      notifyListeners();
+    try {
+      Response response = await TeacherDashboardService().getConceptCartoonHeader();
+      if (response.statusCode == 200) {
+        headerModel = ConceptCartoonHeaderModel.fromJson(response.data);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading concept cartoon headers: $e");
     }
   }
 
   void getAssessment({required Map<String, dynamic> body}) async {
-    Response response = await TeacherDashboardService().getAssessment(body);
-    if (response.statusCode == 200) {
-      assessmentModel = AssessmentModel.fromJson(response.data);
-      notifyListeners();
+    try {
+      Response response = await TeacherDashboardService().getAssessment(body);
+      if (response.statusCode == 200) {
+        assessmentModel = AssessmentModel.fromJson(response.data);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading assessments: $e");
     }
   }
 
   void getWorkSheet({required Map<String, dynamic> body}) async {
-    Response response = await TeacherDashboardService().getWorkSheet(body);
-    if (response.statusCode == 200) {
-      workSheetModel = WorkSheetModel.fromJson(response.data);
-      notifyListeners();
-    }
-  }
-
-  /// ----------------- BOARD / LANGUAGE -----------------
-  void setSelectedBoard(int id, String boardName) {
-    boardId = id;
-    board = boardName;
-    notifyListeners();
-  }
-
-  Future<void> getBoard() async {
     try {
-      Response response = await TeacherSignUpServices().getBoard();
+      Response response = await TeacherDashboardService().getWorkSheet(body);
       if (response.statusCode == 200) {
-        boardModel = BoardModel.fromJson(response.data);
-
-        // Only set if not set already
-        if (boardId == 0 &&
-            boardModel?.data?.boards != null &&
-            boardModel!.data!.boards!.isNotEmpty) {
-          boardId = boardModel!.data!.boards!.first.id!;
-          board = boardModel!.data!.boards!.first.name ?? "";
-        }
-
+        workSheetModel = WorkSheetModel.fromJson(response.data);
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error fetching board data: $e');
+      debugPrint("❌ Error loading worksheets: $e");
     }
   }
 
+  /// ----------------- LANGUAGE MANAGEMENT -----------------
   Future<void> getLanguage() async {
-    Response response = await TeacherDashboardService().getLessonLanguage();
-    if (response.statusCode == 200) {
-      languageModel = LanguageModel.fromJson(response.data);
-      notifyListeners();
+    try {
+      Response response = await TeacherDashboardService().getLessonLanguage();
+      if (response.statusCode == 200) {
+        languageModel = LanguageModel.fromJson(response.data);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("❌ Error loading languages: $e");
     }
+  }
+
+  void setSelectedLanguage(int id, String languageName) {
+    languageId = id;
+    language = languageName;
+    debugPrint("🎯 Language changed to: $language (ID: $languageId)");
+    notifyListeners();
   }
 
   /// ----------------- LESSON PLAN -----------------
@@ -255,30 +432,37 @@ class TeacherDashboardProvider extends ChangeNotifier {
       overlayColor: Colors.black54,
     );
 
-    Map<String, dynamic> body = {
-      "type": type,
-      "la_board_id": boardId,
-      "la_lession_plan_language_id": languageId,
-    };
+    try {
+      Map<String, dynamic> body = {
+        "type": type,
+        "la_board_id": boardId,
+        "la_lession_plan_language_id": languageId,
+      };
 
-    Response response = await TeacherDashboardService().submitPlan(body);
+      Response response = await TeacherDashboardService().submitPlan(body);
 
-    Loader.hide();
+      Loader.hide();
 
-    if (response.statusCode == 200) {
-      lessonPlanModel = LessonPlanModel.fromJson(response.data);
-      if (context.mounted && lessonPlanModel!.data!.laLessionPlans!.isNotEmpty) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => LessonDownloadPage(model: lessonPlanModel!)),
-        );
+      if (response.statusCode == 200) {
+        lessonPlanModel = LessonPlanModel.fromJson(response.data);
+        if (context.mounted && lessonPlanModel!.data!.laLessionPlans!.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => LessonDownloadPage(model: lessonPlanModel!)),
+          );
+        } else {
+          Fluttertoast.showToast(msg: "No data available");
+        }
       } else {
-        Fluttertoast.showToast(msg: "No data available");
+        lessonPlanModel = null;
+        Fluttertoast.showToast(msg: "Failed to load lesson plans");
       }
-    } else {
-      lessonPlanModel = null;
+      notifyListeners();
+    } catch (e) {
+      Loader.hide();
+      debugPrint("❌ Error submitting lesson plan: $e");
+      Fluttertoast.showToast(msg: "Error loading lesson plans");
     }
-    notifyListeners();
   }
 
   void clearLessonPlan() {
@@ -286,5 +470,60 @@ class TeacherDashboardProvider extends ChangeNotifier {
     languageId = 0;
     lessonPlanModel = null;
     notifyListeners();
+  }
+
+  /// ----------------- RESET METHODS -----------------
+  void resetAllSelections() {
+    subjectId = 0;
+    gradeId = 0;
+    subjectGradePairsWithPdf.clear();
+    pblMappingResponse = null;
+    subjectToGradesMap.clear();
+    notifyListeners();
+  }
+
+  void resetBoardSelection() {
+    board = "";
+    boardId = 0;
+    resetAllSelections();
+  }
+
+  void resetLanguageSelection() {
+    language = "";
+    languageId = 0;
+    resetAllSelections();
+  }
+
+  void resetPblLanguageSelection() {
+    pblSelectedLanguage = "";
+    pblLanguageId = 0;
+    notifyListeners();
+  }
+
+  /// ----------------- VALIDATION METHODS -----------------
+  bool get isBoardSelected => boardId != null && boardId! > 0 && board.isNotEmpty;
+  bool get isLanguageSelected => languageId > 0 && language.isNotEmpty;
+  bool get isPblLanguageSelected => pblLanguageId > 0 && pblSelectedLanguage.isNotEmpty;
+  bool get isSubjectSelected => subjectId > 0;
+  bool get isGradeSelected => gradeId > 0;
+
+  bool get canProceedToSubjects => isBoardSelected && isPblLanguageSelected; // Use PBL language for PBL flow
+  bool get canProceedToGrades => isSubjectSelected;
+  bool get canProceedToPdfs => isGradeSelected;
+
+  /// ----------------- DEBUG METHODS -----------------
+  void printCurrentState() {
+    debugPrint("=== CURRENT STATE ===");
+    debugPrint("Board: $board (ID: $boardId)");
+    debugPrint("Language: $language (ID: $languageId)");
+    debugPrint("PBL Language: $pblSelectedLanguage (ID: $pblLanguageId)");
+    debugPrint("Subject ID: $subjectId");
+    debugPrint("Grade ID: $gradeId");
+    debugPrint("Available Boards: ${availableBoards.length}");
+    debugPrint("Available PBL Languages: ${availablePblLanguages.length}");
+    debugPrint("Subject-Grade Pairs: ${subjectGradePairs.length}");
+    debugPrint("PDF Mappings: ${pdfMappings.length}");
+    debugPrint("Subject-Grade Map entries: ${subjectToGradesMap.length}");
+    debugPrint("=====================");
   }
 }

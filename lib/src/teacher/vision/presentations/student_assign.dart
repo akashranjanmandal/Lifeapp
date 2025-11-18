@@ -5,6 +5,8 @@ import '../providers/vision_provider.dart';
 import 'assignment_success.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/provider/teacher_dashboard_provider.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+import 'package:lifelab3/src/teacher/teacher_tool/provider/tool_provider.dart';
+
 class StudentAssignPage extends StatefulWidget {
   final String videoTitle;
   final String videoId;
@@ -35,7 +37,12 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
   bool _isLoading = false;
   String? _errorMessage;
   late DateTime _pageOpenTime;
-  late TeacherVisionVideo videoModel;
+
+  // Grade dropdown state
+  String? _selectedGradeId;
+  String? _selectedGradeName;
+  List<Map<String, dynamic>> _teacherGrades = [];
+  bool _hasAssignedGrades = true;
 
   @override
   void initState() {
@@ -47,10 +54,7 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
     debugPrint('   - sectionId: ${widget.sectionId}');
     debugPrint('   - gradeId: ${widget.gradeId}');
     debugPrint('   - subjectId: ${widget.subjectId}');
-    debugPrint('   - sectionId is null: ${widget.sectionId == null}');
-    debugPrint('   - sectionId is empty: ${widget.sectionId.isEmpty}');
 
-    _fetchStudents();
     MixpanelService.track("AssignVisionScreen_View", properties: {
       "video_id": widget.videoId,
       "video_title": widget.videoTitle,
@@ -59,21 +63,126 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
       "section_id": widget.sectionId,
       "class_id": widget.classId,
     });
+
+    _initializeData();
   }
-  @override
-  void dispose() {
-    // Track screen activity time duration
-    final duration = DateTime.now().difference(_pageOpenTime).inSeconds;
-    MixpanelService.track("AssignVisionScreen_ActivityTime", properties: {
-      "duration_seconds": duration,
-      "video_id": widget.videoId,
-      "video_title": widget.videoTitle,
-      "grade_id": widget.gradeId,
-      "subject_id": widget.subjectId,
-      "section_id": widget.sectionId,
-      "class_id": widget.classId,
-    });
-    super.dispose();
+
+  Future<void> _initializeData() async {
+    await _checkTeacherGrades();
+  }
+
+  Future<void> _checkTeacherGrades() async {
+    try {
+      final toolProvider = Provider.of<ToolProvider>(context, listen: false);
+
+      if (toolProvider.teacherGradeSectionModel == null) {
+        toolProvider.getTeacherGrade();
+        await Future.delayed(const Duration(milliseconds: 800));
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (toolProvider.teacherGradeSectionModel != null &&
+          toolProvider.teacherGradeSectionModel!.data != null &&
+          toolProvider.teacherGradeSectionModel!.data!.teacherGrades != null) {
+
+        final grades = toolProvider.teacherGradeSectionModel!.data!.teacherGrades!;
+
+        setState(() {
+          _hasAssignedGrades = grades.isNotEmpty;
+          _teacherGrades = grades.map((gradeSection) {
+            return {
+              'id': gradeSection.grade?.id?.toString() ?? '',
+              'name': 'Class ${gradeSection.grade?.name ?? ''} ${gradeSection.section?.name ?? ''}',
+              'grade_name': gradeSection.grade?.name ?? '',
+              'section_name': gradeSection.section?.name ?? '',
+              'section_id': gradeSection.section?.id?.toString() ?? '',
+              'class_id': gradeSection.id?.toString() ?? '',
+            };
+          }).toList();
+        });
+
+        debugPrint('📊 Teacher grades check:');
+        debugPrint('   - Has assigned grades: $_hasAssignedGrades');
+        debugPrint('   - Number of grades: ${_teacherGrades.length}');
+        debugPrint('   - Widget gradeId: "${widget.gradeId}"');
+        debugPrint('   - Widget sectionId: "${widget.sectionId}"');
+
+        // Set initial selection - TRY TO MATCH THE GRADE USER CAME FROM
+        if (_teacherGrades.isNotEmpty) {
+          _setInitialGradeSelection();
+
+          // Now fetch students with the selected grade
+          await _fetchStudents();
+        } else {
+          debugPrint('❌ No teacher grades available');
+          setState(() {
+            _errorMessage = 'No grades/classes assigned to this teacher.';
+          });
+        }
+      } else {
+        debugPrint('❌ Teacher grades data is null');
+        setState(() {
+          _hasAssignedGrades = false;
+          _errorMessage = 'Unable to load teacher grades. Please try again.';
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error checking teacher grades: $e');
+      setState(() {
+        _hasAssignedGrades = false;
+        _errorMessage = 'Error loading teacher information: $e';
+      });
+    }
+  }
+
+  void _setInitialGradeSelection() {
+    // Try to find the grade that matches the one user came from
+    Map<String, dynamic>? matchingGrade;
+
+    if (widget.gradeId.isNotEmpty && widget.sectionId.isNotEmpty) {
+      // Try exact match with both gradeId and sectionId
+      try {
+        matchingGrade = _teacherGrades.firstWhere(
+              (grade) => grade['id'] == widget.gradeId && grade['section_id'] == widget.sectionId,
+        );
+        debugPrint('✅ Found exact match with gradeId and sectionId');
+      } catch (e) {
+        debugPrint('ℹ️ No exact match found, trying gradeId only');
+        try {
+          matchingGrade = _teacherGrades.firstWhere(
+                (grade) => grade['id'] == widget.gradeId,
+          );
+          debugPrint('✅ Found match with gradeId only');
+        } catch (e) {
+          debugPrint('ℹ️ No match found, using first grade');
+          matchingGrade = _teacherGrades.first;
+        }
+      }
+    } else if (widget.gradeId.isNotEmpty) {
+      // Try match with just gradeId
+      try {
+        matchingGrade = _teacherGrades.firstWhere(
+              (grade) => grade['id'] == widget.gradeId,
+        );
+        debugPrint('✅ Found match with gradeId only');
+      } catch (e) {
+        debugPrint('ℹ️ No match found with gradeId, using first grade');
+        matchingGrade = _teacherGrades.first;
+      }
+    } else {
+      // Fallback to first grade
+      matchingGrade = _teacherGrades.first;
+      debugPrint('ℹ️ Using first grade as fallback');
+    }
+
+    _selectedGradeId = matchingGrade['id'];
+    _selectedGradeName = matchingGrade['name'];
+
+    debugPrint('🎯 Initial grade selection:');
+    debugPrint('   - Selected: $_selectedGradeId - $_selectedGradeName');
+    debugPrint('   - User came from grade: ${widget.gradeId}');
+    debugPrint('   - User came from section: ${widget.sectionId}');
   }
 
   Future<void> _fetchStudents() async {
@@ -83,36 +192,71 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
     });
 
     try {
-      // Enhanced validation with better error messages
-      debugPrint('🔍 Validating parameters...');
-      debugPrint('   - sectionId: "${widget.sectionId}"');
-      debugPrint('   - gradeId: "${widget.gradeId}"');
-      debugPrint('   - subjectId: "${widget.subjectId}"');
+      debugPrint('🔍 === FETCH STUDENTS DEBUG ===');
+      debugPrint('   - Selected gradeId: "$_selectedGradeId"');
+      debugPrint('   - Selected sectionId: "$_selectedSectionId"');
 
-      if (widget.sectionId.isEmpty) {
-        debugPrint('❌ Section ID validation failed');
+      String? effectiveGradeId;
+      String? effectiveSectionId;
+
+      if (_selectedGradeId != null && _selectedGradeId!.isNotEmpty) {
+        try {
+          Map<String, dynamic> selectedGrade = _teacherGrades.firstWhere(
+                (grade) => grade['id'] == _selectedGradeId,
+          );
+          effectiveGradeId = selectedGrade['id'];
+          effectiveSectionId = selectedGrade['section_id'];
+
+          debugPrint('   - Using SELECTED grade from dropdown:');
+          debugPrint('     - Grade ID: $effectiveGradeId');
+          debugPrint('     - Section ID: $effectiveSectionId');
+        } catch (e) {
+          debugPrint('❌ Selected grade not found, using first grade');
+          final firstGrade = _teacherGrades.first;
+          effectiveGradeId = firstGrade['id'];
+          effectiveSectionId = firstGrade['section_id'];
+          _selectedGradeId = firstGrade['id'];
+          _selectedGradeName = firstGrade['name'];
+        }
+      } else if (_teacherGrades.isNotEmpty) {
+        final firstGrade = _teacherGrades.first;
+        effectiveGradeId = firstGrade['id'];
+        effectiveSectionId = firstGrade['section_id'];
+        _selectedGradeId = firstGrade['id'];
+        _selectedGradeName = firstGrade['name'];
+
+        debugPrint('   - Using FIRST grade as fallback:');
+        debugPrint('     - Grade ID: $effectiveGradeId');
+        debugPrint('     - Section ID: $effectiveSectionId');
+      } else {
+        debugPrint('❌ No grades available at all');
         setState(() {
-          _errorMessage =
-              'Section information is missing. Please go back and select a section first.';
+          _errorMessage = 'No grades/classes available. Please contact support.';
           _isLoading = false;
         });
         return;
       }
 
-      final provider = Provider.of<VisionProvider>(context, listen: false);
-      final teacherProvider =
-          Provider.of<TeacherDashboardProvider>(context, listen: false);
+      if (effectiveSectionId == null || effectiveSectionId.isEmpty) {
+        debugPrint('❌ Section ID validation failed');
+        setState(() {
+          _errorMessage = 'Section information is missing. Please select a different grade.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final provider = Provider.of<TeacherVisionProvider>(context, listen: false);
+      final teacherProvider = Provider.of<TeacherDashboardProvider>(context, listen: false);
 
       debugPrint('🏫 Getting school information...');
-      // Get school_id from TeacherDashboardProvider with better error handling
       final schoolId = teacherProvider.dashboardModel?.data?.user?.school?.id;
       debugPrint('   - schoolId: $schoolId');
 
       if (schoolId == null || schoolId == 0) {
         debugPrint('❌ School ID validation failed');
         setState(() {
-          _errorMessage =
-              'School information is not available. Please refresh the dashboard and try again.';
+          _errorMessage = 'School information is not available. Please refresh the dashboard and try again.';
           _isLoading = false;
         });
         return;
@@ -120,14 +264,14 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
 
       Map<String, dynamic> data = {
         "school_id": schoolId,
-        "la_section_id": widget.sectionId,
+        "la_section_id": effectiveSectionId,
       };
 
-      // Add optional parameters if they exist
-      if (widget.gradeId.isNotEmpty) {
-        data["la_grade_id"] = widget.gradeId;
-        debugPrint('   - Added gradeId: ${widget.gradeId}');
+      if (effectiveGradeId != null && effectiveGradeId.isNotEmpty) {
+        data["la_grade_id"] = effectiveGradeId;
+        debugPrint('   - Added gradeId: $effectiveGradeId');
       }
+
       if (widget.subjectId.isNotEmpty) {
         data["la_subject_id"] = widget.subjectId;
         debugPrint('   - Added subjectId: ${widget.subjectId}');
@@ -139,28 +283,138 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
       _selectedStudents = List.filled(_students.length, true);
 
       debugPrint('✅ Fetched ${_students.length} students for assignment');
-      if (_students.isNotEmpty) {
-        debugPrint('   - First student: ${_students.first}');
-      }
 
       if (_students.isEmpty) {
         setState(() {
-          _errorMessage =
-              'No students found for the selected section. Please check if students are enrolled in this section.';
+          _errorMessage = 'No students found for the selected section. Please check if students are enrolled in this section.';
         });
       }
     } catch (e) {
       debugPrint('❌ Error fetching students: $e');
-      debugPrint('❌ Error type: ${e.runtimeType}');
       setState(() {
-        _errorMessage =
-            'Failed to load students: ${e.toString()}. Please check your internet connection and try again.';
+        _errorMessage = 'Failed to load students: ${e.toString()}. Please check your internet connection and try again.';
         _students = [];
         _selectedStudents = [];
       });
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  String? get _selectedSectionId {
+    if (_selectedGradeId == null) return null;
+    try {
+      final selectedGrade = _teacherGrades.firstWhere(
+            (grade) => grade['id'] == _selectedGradeId,
+      );
+      return selectedGrade['section_id']?.toString();
+    } catch (e) {
+      debugPrint('❌ Error getting section ID: $e');
+      if (_teacherGrades.isNotEmpty) {
+        return _teacherGrades.first['section_id']?.toString();
+      }
+      return null;
+    }
+  }
+
+  // IMPROVED Grade dropdown widget with better UI
+  Widget _buildGradeDropdown() {
+    if (_teacherGrades.isEmpty || _teacherGrades.length == 1) {
+      // Don't show dropdown if only one grade or none
+      return const SizedBox();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.class_, size: 18, color: Colors.blue[700]),
+              const SizedBox(width: 8),
+              Text(
+                "Select Class",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedGradeId,
+                isExpanded: true,
+                icon: Icon(Icons.arrow_drop_down, color: Colors.blue[700]),
+                iconSize: 24,
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                hint: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('Choose a class'),
+                ),
+                items: _teacherGrades.map((grade) {
+                  return DropdownMenuItem<String>(
+                    value: grade['id'],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text(
+                        grade['name'],
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedGradeId = newValue;
+                      _selectedGradeName = _teacherGrades
+                          .firstWhere((grade) => grade['id'] == newValue)['name'];
+                    });
+
+                    _fetchStudents();
+
+                    MixpanelService.track("AssignVision_GradeSelected", properties: {
+                      "video_id": widget.videoId,
+                      "grade_id": newValue,
+                      "grade_name": _selectedGradeName,
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _toggleSelectAll() {
@@ -198,16 +452,17 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
     }
   }
 
+  // IMPROVED Student tile with better UI
   Widget _buildStudentTile(String name, int index) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(50),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withOpacity(0.08),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 1),
@@ -216,8 +471,18 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
-            backgroundImage: AssetImage('assets/images/user.png'),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue[50],
+            ),
+            child: Icon(
+              Icons.person,
+              color: Colors.blue[700],
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -240,12 +505,25 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
                 "selected": _selectedStudents[index],
               });
             },
-            child: Icon(
-              _selectedStudents[index]
-                  ? Icons.check_circle
-                  : Icons.radio_button_unchecked,
-              color: _selectedStudents[index] ? Colors.green : Colors.grey,
-              size: 24,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: _selectedStudents[index] ? Colors.green : Colors.transparent,
+                border: Border.all(
+                  color: _selectedStudents[index] ? Colors.green : Colors.grey[400]!,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: _selectedStudents[index]
+                  ? const Icon(
+                Icons.check,
+                size: 16,
+                color: Colors.white,
+              )
+                  : null,
             ),
           ),
         ],
@@ -345,20 +623,22 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
       );
       return;
     }
+
     MixpanelService.track("AssignVision_AssignButtonClicked", properties: {
       "video_id": widget.videoId,
       "selected_student_count": selectedStudentIds.length,
       "due_date": _dueDate!.toIso8601String(),
+      "grade_id": _selectedGradeId,
     });
-
 
     debugPrint('📝 Assigning video to ${selectedStudentIds.length} students');
     debugPrint('   - Selected student IDs: $selectedStudentIds');
     debugPrint('   - Due date: ${_dueDate?.toIso8601String()}');
+    debugPrint('   - Grade ID: $_selectedGradeId');
 
     setState(() => _isLoading = true);
     try {
-      final provider = Provider.of<VisionProvider>(context, listen: false);
+      final provider = Provider.of<TeacherVisionProvider>(context, listen: false);
 
       final success = await provider.assignVideoToStudents(
         widget.videoId,
@@ -367,7 +647,7 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
       );
 
       if (success) {
-        final provider = Provider.of<VisionProvider>(context, listen: false);
+        final provider = Provider.of<TeacherVisionProvider>(context, listen: false);
         final video = provider.getVideoById(widget.videoId);
 
         if (video == null) {
@@ -412,7 +692,6 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -440,7 +719,7 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
                       ),
                       const SizedBox(width: 8),
                       const Text(
-                        "Vision",
+                        "Assign Vision",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -451,11 +730,20 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
                   if (_students.isNotEmpty)
                     GestureDetector(
                       onTap: _toggleSelectAll,
-                      child: Text(
-                        _selectAll ? "Deselect all" : "Select all",
-                        style: TextStyle(
-                          color: Colors.blue[600],
-                          fontWeight: FontWeight.w500,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue[100]!),
+                        ),
+                        child: Text(
+                          _selectAll ? "Deselect all" : "Select all",
+                          style: TextStyle(
+                            color: Colors.blue[700],
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ),
@@ -463,8 +751,23 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
               ),
               const SizedBox(height: 16),
 
+              // Grade Dropdown (only show when multiple grades available)
+              _buildGradeDropdown(),
+
+              // Show loading while initializing
+              if (_teacherGrades.isEmpty && _isLoading)
+                const Center(
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Loading grades...'),
+                    ],
+                  ),
+                ),
+
               // Video title being assigned
-              if (widget.videoTitle.isNotEmpty)
+              if (widget.videoTitle.isNotEmpty && _teacherGrades.isNotEmpty)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -477,15 +780,21 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Assigning Video:",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.blue[800],
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.video_library, size: 18, color: Colors.blue[700]),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Assigning Video:",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.blue[800],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         widget.videoTitle,
                         style: TextStyle(
@@ -502,56 +811,83 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
               Expanded(
                 child: _errorMessage != null
                     ? _buildErrorWidget()
-                    : _isLoading
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(),
-                                SizedBox(height: 16),
-                                Text('Assigning students...'),
-                              ],
+                    : _isLoading && _students.isEmpty
+                    ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Loading students...'),
+                    ],
+                  ),
+                )
+                    : _students.isEmpty && _teacherGrades.isNotEmpty
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.group_off,
+                        size: 80,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No students found for selected class',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchStudents,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Try Again'),
+                      ),
+                    ],
+                  ),
+                )
+                    : _students.isNotEmpty
+                    ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.people, size: 18, color: Colors.grey[600]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Students (${_students.length})',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
                             ),
-                          )
-                        : _students.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  'No students found',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8.0),
-                                    child: Text(
-                                      'Students (${_students.length})',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Expanded(
-                                    child: ListView.builder(
-                                      itemCount: _students.length,
-                                      itemBuilder: (context, index) =>
-                                          _buildStudentTile(
-                                        _students[index]['name'] ??
-                                            'Student ${index + 1}',
-                                        index,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _students.length,
+                        itemBuilder: (context, index) => _buildStudentTile(
+                          _students[index]['name'] ?? 'Student ${index + 1}',
+                          index,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+                    : const Center(
+                  child: Text('Select a class to view students'),
+                ),
               ),
 
               // Buttons - only show if we have students
@@ -586,14 +922,13 @@ class _StudentAssignPageState extends State<StudentAssignPage> {
                         onPressed: _isLoading ? null : _assignVideoToStudents,
                         icon: _isLoading
                             ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
-                                ),
-                              )
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
                             : const Icon(Icons.assignment_turned_in, size: 18),
                         label: Text(
                           _isLoading ? 'Assigning...' : 'Assign Video',

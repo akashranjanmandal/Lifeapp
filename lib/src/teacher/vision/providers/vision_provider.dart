@@ -6,7 +6,7 @@ import '../../../utils/storage_utils.dart';
 import '../models/vision_model.dart';
 import '../services/vision_services.dart';
 
-class VisionProvider with ChangeNotifier {
+class TeacherVisionProvider with ChangeNotifier {
   final TeacherVisionAPIService _apiService = TeacherVisionAPIService();
 
   // ----------------- Video Lists -----------------
@@ -14,30 +14,35 @@ class VisionProvider with ChangeNotifier {
   final List<TeacherVisionVideo> _assignedVideos = [];
   List<TeacherVisionVideo> filteredNonAssignedVideos = [];
   List<TeacherVisionVideo> filteredAssignedVideos = [];
+
   // ----------------- Filters -----------------
   final String _gradeId;
   List<Map<String, dynamic>> _chapters = [];
   List<Map<String, dynamic>> _allLevelsData = [];
   List<Map<String, dynamic>> _subjects = [];
+  List<Map<String, dynamic>> _boards = [];
 
   String? _selectedChapterId;
   String? _selectedLevelId;
   String? _selectedSubjectId;
   String? _selectedSubjectTitle;
+  String? _selectedBoardId;
+  String? _selectedBoardTitle;
   String _searchQuery = '';
-  bool _isSubjectsLoading = false;
-  bool get isSubjectsLoading => _isSubjectsLoading;
 
-  // ----------------- Loading & Pagination -----------------
+  // ----------------- Loading States -----------------
+  bool _isSubjectsLoading = false;
   bool _isLoading = false;
   bool _isLoadingMore = false;
+  bool _isLoadingChapters = false;
+  bool _isInitialized = false;
   String? _errorMessage;
 
+  // ----------------- Pagination -----------------
   int _currentPage = 1;
   final int _perPage = 10;
   bool _hasMoreAllVideos = true;
   bool _hasMoreAssignedVideos = true;
-
   int _searchPage = 1;
   bool _hasMoreSearchVideos = true;
 
@@ -46,31 +51,61 @@ class VisionProvider with ChangeNotifier {
   // ----------------- Getters -----------------
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
+  bool get isSubjectsLoading => _isSubjectsLoading;
+  bool get isLoadingChapters => _isLoadingChapters;
+  bool get isInitialized => _isInitialized;
   String? get errorMessage => _errorMessage;
   List<Map<String, dynamic>> get subjects => _subjects;
   List<Map<String, dynamic>> get chapters => _chapters;
+  List<Map<String, dynamic>> get boards => _boards;
   bool get hasMoreAllVideos => _hasMoreAllVideos;
   bool get hasMoreAssignedVideos => _hasMoreAssignedVideos;
   List<String> get availableLevels => _availableLevels;
   List<Map<String, dynamic>> getAvailableSubjects() => _subjects;
   String? get selectedSubjectTitle => _selectedSubjectTitle;
+  String? get selectedBoardId => _selectedBoardId;
+  String? get selectedBoardTitle => _selectedBoardTitle;
 
   // ----------------- Constructor -----------------
-  VisionProvider({required String gradeId}) : _gradeId = gradeId {
+  TeacherVisionProvider({required String gradeId}) : _gradeId = gradeId {
     _initializeData();
   }
 
   // ----------------- Initialization -----------------
   Future<void> _initializeData() async {
-    await _fetchSubjects();
-    await _fetchLevels();
-    await fetchChapters();
+    try {
+      // Load cached data first for immediate display
+      await _loadCachedVideos();
 
-    final hasCache = await _loadCachedVideos();
-    if (!hasCache) {
-      await _fetchVideos();
-    } else {
-      _applyFilters();
+      // Then try to fetch fresh data in background
+      await Future.wait([
+        _fetchBoards().catchError((e) => debugPrint('❌ Boards fetch failed: $e')),
+        _fetchSubjects().catchError((e) => debugPrint('❌ Subjects fetch failed: $e')),
+        _fetchLevels().catchError((e) => debugPrint('❌ Levels fetch failed: $e')),
+      ], eagerError: false); // Continue even if some fail
+
+      // Fetch fresh videos in background
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchVideos();
+      });
+
+      _isInitialized = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error initializing data: $e');
+      _errorMessage = 'Failed to initialize some data, but you can still browse videos';
+      _isInitialized = true;
+      notifyListeners();
+    }
+  }
+  // ----------------- Fetch Boards -----------------
+  Future<void> _fetchBoards() async {
+    try {
+      _boards = await _apiService.getBoards();
+      debugPrint('✅ Successfully fetched ${_boards.length} boards');
+    } catch (e) {
+      debugPrint('❌ Error fetching boards: $e');
+      _boards = [];
     }
   }
 
@@ -79,15 +114,11 @@ class VisionProvider with ChangeNotifier {
     _isSubjectsLoading = true;
     notifyListeners();
 
-    final prefs = await SharedPreferences.getInstance();
     try {
       _subjects = await _apiService.getSubjects();
-      await prefs.setString('cached_subjects', jsonEncode(_subjects));
-    } catch (_) {
-      final cached = prefs.getString('cached_subjects');
-      if (cached != null) {
-        _subjects = List<Map<String, dynamic>>.from(jsonDecode(cached));
-      }
+    } catch (e) {
+      debugPrint('❌ Error fetching subjects: $e');
+      _subjects = [];
     }
 
     _isSubjectsLoading = false;
@@ -103,43 +134,45 @@ class VisionProvider with ChangeNotifier {
 
   // ----------------- Fetch Levels -----------------
   Future<void> _fetchLevels() async {
-    final prefs = await SharedPreferences.getInstance();
     try {
       _allLevelsData = await _apiService.getAllLevels();
-      await prefs.setString('cached_levels', jsonEncode(_allLevelsData));
-
       _availableLevels = _allLevelsData
           .map((level) => level['title']?.toString() ?? '')
           .where((name) => name.isNotEmpty)
           .toList();
       _availableLevels.sort();
-    } catch (_) {
-      final cached = prefs.getString('cached_levels');
-      if (cached != null) {
-        _allLevelsData = List<Map<String, dynamic>>.from(jsonDecode(cached));
-        _availableLevels = _allLevelsData
-            .map((level) => level['title']?.toString() ?? '')
-            .toList();
-      }
+    } catch (e) {
+      debugPrint('❌ Error fetching levels: $e');
+      _allLevelsData = [];
+      _availableLevels = [];
     }
-    notifyListeners();
   }
 
   // ----------------- Fetch Chapters -----------------
   Future<void> fetchChapters() async {
+    if (_isLoadingChapters || _selectedBoardTitle == null) return;
+
+    _isLoadingChapters = true;
+    notifyListeners();
+
     try {
       _chapters = await _apiService.getChapters(
         gradeId: _gradeId,
+        boardId: _selectedBoardId,
         subjectId: _selectedSubjectId,
       );
-    } catch (_) {
+      debugPrint('✅ Fetched ${_chapters.length} chapters');
+    } catch (e) {
+      debugPrint('❌ Error fetching chapters: $e');
       _chapters = [];
+    } finally {
+      _isLoadingChapters = false;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   // ----------------- Cached Videos -----------------
-  Future<bool> _loadCachedVideos() async {
+  Future<void> _loadCachedVideos() async {
     final prefs = await SharedPreferences.getInstance();
     final cachedAll = prefs.getString('cached_all_videos');
     final cachedAssigned = prefs.getString('cached_assigned_videos');
@@ -160,12 +193,8 @@ class VisionProvider with ChangeNotifier {
       );
     }
 
-    notifyListeners();
-    return cachedAll != null || cachedAssigned != null;
+    _applyFilters();
   }
-
-  // ----------------- Auth Helper -----------------
-  Future<String> _getAuthToken() async => StorageUtil.getString(StringHelper.token);
 
   // ----------------- Fetch Videos -----------------
   Future<void> _fetchVideos({bool loadMore = false}) async {
@@ -192,6 +221,7 @@ class VisionProvider with ChangeNotifier {
           ?.toString()
           : null;
 
+      // Fetch all videos - this is the main content
       final newAll = await _apiService.getAllVisionVideos(
         subjectId: _selectedSubjectId,
         levelId: levelId,
@@ -200,31 +230,57 @@ class VisionProvider with ChangeNotifier {
         perPage: _perPage,
       );
 
-      final newAssigned = await _apiService.getAssignedVideos(
-        subjectId: _selectedSubjectId,
-        levelId: levelId,
-        chapterId: _selectedChapterId,
-      ).then((list) => list.map((v) {
-        v.teacherAssigned = true;
-        return v;
-      }).toList());
-
+      // Add to main videos list
       _allVideos.addAll(newAll);
-      _assignedVideos.addAll(newAssigned);
-
       _hasMoreAllVideos = newAll.length >= _perPage;
-      _hasMoreAssignedVideos = newAssigned.length >= _perPage;
+
+      // Try to fetch assigned videos separately - if it fails, continue without them
+      try {
+        final newAssigned = await _apiService.getAssignedVideos(
+          subjectId: _selectedSubjectId,
+          levelId: levelId,
+          chapterId: _selectedChapterId,
+        );
+
+        // Mark assigned videos and add them
+        final assignedVideosWithFlag = newAssigned.map((v) {
+          v.teacherAssigned = true;
+          return v;
+        }).toList();
+
+        _assignedVideos.addAll(assignedVideosWithFlag);
+        _hasMoreAssignedVideos = newAssigned.length >= _perPage;
+
+        debugPrint("✅ Successfully loaded ${newAssigned.length} assigned videos");
+
+      } catch (assignedError) {
+        // If assigned videos fail, log but continue
+        debugPrint("⚠️ Assigned videos failed, but continuing with regular videos: $assignedError");
+        // You could optionally show a subtle toast here if needed
+        // Fluttertoast.showToast(msg: "Assigned videos temporarily unavailable", toastLength: Toast.LENGTH_SHORT);
+      }
 
       _applyFilters();
+
+      // Cache videos
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_all_videos', jsonEncode(_allVideos.map((v) => v.toJson()).toList()));
+      await prefs.setString('cached_assigned_videos', jsonEncode(_assignedVideos.map((v) => v.toJson()).toList()));
+
+      debugPrint("✅ Successfully loaded ${newAll.length} regular videos");
+
     } catch (e) {
       _errorMessage = 'Failed to fetch videos: $e';
+      debugPrint('❌ Error in _fetchVideos: $e');
+
+      // Even if there's an error, try to load cached videos
+      await _loadCachedVideos();
     } finally {
       _isLoading = false;
       _isLoadingMore = false;
       notifyListeners();
     }
   }
-
   // ----------------- Search -----------------
   Future<void> _fetchSearchVideos({bool loadMore = false}) async {
     if (_isLoading && !loadMore) return;
@@ -241,7 +297,7 @@ class VisionProvider with ChangeNotifier {
     }
 
     try {
-      final authToken = await _getAuthToken();
+      final authToken = await StorageUtil.getString(StringHelper.token);
 
       final levelId = _selectedLevelId != null
           ? _allLevelsData.firstWhere(
@@ -263,93 +319,118 @@ class VisionProvider with ChangeNotifier {
       _allVideos.addAll(results);
       _hasMoreSearchVideos = results.length >= _perPage;
       _applyFilters();
-    } catch (_) {}
-    finally {
+
+      debugPrint("✅ Search found ${results.length} videos");
+
+    } catch (e) {
+      debugPrint('❌ Error in _fetchSearchVideos: $e');
+      // Even on search error, try to show cached results
+      _applyFilters();
+    } finally {
       _isLoading = false;
       _isLoadingMore = false;
       notifyListeners();
     }
   }
-
   // ----------------- Filters -----------------
+  void setBoardFilter(String? boardTitle) {
+    if (boardTitle == null || boardTitle.isEmpty) {
+      _selectedBoardId = null;
+      _selectedBoardTitle = null;
+    } else {
+      _selectedBoardTitle = boardTitle.trim();
+      final match = _boards.firstWhere(
+            (b) {
+          final name = (b['name'] ?? b['title'] ?? '').toString().trim();
+          return name.toLowerCase() == boardTitle.toLowerCase();
+        },
+        orElse: () => <String, dynamic>{},
+      );
+      _selectedBoardId = match['id']?.toString();
+    }
+
+    _selectedChapterId = null;
+
+    // Fetch chapters in background without blocking UI
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchChapters();
+    });
+  }
+
   void setSubjectFilter(String? subjectTitle) {
     if (subjectTitle == null || subjectTitle.isEmpty) {
       _selectedSubjectId = null;
       _selectedSubjectTitle = null;
-      _selectedChapterId = null;
-      _currentPage = 1;
-      _allVideos.clear();
-      _assignedVideos.clear();
-      _fetchVideos();
-      return;
+    } else {
+      _selectedSubjectTitle = subjectTitle.trim();
+      final normalizedSubject = subjectTitle.replaceAll(RegExp(r'\([^)]*\)'), '').trim().toLowerCase();
+      final match = _subjects.firstWhere(
+            (s) {
+          final name = (s['name'] ?? s['title'] ?? '').toString();
+          final normalizedName = name.replaceAll(RegExp(r'\([^)]*\)'), '').trim().toLowerCase();
+          return normalizedName == normalizedSubject;
+        },
+        orElse: () => <String, dynamic>{},
+      );
+      _selectedSubjectId = match['id']?.toString();
     }
 
-    _selectedSubjectTitle = subjectTitle.trim();
-
-    // Normalize subject names for matching (ignore case, parentheses, spaces)
-    final normalizedSubject = subjectTitle.replaceAll(RegExp(r'\([^)]*\)'), '').trim().toLowerCase();
-
-    final match = _subjects.firstWhere(
-          (s) {
-        final name = (s['name'] ?? s['title'] ?? '').toString();
-        final normalizedName = name.replaceAll(RegExp(r'\([^)]*\)'), '').trim().toLowerCase();
-        return normalizedName == normalizedSubject;
-      },
-      orElse: () => <String, dynamic>{}, // empty map if no match
-    );
-
-    _selectedSubjectId = match['id']?.toString();
-
-    debugPrint('Selected Subject: $_selectedSubjectTitle, ID: $_selectedSubjectId');
-
-    // Reset dependent filters
     _selectedChapterId = null;
     _currentPage = 1;
-    _allVideos.clear();
-    _assignedVideos.clear();
 
-    fetchChapters(); // refresh chapters based on subject
-    _fetchVideos();
+    // Fetch in background
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchChapters();
+      _fetchVideos();
+    });
   }
 
   void setLevelFilter(String? levelTitle) {
-    _selectedLevelId = levelTitle; // store title for dropdown
+    _selectedLevelId = levelTitle;
     _currentPage = 1;
-    _fetchVideos();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchVideos();
+    });
   }
 
   void setChapterFilter(String? chapterId) {
     _selectedChapterId = chapterId;
     _currentPage = 1;
-    _fetchVideos();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchVideos();
+    });
   }
 
   void setSearchQuery(String query) {
     _searchQuery = query.trim();
-    if (_searchQuery.isEmpty) {
-      _fetchVideos();
-    } else {
-      _fetchSearchVideos();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_searchQuery.isEmpty) {
+        _fetchVideos();
+      } else {
+        _fetchSearchVideos();
+      }
+    });
   }
 
   void clearFilters() {
     _searchQuery = '';
     _selectedSubjectId = null;
-    _selectedChapterId = null; // ← important
+    _selectedSubjectTitle = null;
+    _selectedBoardId = null;
+    _selectedBoardTitle = null;
+    _selectedChapterId = null;
+    _selectedLevelId = null;
     _currentPage = 1;
     _hasMoreAllVideos = true;
     _hasMoreAssignedVideos = true;
-    _allVideos.clear();
-    _assignedVideos.clear();
-    _fetchVideos();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchVideos();
+    });
   }
 
   // ----------------- Apply Filters -----------------
   void _applyFilters() {
-    debugPrint('--- Applying filters ---');
-    debugPrint('SubjectID: $_selectedSubjectId, LevelID: $_selectedLevelId, ChapterID: $_selectedChapterId, Search: $_searchQuery');
-
     filteredNonAssignedVideos = _allVideos.where((video) {
       final videoSubjectId = video.subjectInfo?.id?.toString() ?? '';
       final videoLevelId = video.level.toString() ?? '';
@@ -362,10 +443,7 @@ class VisionProvider with ChangeNotifier {
       final matchesChapter = _selectedChapterId == null || _selectedChapterId!.isEmpty || videoChapterIds.contains(_selectedChapterId);
       final matchesSearch = _searchQuery.isEmpty || videoTitle.contains(_searchQuery.toLowerCase()) || videoDescription.contains(_searchQuery.toLowerCase());
 
-      final include = !video.teacherAssigned && matchesSubject && matchesLevel && matchesChapter && matchesSearch;
-
-      debugPrint('Video: ${video.title} | SubjectID: $videoSubjectId, LevelID: $videoLevelId, Chapters: $videoChapterIds | Include: $include');
-      return include;
+      return !video.teacherAssigned && matchesSubject && matchesLevel && matchesChapter && matchesSearch;
     }).toList();
 
     filteredAssignedVideos = _assignedVideos.where((video) {
@@ -380,13 +458,9 @@ class VisionProvider with ChangeNotifier {
       final matchesChapter = _selectedChapterId == null || _selectedChapterId!.isEmpty || videoChapterIds.contains(_selectedChapterId);
       final matchesSearch = _searchQuery.isEmpty || videoTitle.contains(_searchQuery.toLowerCase()) || videoDescription.contains(_searchQuery.toLowerCase());
 
-      final include = video.teacherAssigned && matchesSubject && matchesLevel && matchesChapter && matchesSearch;
-
-      debugPrint('Assigned Video: ${video.title} | SubjectID: $videoSubjectId, LevelID: $videoLevelId, Chapters: $videoChapterIds | Include: $include');
-      return include;
+      return video.teacherAssigned && matchesSubject && matchesLevel && matchesChapter && matchesSearch;
     }).toList();
 
-    debugPrint('Filtered videos count: nonAssigned=${filteredNonAssignedVideos.length}, assigned=${filteredAssignedVideos.length}');
     notifyListeners();
   }
 
@@ -401,10 +475,93 @@ class VisionProvider with ChangeNotifier {
       return null;
     }
   }
+// Add this to TeacherVisionProvider class
+  Future<TeacherVisionVideo?> getTeacherVisionVideoDirectly(String visionId) async {
+    try {
+      debugPrint('🎯 === DEEP LINK: Fetching teacher vision video directly ===');
+      debugPrint('📱 Vision ID from deep link: "$visionId"');
+
+      // First, check if we already have the video in our cached lists
+      final cachedVideo = getVideoById(visionId);
+      if (cachedVideo != null) {
+        debugPrint('✅ SUCCESS: Video found in cache: "${cachedVideo.title}"');
+        return cachedVideo;
+      }
+
+      debugPrint('🔄 Video not in cache, fetching directly from API...');
+
+      // Fetch video directly from API (same pattern as student provider)
+      final video = await _apiService.getVisionVideoById(visionId);
+
+      if (video != null) {
+        debugPrint('✅ SUCCESS: Video fetched from API: "${video.title}"');
+
+        // Add to current videos list if not already present (same as student provider)
+        if (!_allVideos.any((v) => v.id == video.id)) {
+          _allVideos.add(video);
+          _applyFilters();
+
+          // Update cache for future use
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(
+              'cached_all_videos',
+              jsonEncode(_allVideos.map((v) => v.toJson()).toList())
+          );
+
+          debugPrint('💾 Video added to cache for future use');
+        }
+
+        return video;
+      } else {
+        debugPrint('❌ FAILED: Video not found with ID: "$visionId"');
+
+        // Fallback: Try to search through existing videos
+        debugPrint('🔄 Trying fallback: searching through existing videos...');
+        return await _findVideoWithFallback(visionId);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('💥 ERROR in getTeacherVisionVideoDirectly: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return null;
+    }
+  }
+
+// Enhanced fallback method
+  Future<TeacherVisionVideo?> _findVideoWithFallback(String visionId) async {
+    try {
+      // Clear filters and fetch fresh data
+      _searchQuery = '';
+      _selectedSubjectId = null;
+      _selectedSubjectTitle = null;
+      _selectedLevelId = null;
+      _selectedChapterId = null;
+      _selectedBoardId = null;
+      _selectedBoardTitle = null;
+      _currentPage = 1;
+
+      debugPrint('🔄 Fetching fresh videos without filters...');
+      await _fetchVideos();
+
+      // Check again after fresh fetch
+      final freshVideo = getVideoById(visionId);
+      if (freshVideo != null) {
+        debugPrint('✅ SUCCESS: Video found after fresh fetch: "${freshVideo.title}"');
+        return freshVideo;
+      }
+
+      debugPrint('❌ Video still not found after fallback');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Fallback method failed: $e');
+      return null;
+    }
+  }
 
   Future<void> loadMoreVideos() async =>
       _searchQuery.isEmpty ? _fetchVideos(loadMore: true) : _fetchSearchVideos(loadMore: true);
+
   Future<void> refreshVideos() async => _fetchVideos();
+
   // ----------------- Assignment -----------------
   Future<bool> assignVideoToStudents(String videoId, List<String> studentIds, {String? dueDate}) async {
     try {

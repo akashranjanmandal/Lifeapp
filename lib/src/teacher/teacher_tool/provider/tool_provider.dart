@@ -118,22 +118,47 @@ class ToolProvider extends ChangeNotifier {
   }
 
   Future<bool> assignTopic(BuildContext context, Map<String, dynamic> data) async {
-    Loader.show(
-      context,
-      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor),
-      overlayColor: Colors.black54,
-    );
+    // 🟢 Log the payload before sending
+    print("📤 [AssignTopic] Sending payload: $data");
 
-    Response response = await ToolServices().assignTopic(data);
+    try {
+      Loader.show(
+        context,
+        progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor),
+        overlayColor: Colors.black54,
+      );
 
-    Loader.hide();
+      // 🟣 API call
+      final response = await ToolServices().assignTopic(data);
 
-    if (response.statusCode == 200) {
-      Fluttertoast.showToast(msg: "Submitted");
-      return true;
+      // 🟡 Log the raw response
+      print("📥 [AssignTopic] Response received: ${response.data}");
+      print("🔢 [AssignTopic] Status code: ${response.statusCode}");
+
+      Loader.hide();
+
+      // ✅ Success
+      if (response.statusCode == 200) {
+        Fluttertoast.showToast(msg: "Submitted Successfully ✅");
+        print("✅ [AssignTopic] Success! Topic assigned successfully.");
+        return true;
+      } else {
+        // ❌ Server returned error
+        print("❌ [AssignTopic] Failed with status: ${response.statusCode}");
+        print("❌ [AssignTopic] Message: ${response.data}");
+        Fluttertoast.showToast(msg: "Failed: ${response.data?['message'] ?? 'Unknown error'}");
+        return false;
+      }
+    } catch (e, stack) {
+      // 🔴 Log any exceptions
+      Loader.hide();
+      print("🧨 [AssignTopic] Exception occurred: $e");
+      print("📜 [AssignTopic] Stack trace: $stack");
+      Fluttertoast.showToast(msg: "Error occurred: $e");
+      return false;
     }
-    return false;
   }
+
 
   void getTeacherGrade() async {
     Response response = await ToolServices().getTeacherGrade();

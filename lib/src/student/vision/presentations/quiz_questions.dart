@@ -1277,9 +1277,9 @@ import '../providers/vision_provider.dart';
       return compressedFile;
     }
 
-    Future<void> _pickImageFromSource(ImageSource source) async {
+    Future<void> _pickImageFromCamera() async {
       try {
-        final XFile? pickedImage = await _picker.pickImage(source: source);
+        final XFile? pickedImage = await _picker.pickImage(source: ImageSource.camera);
 
         if (pickedImage != null && mounted) {
           final File originalFile = File(pickedImage.path);
@@ -1302,68 +1302,25 @@ import '../providers/vision_provider.dart';
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to pick image: $e')),
+            SnackBar(content: Text('Failed to take photo: $e')),
           );
         }
       }
     }
 
-    Route createFadeRoute(Widget page) {
-      return PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => page,
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 500),
-      );
-    }
-
-    Future<void> _pickImage() async {
-      showModalBottomSheet(
-        context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        builder: (BuildContext context) {
-          return SafeArea(
-            child: Wrap(
-              children: <Widget>[
-                ListTile(
-                  leading: const Icon(Icons.camera_alt),
-                  title: const Text('Take a Photo'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await _pickImageFromSource(ImageSource.camera);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Choose from Gallery'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await _pickImageFromSource(ImageSource.gallery);
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    }
     @override
     void initState() {
       super.initState();
-      _answers1 = List<Map<String, dynamic>>.from(widget.answers); // <-- clone it
+      _answers1 = List<Map<String, dynamic>>.from(widget.answers);
       earnedCoins = widget.earnedCoins;
     }
+
     @override
     void dispose() {
       _descriptionController.dispose();
       super.dispose();
     }
+
     @override
     Widget build(BuildContext context) {
       final visionProvider = Provider.of<VisionProvider>(context);
@@ -1374,6 +1331,7 @@ import '../providers/vision_provider.dart';
           body: Center(child: Text('No image question found.')),
         );
       }
+
       return Scaffold(
         body: QuizBackground(
           child: SafeArea(
@@ -1401,16 +1359,18 @@ import '../providers/vision_provider.dart';
 
                           const SizedBox(height: 30),
 
+                          // Upload/Take Photo Button
                           ElevatedButton(
-                            onPressed: _pickImage,
+                            onPressed: _pickImageFromCamera,
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size(double.infinity, 50),
                             ),
-                            child: const Text('Upload Image or Take a Photo'),
+                            child: const Text('Take a Photo'),
                           ),
 
                           const SizedBox(height: 20),
 
+                          // Display selected image
                           if (_imageFile != null)
                             Column(
                               children: [
@@ -1424,6 +1384,7 @@ import '../providers/vision_provider.dart';
                               ],
                             ),
 
+                          // Description text field
                           TextField(
                             controller: _descriptionController,
                             maxLines: null,
@@ -1448,7 +1409,6 @@ import '../providers/vision_provider.dart';
                             ),
                           ),
 
-
                           const SizedBox(height: 20),
                           // Extra space to account for the fixed button
                           const SizedBox(height: 60),
@@ -1464,16 +1424,15 @@ import '../providers/vision_provider.dart';
                       onPressed: () => _submitAnswer(context, visionProvider),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
-                        backgroundColor: Colors.blue, // Button background color
-                        foregroundColor: Colors.white, // Text color
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8), // Optional: rounded corners
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       child: const Text('Submit'),
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -1492,7 +1451,6 @@ import '../providers/vision_provider.dart';
                   .getVideoById(widget.visionId);
 
               if (vision == null) {
-                // Fallback if vision not found
                 debugPrint('⚠️ Vision not found for ID ${widget.visionId}');
                 return;
               }
@@ -1500,11 +1458,9 @@ import '../providers/vision_provider.dart';
               final status = vision.status.toLowerCase();
 
               if (status == 'submitted' || status == 'completed') {
-                // 🚀 Skip the dialog and go directly to home
-                Navigator.pop(context); // close current screen
+                Navigator.pop(context);
                 Navigator.pop(context);
               } else {
-                // 🔁 Show the skip confirmation dialog
                 _showSkipWarning(context);
               }
             },
@@ -1518,7 +1474,6 @@ import '../providers/vision_provider.dart';
 
           OutlinedButton.icon(
             onPressed: () {
-              // Track rewatch action
               MixpanelService.track("Vision Rewatch", properties: {
                 "vision_id": widget.visionId,
                 "timestamp": DateTime.now().toIso8601String(),
@@ -1533,8 +1488,8 @@ import '../providers/vision_provider.dart';
         ],
       );
     }
-    void showLoadingDialog(BuildContext context, {String message = 'Submitting '
-        'answers...'}) {
+
+    void showLoadingDialog(BuildContext context, {String message = 'Submitting answers...'}) {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1559,14 +1514,14 @@ import '../providers/vision_provider.dart';
       );
     }
 
-    Future<void> _submitAnswer(
-        BuildContext context, VisionProvider visionProvider) async {
+    Future<void> _submitAnswer(BuildContext context, VisionProvider visionProvider) async {
       if (_imageFile == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please upload an image')),
+          const SnackBar(content: Text('Please take a photo first')),
         );
         return;
       }
+
       // Track image submission
       MixpanelService.track("Image Answer Submitted", properties: {
         "vision_id": widget.visionId,
@@ -1574,30 +1529,37 @@ import '../providers/vision_provider.dart';
         "description_length": _descriptionController.text.length,
         "timestamp": DateTime.now().toString(),
       });
+
       // Use actual description if entered, or fallback text
       final description = _descriptionController.text.trim().isNotEmpty
           ? _descriptionController.text.trim()
-          : 'No Description Submitted';  // ✅ fallback
+          : 'No Description Submitted';
+
       _answers1.add({
         'id': visionProvider.currentQuestions?['image_question']?['id'].toString(),
         'answer': description,
         'image_path': _imageFile!.path,
         'type': 'image',
       });
+
       debugPrint('✅ Final submitted answers: $_answers1');
       await _submitQuiz(context, visionProvider);
     }
+
     bool _isSubmitting = false;
+
     Future<void> _submitQuiz(BuildContext context, VisionProvider visionProvider) async {
       if (_isSubmitting) return;
       _isSubmitting = true;
+
       try {
-        // Show loading dialog
         showLoadingDialog(context);
         final result = await visionProvider.submitAnswersAndGetResult(widget.visionId, _answers1);
-        // Hide loading dialog
+
         Navigator.of(context).pop();
+
         if (!mounted) return;
+
         if (result != null && result['submission_successful'] == false) {
           final errorMessage = result['error']?.toString() ?? 'Submission failed';
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1606,11 +1568,9 @@ import '../providers/vision_provider.dart';
           _isSubmitting = false;
           return;
         }
-        // Show success dialog here (use your fancy dialog)
-        await showSubmissionSuccessDialog(context, visionProvider);
 
+        await showSubmissionSuccessDialog(context, visionProvider);
       } catch (e) {
-        // Hide loading dialog if error occurs
         Navigator.of(context).pop();
 
         if (mounted) {
@@ -1623,7 +1583,6 @@ import '../providers/vision_provider.dart';
       }
     }
 
-    // Show dialog and navigate
     Future<void> showSubmissionSuccessDialog(BuildContext context, VisionProvider visionProvider) {
       return showDialog(
         context: context,
@@ -1665,8 +1624,7 @@ import '../providers/vision_provider.dart';
                     ],
                   ),
                   padding: const EdgeInsets.all(20),
-                  child:
-                  const Icon(Icons.check_circle_outline, size: 60, color: Colors.white),
+                  child: const Icon(Icons.check_circle_outline, size: 60, color: Colors.white),
                 ),
                 const SizedBox(height: 24),
                 const Text(
@@ -1708,7 +1666,7 @@ import '../providers/vision_provider.dart';
                     onPressed: () {
                       Navigator.pop(context);
                       visionProvider.clearQuizQuestions();
-                      Navigator.pop(context); // close current screen
+                      Navigator.pop(context);
                       Navigator.pop(context);
                     },
                     child: const Text(
@@ -1729,7 +1687,6 @@ import '../providers/vision_provider.dart';
       );
     }
 
-
     void _showSkipWarning(BuildContext context) {
       Navigator.push(
         context,
@@ -1740,12 +1697,10 @@ import '../providers/vision_provider.dart';
             navName: widget.navName,
             subjectId: widget.subjectId,
           ),
-
         ),
       );
     }
   }
-
   class QuizCompletedScreen extends StatefulWidget {
     final String videoTitle;
     final String visionId;

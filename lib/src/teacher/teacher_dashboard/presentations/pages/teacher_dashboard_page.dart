@@ -21,6 +21,8 @@ import '../../../teacher_dashboard/presentations/widgets/teacher_drawer.dart';
 import '../../../teacher_dashboard/presentations/widgets/teacher_home_app_bar.dart';
 import '../../../teacher_tool/presentations/pages/teacher_class_page.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+// ADD THIS IMPORT
+import 'package:lifelab3/main.dart'; // Import main.dart to access deepLinkManager
 
 import '../../../Notifiction/models/models.dart'; // NotificationModel import
 
@@ -35,19 +37,20 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
   int _selectedIdx = 0;
   int _unreadNotificationCount = 0;
   Timer? _timer;
+  bool _hasProcessedDeepLinks = false; // ADD THIS
 
   Future<void> _loadUnreadNotifications() async {
     final token = StorageUtil.getString(StringHelper.token);
     try {
       final rawNotifications =
-          await NotificationService(token).fetchNotifications();
+      await NotificationService(token).fetchNotifications();
 
       // Cast the notifications list
       final notifications = rawNotifications.cast<NotificationModel>();
 
       // Filter unread notifications
       final unreadNotifications =
-          notifications.where((n) => n.isUnread).toList();
+      notifications.where((n) => n.isUnread).toList();
 
       // Debug prints
       debugPrint('Total notifications count: ${notifications.length}');
@@ -63,29 +66,52 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     }
   }
 
+  // ADD THIS METHOD: Process pending deep links after login
+  void _processPendingDeepLinks() {
+    if (_hasProcessedDeepLinks) return;
+
+    final pendingContentId = deepLinkManager.getPendingDeepLink();
+    if (pendingContentId != null && pendingContentId.isNotEmpty) {
+      debugPrint('🔄 Teacher Home: Processing pending deep link: $pendingContentId');
+
+      // Wait for the UI to settle
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (deepLinkManager.canUserAccessVideos()) {
+          debugPrint('✅ Teacher can access videos, opening deep link');
+          deepLinkManager.processPendingDeepLinkAfterLogin();
+          _hasProcessedDeepLinks = true;
+        } else {
+          debugPrint('❌ Teacher cannot access videos');
+        }
+      });
+    } else {
+      debugPrint('📭 Teacher Home: No pending deep links');
+    }
+  }
+
   List<Widget> get _tabs => [
-        const _DashboardBody(),
-        TeacherClassPage(
-          onBackToHome: () {
-            setState(() {
-              _selectedIdx = 0;
-            });
-          },
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ProductProvider(
-            ProductService(StorageUtil.getString('auth_token')),
-          )..loadProducts(),
-          child: const ProductList(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) =>
-              LeaderboardProvider(StorageUtil.getString('auth_token'))
-                ..loadTeacherLeaderboard(),
-          child: const TeacherLeaderboardScreen(),
-        ),
-        Container(), // Placeholder for NotificationPage, handled via Navigator
-      ];
+    const _DashboardBody(),
+    TeacherClassPage(
+      onBackToHome: () {
+        setState(() {
+          _selectedIdx = 0;
+        });
+      },
+    ),
+    ChangeNotifierProvider(
+      create: (_) => ProductProvider(
+        ProductService(StorageUtil.getString('auth_token')),
+      )..loadProducts(),
+      child: const ProductList(),
+    ),
+    ChangeNotifierProvider(
+      create: (_) =>
+      LeaderboardProvider(StorageUtil.getString('auth_token'))
+        ..loadTeacherLeaderboard(),
+      child: const TeacherLeaderboardScreen(),
+    ),
+    Container(), // Placeholder for NotificationPage, handled via Navigator
+  ];
 
   @override
   void initState() {
@@ -105,6 +131,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
       Provider.of<DashboardProvider>(context, listen: false)
           .checkSubscription();
       Provider.of<DashboardProvider>(context, listen: false).storeToken();
+
+      // ADD THIS: Process pending deep links when home page loads
+      _processPendingDeepLinks();
     });
   }
 
@@ -218,7 +247,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                 top: -6,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(12),
@@ -301,7 +330,7 @@ class _TeacherResources extends StatelessWidget {
               name: StringHelper.lifeLabDemoModelLesson,
               img: ImageHelper.demoModelIcon,
               isSubscribe:
-                  StorageUtil.getBool(StringHelper.isTeacherLifeLabDemo),
+              StorageUtil.getBool(StringHelper.isTeacherLifeLabDemo),
             ),
             const TeacherResourceWidget(
               name: StringHelper.conceptCartoons,

@@ -53,6 +53,7 @@ class _TeacherLevelListPageState extends State<TeacherLevelListPage> {
                 classId: widget.classId,
                 gradeId: widget.gradeId,
                 sectionId: widget.sectionId,
+                type: 1,
               ),
             );
           },

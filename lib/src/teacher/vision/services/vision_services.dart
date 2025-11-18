@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -19,6 +20,7 @@ class TeacherVisionAPIService {
   Future<String?> _getAuthToken() async {
     return StorageUtil.getString(StringHelper.token);
   }
+
   // Add this inside TeacherVisionAPIService
   Future<List<Map<String, dynamic>>> getChapters({
     required String gradeId,
@@ -84,6 +86,53 @@ class TeacherVisionAPIService {
     } catch (e, stack) {
       debugPrint('💥 Error fetching chapters: $e');
       debugPrint(stack.toString());
+      rethrow;
+    }
+  }
+  Future<List<Map<String, dynamic>>> getBoards() async {
+    try {
+      final token = await _getAuthToken();
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final uri = Uri.parse('$baseUrl/boards');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: _REQUEST_TIMEOUT), onTimeout: () {
+        throw TimeoutException('Request timed out');
+      });
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        debugPrint('Boards API response: $responseData');
+
+        if (responseData['status'] == 200 && responseData['data'] != null) {
+          final dynamic data = responseData['data'];
+          if (data is Map<String, dynamic> && data['boards'] != null) {
+            try {
+              final boards = List<Map<String, dynamic>>.from(data['boards']);
+              debugPrint('✅ Successfully parsed ${boards.length} boards');
+              return boards;
+            } catch (e) {
+              debugPrint('❌ Error parsing boards: $e');
+              throw Exception('Failed to parse boards data');
+            }
+          } else if (data is List) {
+            final boards = List<Map<String, dynamic>>.from(data);
+            debugPrint('✅ Successfully parsed ${boards.length} boards from list');
+            return boards;
+          }
+        }
+        throw Exception('Invalid API response status or data');
+      }
+      throw Exception('HTTP ${response.statusCode}: ${response.reasonPhrase}');
+    } catch (e) {
+      debugPrint('❌ Error fetching boards: $e');
       rethrow;
     }
   }
@@ -209,6 +258,86 @@ class TeacherVisionAPIService {
       page: page,
       perPage: perPage,
     );
+  }
+
+  // Add this to TeacherVisionAPIService class
+  Future<TeacherVisionVideo?> getVisionVideoById(String visionId) async {
+    try {
+      final token = await _getAuthToken();
+      if (token == null || token.isEmpty) {
+        debugPrint('❌ No auth token available');
+        return null;
+      }
+
+      debugPrint('🔄 Fetching teacher vision video by ID: $visionId');
+
+      // Try multiple possible endpoints
+      final endpoints = [
+        '$baseUrl/teachers/vision/$visionId',
+        '$baseUrl/vision/$visionId',
+        '$baseUrl/teachers/visions/$visionId',
+      ];
+
+      for (final endpoint in endpoints) {
+        try {
+          final uri = Uri.parse(endpoint);
+          debugPrint('🔗 Trying endpoint: $endpoint');
+
+          final response = await http.get(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          ).timeout(
+            const Duration(seconds: _REQUEST_TIMEOUT),
+            onTimeout: () => throw TimeoutException('Request timed out'),
+          );
+
+          debugPrint('📥 API response status: ${response.statusCode} for endpoint: $endpoint');
+
+          if (response.statusCode == 200) {
+            final Map<String, dynamic> responseData = json.decode(response.body);
+            debugPrint('📊 Response data keys: ${responseData.keys.toList()}');
+
+            // Handle different response formats
+            dynamic videoData;
+
+            if (responseData['data'] != null) {
+              videoData = responseData['data'];
+            } else if (responseData['vision'] != null) {
+              videoData = responseData['vision'];
+            } else if (responseData['video'] != null) {
+              videoData = responseData['video'];
+            } else {
+              videoData = responseData;
+            }
+
+            if (videoData != null) {
+              final video = TeacherVisionVideo.fromJson(
+                  videoData is Map<String, dynamic> ? videoData : {'id': visionId}
+              );
+              debugPrint('✅ SUCCESS: Video found via endpoint $endpoint: ${video.title}');
+              return video;
+            }
+          } else if (response.statusCode == 404) {
+            debugPrint('❌ Video not found (404) at endpoint: $endpoint');
+            continue; // Try next endpoint
+          }
+        } catch (e) {
+          debugPrint('⚠️ Endpoint $endpoint failed: $e');
+          continue; // Try next endpoint
+        }
+      }
+
+      debugPrint('❌ All endpoints failed for video ID: $visionId');
+      return null;
+
+    } catch (e, stackTrace) {
+      debugPrint('💥 Error in getVisionVideoById: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return null;
+    }
   }
 // Add this to TeacherVisionAPIService
   Future<List<Map<String, dynamic>>> getAllLevels() async {

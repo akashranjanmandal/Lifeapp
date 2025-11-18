@@ -307,12 +307,11 @@ class _ClassStudentPageState extends State<ClassStudentPage> {
                       success = await provider.assignMission(context, data);
                     } else {
                       data = {
-                        "la_topic_id": widget.missionId,
+                        "la_mission_id": widget.missionId,
                         "user_ids": studentIdList,
                         "due_date": provider.dateController.text,
-                        "type": widget.type,
                       };
-                      success = await provider.assignTopic(context, data);
+                      success = await provider.assignMission(context, data);
                     }
 
                     if (success) {

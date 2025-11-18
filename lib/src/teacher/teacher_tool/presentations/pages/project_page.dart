@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lifelab3/src/common/widgets/common_appbar.dart';
-import 'package:lifelab3/src/common/widgets/common_navigator.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/presentations/pages/tool_mission_page.dart';
-import 'package:lifelab3/src/teacher/teacher_tool/presentations/pages/tool_subject_page.dart';
 import 'package:lifelab3/src/teacher/teacher_tool/provider/tool_provider.dart';
 import 'package:lifelab3/src/teacher/vision/presentations/vision_list.dart';
 import 'package:lifelab3/src/teacher/vision/providers/vision_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
+import 'package:shimmer/shimmer.dart';
 
 class TeacherProjectPage extends StatefulWidget {
   final String name;
@@ -35,7 +34,6 @@ class _TeacherProjectPageState extends State<TeacherProjectPage> {
     super.initState();
     _startTime = DateTime.now();
 
-    // Track screen view when page is opened
     MixpanelService.track("ProjectScreen_View", properties: {
       "project_name": widget.name,
       "section_id": widget.sectionId,
@@ -48,7 +46,6 @@ class _TeacherProjectPageState extends State<TeacherProjectPage> {
   void dispose() {
     final duration = DateTime.now().difference(_startTime).inSeconds;
 
-    // Track the total time spent on this screen
     MixpanelService.track("ProjectScreen_ActivityTime", properties: {
       "duration_seconds": duration,
       "project_name": widget.name,
@@ -60,15 +57,114 @@ class _TeacherProjectPageState extends State<TeacherProjectPage> {
   }
 
   Future<bool> _onWillPop() async {
-    // Track when back icon is clicked or system back pressed
     MixpanelService.track("ProjectScreen_BackIconClicked", properties: {
       "project_name": widget.name,
       "section_id": widget.sectionId,
       "grade_id": widget.gradeId,
       "class_id": widget.classId,
     });
+    return true;
+  }
 
-    return true; // allow navigation to pop
+  void _showPremiumInfo() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.deepPurple),
+            SizedBox(width: 8),
+            Text("Info"),
+          ],
+        ),
+        content: const Text(
+            "This is a premium feature for Life Lab partner schools, now available for everyone",
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK", style: TextStyle(color: Colors.deepPurple)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProjectButton({
+    required String title,
+    required VoidCallback onPressed,
+    bool isPremium = false,
+    bool showInfo = false,
+  }) {
+    return Stack(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 80,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 3,
+              shadowColor: Colors.grey.withOpacity(0.5),
+            ),
+            onPressed: onPressed,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // Title text
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                // ✨ Crown icon for premium (with shimmer)
+                if (isPremium)
+                  Positioned(
+                    top: -15,
+                    right: MediaQuery.of(context).size.width * -0.24,
+                    child: Shimmer.fromColors(
+                      baseColor: Colors.amber,
+                      highlightColor: Colors.white,
+                      period: const Duration(seconds: 2),
+                      child: Image.asset(
+                        'assets/images/crown_icon_2.png',
+                        height: 26,
+                        width: 26,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+
+        // ℹ️ Info icon inside top-right of button
+        if (showInfo)
+          Positioned(
+            top: 6,
+            right: 6,
+            child: InkWell(
+              onTap: _showPremiumInfo,
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.info_outline, color: Colors.deepPurple),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -76,122 +172,105 @@ class _TeacherProjectPageState extends State<TeacherProjectPage> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        appBar: commonAppBar(context: context, name: widget.name,
-          // If your commonAppBar supports onBack callback, you can add here:
-          // onBack: () {
-          //  MixpanelService.track("ProjectScreen_BackIconClicked", ...);
-          //  Navigator.of(context).pop();
-          // },
-        ),
+        appBar: commonAppBar(context: context, name: widget.name),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.only(left: 15, right: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
           child: Column(
             children: [
-              // Vision Button with increased font size
-              SizedBox(
-                width: double.infinity,
-                height: 80,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 3,
-                    shadowColor: Colors.grey.withOpacity(0.5),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChangeNotifierProvider(
-                          create: (_) => VisionProvider(
-                            gradeId: widget.gradeId,
-                          ),
-                          child: VisionPage(
-                            navName: 'Vision',
-                            subjectName: 'Subject Name',
-                            sectionId: widget.sectionId,
-                            gradeId: widget.gradeId,
-                            classId: widget.classId,
-                          ),
+              // Vision
+              _buildProjectButton(
+                title: "Vision",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChangeNotifierProvider(
+                        create: (_) => TeacherVisionProvider(gradeId: widget.gradeId),
+                        child: VisionPage(
+                          navName: 'Vision',
+                          subjectName: 'Subject Name',
+                          sectionId: widget.sectionId,
+                          gradeId: widget.gradeId,
+                          classId: widget.classId,
                         ),
                       ),
-                    );
-                  },
-                  child: const Text(
-                    "Vision",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 24, // Increased font size
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Mission Button with increased font size
-              SizedBox(
-                width: double.infinity,
-                height: 80,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 3,
-                    shadowColor: Colors.grey.withOpacity(0.5),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChangeNotifierProvider(
-                          create: (_) => ToolProvider(),
-                          child: ToolMissionPage(
-                            projectName: widget.name,
-                            sectionId: widget.sectionId,
-                            gradeId: widget.gradeId,
-                            classId: widget.classId,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    "Mission",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 24, // Increased font size
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Uncomment and add Mixpanel tracking on other buttons if you enable them
-              /*
-              const SizedBox(height: 20),
-              CustomButton(
-                name: "Quiz",
-                height: 50,
-                color: Colors.white,
-                textColor: Colors.black,
-                isShadow: true,
-                onTap: () {
-                  push(
-                    context: context,
-                    page: ToolSubjectListPage(
-                      projectName: "Quiz",
-                      classId: widget.classId,
                     ),
                   );
                 },
               ),
-              */
+              const SizedBox(height: 20),
+
+              // Mission
+              _buildProjectButton(
+                title: "Mission",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChangeNotifierProvider(
+                        create: (_) => ToolProvider(),
+                        child: ToolMissionPage(
+                          projectName: widget.name,
+                          sectionId: widget.sectionId,
+                          gradeId: widget.gradeId,
+                          classId: widget.classId,
+                          type: 1,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Jigyasa (Premium)
+              _buildProjectButton(
+                title: "Jigyasa",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChangeNotifierProvider(
+                        create: (_) => ToolProvider(),
+                        child: ToolMissionPage(
+                          projectName: widget.name,
+                          sectionId: widget.sectionId,
+                          gradeId: widget.gradeId,
+                          classId: widget.classId,
+                          type: 5,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                isPremium: true,
+                showInfo: true,
+              ),
+              const SizedBox(height: 20),
+
+              // Pragya (Premium)
+              _buildProjectButton(
+                title: "Pragya",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChangeNotifierProvider(
+                        create: (_) => ToolProvider(),
+                        child: ToolMissionPage(
+                          projectName: widget.name,
+                          sectionId: widget.sectionId,
+                          gradeId: widget.gradeId,
+                          classId: widget.classId,
+                          type: 6,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                isPremium: true,
+                showInfo: true,
+              ),
             ],
           ),
         ),

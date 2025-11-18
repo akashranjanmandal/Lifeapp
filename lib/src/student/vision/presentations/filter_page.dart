@@ -6,7 +6,7 @@ class FilterPage extends StatefulWidget {
   final Map<String, bool> initialFilters;
 
   const FilterPage({
-    Key? key, 
+    Key? key,
     required this.onApplyFilters,
     required this.initialFilters,
   }) : super(key: key);
@@ -15,27 +15,24 @@ class FilterPage extends StatefulWidget {
   State<FilterPage> createState() => _FilterPageState();
 }
 
-
 class _FilterPageState extends State<FilterPage> {
   bool allFilter = false;
-  bool teachersAssignedFilter = false;
-  bool startFilter = false;
+  bool teacherAssignedFilter = false;
+  bool skippedFilter = false;
   bool pendingFilter = false;
   bool completedFilter = false;
   bool submittedFilter = false;
-  bool rejectedFilter = false;
 
   @override
   void initState() {
     super.initState();
     MixpanelService.track("Vision Filter Page Opened");
     allFilter = widget.initialFilters['all'] ?? false;
-    teachersAssignedFilter = widget.initialFilters['teachersAssigned'] ?? false;
-    startFilter = widget.initialFilters['skipped'] ?? false;
+    teacherAssignedFilter = widget.initialFilters['teacher_assigned'] ?? false;
+    skippedFilter = widget.initialFilters['skipped'] ?? false;
     pendingFilter = widget.initialFilters['pending'] ?? false;
     completedFilter = widget.initialFilters['completed'] ?? false;
-    submittedFilter = widget.initialFilters['submitted'] ?? false; // NEW
-    rejectedFilter = widget.initialFilters['rejected'] ?? false;   // NEW
+    submittedFilter = widget.initialFilters['submitted'] ?? false;
   }
 
   @override
@@ -51,10 +48,9 @@ class _FilterPageState extends State<FilterPage> {
             MixpanelService.track("Vision Filter Back Button Clicked");
             Navigator.of(context).pop();
           },
-
         ),
         title: const Text(
-          'Vision',
+          'Vision Filters',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
         ),
       ),
@@ -81,42 +77,49 @@ class _FilterPageState extends State<FilterPage> {
                 _buildFilterOption('All', allFilter, (value) {
                   setState(() {
                     allFilter = value;
+                    // If "All" is selected, deselect others
+                    if (value) {
+                      teacherAssignedFilter = false;
+                      skippedFilter = false;
+                      pendingFilter = false;
+                      completedFilter = false;
+                      submittedFilter = false;
+                    }
                   });
                 }),
                 const Divider(height: 1),
-                _buildFilterOption('Teachers Assigned', teachersAssignedFilter, (value) {
+                _buildFilterOption('Teacher Assigned', teacherAssignedFilter, (value) {
                   setState(() {
-                    teachersAssignedFilter = value;
+                    teacherAssignedFilter = value;
+                    if (value) allFilter = false;
                   });
                 }),
                 const Divider(height: 1),
-                _buildFilterOption('Skipped', startFilter, (value) {
+                _buildFilterOption('Skipped', skippedFilter, (value) {
                   setState(() {
-                    startFilter = value;
+                    skippedFilter = value;
+                    if (value) allFilter = false;
                   });
                 }),
                 const Divider(height: 1),
                 _buildFilterOption('Pending', pendingFilter, (value) {
                   setState(() {
                     pendingFilter = value;
+                    if (value) allFilter = false;
                   });
                 }),
                 const Divider(height: 1),
                 _buildFilterOption('Completed', completedFilter, (value) {
                   setState(() {
                     completedFilter = value;
+                    if (value) allFilter = false;
                   });
                 }),
                 const Divider(height: 1),
                 _buildFilterOption('Submitted', submittedFilter, (value) {
                   setState(() {
                     submittedFilter = value;
-                  });
-                }),
-                const Divider(height: 1),
-                _buildFilterOption('Rejected', rejectedFilter, (value) {
-                  setState(() {
-                    rejectedFilter = value;
+                    if (value) allFilter = false;
                   });
                 }),
               ],
@@ -159,7 +162,6 @@ class _FilterPageState extends State<FilterPage> {
               ],
             ),
           ),
-
         ],
       ),
     );
@@ -198,28 +200,27 @@ class _FilterPageState extends State<FilterPage> {
     MixpanelService.track("Vision Filter Reset Button Clicked");
     setState(() {
       allFilter = false;
-      teachersAssignedFilter = false;
-      startFilter = false;
+      teacherAssignedFilter = false;
+      skippedFilter = false;
       pendingFilter = false;
       completedFilter = false;
       submittedFilter = false;
-      rejectedFilter = false;
     });
   }
-
 
   void _applyFilters() {
     // Create a map of the current filter states
     final filters = {
       'all': allFilter,
-      'teachersAssigned': teachersAssignedFilter,
-      'skipped': startFilter,
+      'teacher_assigned': teacherAssignedFilter,
+      'skipped': skippedFilter,
       'pending': pendingFilter,
       'completed': completedFilter,
       'submitted': submittedFilter,
-      'rejected': rejectedFilter,
     };
+
     MixpanelService.track("Vision Filter Submit Button Clicked", properties: filters);
+
     // Pass filters back to parent
     widget.onApplyFilters(filters);
 

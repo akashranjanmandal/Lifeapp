@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lifelab3/src/common/helper/api_helper.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
@@ -16,7 +14,6 @@ import 'package:photo_view/photo_view.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-
 import '../../../../common/helper/color_code.dart';
 import '../../../../common/widgets/custom_button.dart';
 import '../../../../common/widgets/custom_text_field.dart';
@@ -55,7 +52,6 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
   void startTime() {
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       time++;
-      setState(() {});
       if (!mounted) timer.cancel();
     });
   }
@@ -85,18 +81,14 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
 
         final compressedFile = File(compressedXFile.path);
         final sizeInBytes = await compressedFile.length();
-
         debugPrint(
-            '🔹 Compression attempt quality=$quality → size=${(sizeInBytes / 1024).toStringAsFixed(2)} KB');
+            '🔹 Compression attempt quality=$quality → ${(sizeInBytes / 1024).toStringAsFixed(2)} KB');
 
-        if (sizeInBytes <= 500 * 1024) {
-          return compressedFile;
-        }
+        if (sizeInBytes <= 500 * 1024) return compressedFile;
 
         quality -= 10;
       }
 
-      // Return the last compressed file anyway (even if > 500 KB)
       return compressedXFile != null ? File(compressedXFile.path) : null;
     } catch (e) {
       debugPrint('⚠️ Compression error: $e');
@@ -104,47 +96,18 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
     }
   }
 
-  void _loadPicker(ImageSource source) async {
+  /// Only capture from camera — no gallery, no cropping.
+  void _captureImage() async {
     try {
-      final XFile? picked = await ImagePicker().pickImage(source: source, imageQuality: 100);
+      final XFile? picked =
+      await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
+
       if (picked == null) {
-        Fluttertoast.showToast(msg: "Please select image");
+        Fluttertoast.showToast(msg: "No image captured");
         return;
       }
 
-      final cropped = await ImageCropper().cropImage(
-        sourcePath: picked.path,
-        aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Crop Image',
-            toolbarColor: Colors.deepPurple,
-            toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.ratio16x9,
-            aspectRatioPresets: [
-              CropAspectRatioPreset.square,
-              CropAspectRatioPreset.ratio3x2,
-              CropAspectRatioPreset.original,
-              CropAspectRatioPreset.ratio4x3,
-              CropAspectRatioPreset.ratio16x9,
-            ],
-          ),
-          IOSUiSettings(
-            title: 'Crop Image',
-            aspectRatioPresets: [
-              CropAspectRatioPreset.square,
-              CropAspectRatioPreset.ratio3x2,
-              CropAspectRatioPreset.original,
-              CropAspectRatioPreset.ratio4x3,
-              CropAspectRatioPreset.ratio16x9,
-            ],
-          ),
-        ],
-      );
-
-      // Use cropped path if cropping done, else original picked path
-      final File fileToCompress = File(cropped?.path ?? picked.path);
-
+      final File fileToCompress = File(picked.path);
       final File? compressedFile = await _compressImage(fileToCompress);
 
       if (compressedFile == null) {
@@ -155,9 +118,11 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
       setState(() {
         imgUrl = compressedFile.path;
       });
+
+      MixpanelService.track("Camera Capture Successful");
     } catch (e) {
-      Fluttertoast.showToast(msg: "Failed to pick or compress image");
-      debugPrint('⚠️ _loadPicker error: $e');
+      Fluttertoast.showToast(msg: "Failed to capture image");
+      debugPrint('⚠️ _captureImage error: $e');
     }
   }
 
@@ -166,7 +131,7 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
     return WillPopScope(
       onWillPop: () async {
         timer.cancel();
-        _cancelPopup(widget.mission?.level?.missionPoints ?? 0);
+        _cancelPopup(widget.mission.level?.missionPoints ?? 0);
         return false;
       },
       child: Scaffold(
@@ -175,7 +140,7 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
           name: "Skip",
           onBack: () {
             timer.cancel();
-            _cancelPopup(widget.mission?.level?.missionPoints ?? 0);
+            _cancelPopup(widget.mission.level?.missionPoints ?? 0);
           },
           action: !isSubmitView
               ? const Padding(
@@ -215,7 +180,6 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
           isSubmitView = true;
         });
       }
-      debugPrint("Index $i");
     },
     itemCount: widget.mission.resources!.length + 1,
     itemBuilder: (context, index) => index < widget.mission.resources!.length
@@ -250,7 +214,7 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
           margin:
           const EdgeInsets.only(left: 15, right: 15, top: 20, bottom: 30),
           padding:
-          const EdgeInsets.only(left: 15, right: 15, top: 15, bottom: 15),
+          const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
           width: MediaQuery.of(context).size.width,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
@@ -267,21 +231,18 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              SizedBox(
-                width: MediaQuery.of(context).size.width * .5,
-                child: const Text(
-                  "Perform the activity to earn Coins!",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 25,
-                  ),
-                  softWrap: true,
+              const Text(
+                "Perform the activity to earn Coins!",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 25,
                 ),
+                softWrap: true,
               ),
               const SizedBox(height: 30),
               Text(
-                widget.mission.question!,
+                widget.mission.question ?? '',
                 style: const TextStyle(
                   color: Colors.black54,
                   fontSize: 15,
@@ -291,19 +252,18 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
               ),
               const SizedBox(height: 20),
               InkWell(
-                onTap: () {
-                  _cameraOption();
-                },
+                onTap: _captureImage,
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Container(
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(
-                          color: Colors.grey.shade400,
-                          width: 2,
-                        ),
-                        color: const Color(0xffadadad).withOpacity(.5)),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: Colors.grey.shade400,
+                        width: 2,
+                      ),
+                      color: const Color(0xffadadad).withOpacity(.5),
+                    ),
                     child: imgUrl == null
                         ? Center(
                       child: Column(
@@ -316,7 +276,7 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
                             width: 80,
                           ),
                           const Text(
-                            "tap to upload Picture",
+                            "Tap to capture Picture",
                             style: TextStyle(
                               color: ColorCode.buttonColor,
                               fontSize: 15,
@@ -353,7 +313,7 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
                   width: double.infinity,
                   onTap: () async {
                     if (imgUrl == null) {
-                      Fluttertoast.showToast(msg: "Please add picture");
+                      Fluttertoast.showToast(msg: "Please capture a photo");
                     } else {
                       timer.cancel();
                       Provider.of<MissionProvider>(context, listen: false)
@@ -384,191 +344,113 @@ class _SubmitMissionPageState extends State<SubmitMissionPage> {
     ),
   );
 
-  _cameraOption() => showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (context) => Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-        color: Colors.white,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Upload a photo",
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 30),
-          InkWell(
-            onTap: () {
-              Navigator.pop(context);
-              MixpanelService.track("Upload Picture Button Clicked");
-              _loadPicker(ImageSource.camera);
-            },
-            child: Row(
-              children: [
-                Image.asset(
-                  "assets/images/Camera.png",
-                  color: ColorCode.buttonColor,
-                  height: 35,
-                  width: 35,
-                ),
-                const SizedBox(width: 15),
-                const Text(
-                  "Take a photo",
-                  style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600),
-                )
-              ],
-            ),
-          ),
-          const SizedBox(height: 50),
-        ],
-      ),
-    ),
-  );
-
   _cancelPopup(int coins) => showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     useRootNavigator: true,
-    isScrollControlled: true, // allows modal to take more height if needed
+    isScrollControlled: true,
     builder: (ctx) => SingleChildScrollView(
       child: Container(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7, // max 70% of screen
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
         margin: const EdgeInsets.only(bottom: 20, top: 20),
         width: double.infinity,
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).size.height * 0.035,
-                  left: 20,
-                  right: 20,
-                  top: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                "Uh-oh!!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min, // important to avoid overflow
-                crossAxisAlignment: CrossAxisAlignment.center,
+              const SizedBox(height: 10),
+              const Text(
+                "You're about to lose",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black87, fontSize: 16),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "$coins coins",
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "Complete this challenge now to boost your balance and level up — your adventure awaits!",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54, fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              Row(
                 children: [
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Uh-oh!!",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "You're about to lose",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "$coins coins",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.orange,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Complete this challenge now to boost your balance and level up — your adventure awaits!",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.black54,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // "I'll Stay" button
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pop(ctx); // Close popup
-                          },
-                          child: Container(
-                            alignment: Alignment.center,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: const Text(
-                              "I'll Stay",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        height: 50,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: const Text(
+                          "I'll Stay",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
-                      const SizedBox(width: 15),
-                      // "Skip Anyway" button
-                      Expanded(
-                        child: InkWell(
-                          onTap: () async {
-                            Navigator.pop(ctx); // Close popup first
-
-                            bool skipped = await Provider.of<MissionProvider>(context, listen: false)
-                                .skipMission(context, widget.mission.id!);
-
-                            if (skipped) {
-                              // Pop this page and return true so the previous page can refresh
-                              Navigator.pop(context, true);
-                            }
-                          },
-                          child: Container(
-                            alignment: Alignment.center,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: const Text(
-                              "Skip Anyway",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        bool skipped =
+                        await Provider.of<MissionProvider>(context,
+                            listen: false)
+                            .skipMission(context, widget.mission.id!);
+                        if (skipped) Navigator.pop(context, true);
+                      },
+                      child: Container(
+                        height: 50,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: const Text(
+                          "Skip Anyway",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 20),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
