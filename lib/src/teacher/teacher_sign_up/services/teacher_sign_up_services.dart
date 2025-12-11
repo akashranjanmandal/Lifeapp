@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -179,6 +180,7 @@ Future subjects() async {
   }
 
   Future getStateList() async {
+
     try {
       Response response = await dio.get(
         ApiHelper.baseUrl + ApiHelper.getStateList,
@@ -211,35 +213,44 @@ Future subjects() async {
     }
   }
 
-  Future registerStudent(Map<String, dynamic> body) async {
+  Future<Response?> registerStudent(Map<String, dynamic> body) async {
     try {
+      debugPrint("🛑 FINAL REQUEST BODY JSON:");
+      debugPrint(jsonEncode(body));
+
       Response response = await dio.post(
         ApiHelper.baseUrl + ApiHelper.register,
-        data: FormData.fromMap(body),
+        data: jsonEncode(body),
         options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-          },
-          sendTimeout: const Duration(seconds: 3),
+          contentType: Headers.jsonContentType, // JSON ONLY
+          headers: { HttpHeaders.acceptHeader: "application/json" },
+          sendTimeout: const Duration(seconds: 10),
         ),
       );
 
-      debugPrint("Register Code: ${response.data}");
-
+      debugPrint("⬇ RAW API RESPONSE");
+      debugPrint(response.toString());
       return response;
+
     } on DioException catch (e) {
-      debugPrint("Register Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
       Loader.hide();
-    } on SocketException catch(e) {
+      debugPrint("❌ API ERROR RESPONSE:");
+      debugPrint(e.response.toString());
+      Fluttertoast.showToast(
+        msg: e.response?.data?["message"] ?? "Something went wrong",
+      );
+      return null;
+
+    } on SocketException catch (_) {
       Loader.hide();
-      debugPrint("Register Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
+
     } catch (e) {
       Loader.hide();
-      debugPrint("Register Catch Error: $e");
+      debugPrint("❌ REGISTER CATCH ERROR: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
 }

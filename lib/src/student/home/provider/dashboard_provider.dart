@@ -12,9 +12,7 @@ import 'package:lifelab3/src/utils/storage_utils.dart';
 import 'package:lifelab3/src/student/home/models/campaign_model.dart';
 import '../../../common/helper/color_code.dart';
 
-
 class DashboardProvider extends ChangeNotifier {
-
   DashboardModel? dashboardModel;
   SubjectModel? subjectModel;
   CoinsHistoryModel? coinsHistoryModel;
@@ -26,72 +24,135 @@ class DashboardProvider extends ChangeNotifier {
 
   // Fetch campaigns
   Future<void> getTodayCampaigns() async {
-    _campaigns = await DashboardServices().getTodayCampaigns();
-    notifyListeners();
-
-  }
-  Future<void> getDashboardData() async {
-    Response response = await DashboardServices().getDashboardData();
-
-    if(response.statusCode == 200) {
-      dashboardModel = DashboardModel.fromJson(response.data);
+    try {
+      _campaigns = await DashboardServices().getTodayCampaigns();
       notifyListeners();
+    } catch (e) {
+      debugPrint("Error fetching campaigns: $e");
+      _campaigns = [];
+      notifyListeners();
+    }
+  }
+
+  Future<void> getDashboardData() async {
+    try {
+      Response? response = await DashboardServices().getDashboardData();
+
+      if (response != null && response.statusCode == 200) {
+        dashboardModel = DashboardModel.fromJson(response.data);
+        notifyListeners();
+      } else {
+        debugPrint("Failed to load dashboard data: ${response?.statusCode}");
+        // Don't clear existing data, just fail silently or show error
+      }
+    } catch (e) {
+      debugPrint("Error in getDashboardData: $e");
     }
   }
 
   Future<void> storeToken() async {
-    await ToolServices().storeToken(); // no deviceToken parameter
+    try {
+      await ToolServices().storeToken();
+    } catch (e) {
+      debugPrint("Error storing token: $e");
+    }
   }
-  Future<void> getSubjectsData() async {
-    Response response = await DashboardServices().getSubjectData();
 
-    if(response.statusCode == 200) {
-      subjectModel = SubjectModel.fromJson(response.data);
-      notifyListeners();
+  Future<void> getSubjectsData() async {
+    try {
+      Response? response = await DashboardServices().getSubjectData();
+
+      if (response != null && response.statusCode == 200) {
+        subjectModel = SubjectModel.fromJson(response.data);
+        notifyListeners();
+      } else {
+        debugPrint("Failed to load subjects: ${response?.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("Error in getSubjectsData: $e");
     }
   }
 
   Future<void> getCoinHistoryData() async {
-    Response response = await DashboardServices().getCoinHistory();
+    try {
+      Response? response = await DashboardServices().getCoinHistory();
 
-    if(response.statusCode == 200) {
-      coinsHistoryModel = CoinsHistoryModel.fromJson(response.data);
-      notifyListeners();
+      if (response != null && response.statusCode == 200) {
+        coinsHistoryModel = CoinsHistoryModel.fromJson(response.data);
+        notifyListeners();
+      } else {
+        debugPrint("Failed to load coin history: ${response?.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("Error in getCoinHistoryData: $e");
     }
   }
 
   Future<void> subscribe(BuildContext context, String type) async {
+    if (subscribeCode == null || subscribeCode!.isEmpty) {
+      Fluttertoast.showToast(msg: "Please enter a subscription code");
+      return;
+    }
+
     Loader.show(
       context,
-      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
+      progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor),
       overlayColor: Colors.black54,
     );
 
-    Response response = await DashboardServices().subscribeCode(code: subscribeCode!, type: type);
+    try {
+      Response? response = await DashboardServices().subscribeCode(
+        code: subscribeCode!,
+        type: type,
+      );
 
-    Loader.hide();
+      Loader.hide();
 
-    if(response.statusCode == 200) {
-      Fluttertoast.showToast(msg: "Subscribed");
-      Navigator.pop(context);
-      getDashboardData();
-      checkSubscription();
-    } else {
+      if (response != null && response.statusCode == 200) {
+        Fluttertoast.showToast(msg: "Subscribed successfully");
+        Navigator.pop(context);
+        await getDashboardData();
+        await checkSubscription();
+      } else {
+        Fluttertoast.showToast(msg: response?.data?["message"] ?? "Please try again later");
+      }
+    } catch (e) {
+      Loader.hide();
+      debugPrint("Error in subscribe: $e");
       Fluttertoast.showToast(msg: "Please try again later");
     }
   }
 
   Future<void> checkSubscription() async {
-    Response response = await DashboardServices().checkSubscription();
+    try {
+      Response? response = await DashboardServices().checkSubscription();
 
-    if(response.statusCode == 200) {
-      StorageUtil.putBool(StringHelper.isJigyasa, response.data["data"]["JIGYASA"] == 1 ? true : false);
-      StorageUtil.putBool(StringHelper.isPragya, response.data["data"]["PRAGYA"] == 1 ? true : false);
-      StorageUtil.putBool(StringHelper.isTeacherLifeLabDemo, response.data["data"]["LIFE_LAB_DEMO_MODELS"] == 1 ? true : false);
-      StorageUtil.putBool(StringHelper.isTeacherJigyasa, response.data["data"]["JIGYASA_SELF_DIY_ACTVITES"] == 1 ? true : false);
-      StorageUtil.putBool(StringHelper.isTeacherPragya, response.data["data"]["PRAGYA_DIY_ACTIVITES_WITH_LIFE_LAB_KITS"] == 1 ? true : false);
-      StorageUtil.putBool(StringHelper.isTeacherLesson, response.data["data"]["LIFE_LAB_ACTIVITIES_LESSION_PLANS"] == 1 ? true : false);
+      if (response != null && response.statusCode == 200) {
+        final data = response.data["data"];
+        StorageUtil.putBool(StringHelper.isJigyasa, data["JIGYASA"] == 1);
+        StorageUtil.putBool(StringHelper.isPragya, data["PRAGYA"] == 1);
+        StorageUtil.putBool(StringHelper.isTeacherLifeLabDemo, data["LIFE_LAB_DEMO_MODELS"] == 1);
+        StorageUtil.putBool(StringHelper.isTeacherJigyasa, data["JIGYASA_SELF_DIY_ACTVITES"] == 1);
+        StorageUtil.putBool(StringHelper.isTeacherPragya, data["PRAGYA_DIY_ACTIVITES_WITH_LIFE_LAB_KITS"] == 1);
+        StorageUtil.putBool(StringHelper.isTeacherLesson, data["LIFE_LAB_ACTIVITIES_LESSION_PLANS"] == 1);
+
+        debugPrint("✅ Subscription status updated");
+      } else {
+        debugPrint("❌ Failed to check subscription: ${response?.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("Error in checkSubscription: $e");
     }
   }
 
+  // Add a method to verify token storage
+  void debugTokenStorage() {
+    final token = StorageUtil.getString(StringHelper.token);
+    final isLoggedIn = StorageUtil.getBool(StringHelper.isLoggedIn);
+
+    debugPrint('🔍 DASHBOARD PROVIDER TOKEN DEBUG:');
+    debugPrint('🔍 Token: ${token.isNotEmpty ? "PRESENT (${token.substring(0, 10)}...)" : "MISSING"}');
+    debugPrint('🔍 isLoggedIn: $isLoggedIn');
+    debugPrint('🔍 Token length: ${token.length}');
+  }
 }

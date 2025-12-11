@@ -12,13 +12,12 @@ import '../../../teacher/teacher_tool/services/tool_services.dart';
 import '../../../utils/storage_utils.dart';
 
 class MentorHomeProvider extends ChangeNotifier {
-
   MentorUpcomingSessionModel? upcomingSessionModel;
   MentorSessionDetailsModel? sessionDetailsModel;
   DashboardModel? dashboardModel;
 
   Future<void> storeToken() async {
-    await ToolServices().storeToken(); // no deviceToken parameter
+    await ToolServices().storeToken();
   }
 
   Future upcomingSession(BuildContext context) async {
@@ -28,12 +27,11 @@ class MentorHomeProvider extends ChangeNotifier {
     //   overlayColor: Colors.black54,
     // );
 
-
-    Response response = await MentorHomeService().upcomingSession();
+    Response? response = await MentorHomeService().upcomingSession(); // Change to Response?
 
     Loader.hide();
 
-    if(response.statusCode == 200) {
+    if (response != null && response.statusCode == 200) { // Add null check
       upcomingSessionModel = MentorUpcomingSessionModel.fromJson(response.data);
     } else {
       upcomingSessionModel = null;
@@ -42,9 +40,9 @@ class MentorHomeProvider extends ChangeNotifier {
   }
 
   Future<void> getDashboardData() async {
-    Response response = await DashboardServices().getDashboardData();
+    Response? response = await DashboardServices().getDashboardData(); // Change to Response?
 
-    if(response.statusCode == 200) {
+    if (response != null && response.statusCode == 200) { // Add null check
       dashboardModel = DashboardModel.fromJson(response.data);
       notifyListeners();
     }

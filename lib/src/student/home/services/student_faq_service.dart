@@ -1,6 +1,7 @@
 // student_faq_service.dart
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:lifelab3/src/common/helper/api_helper.dart'; // Add this import
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/student/home/models/student_faq_category_model.dart';
 import 'package:lifelab3/src/utils/storage_utils.dart';
@@ -23,7 +24,7 @@ class StudentFaqService {
       };
 
       final response = await dio.get(
-        "https://api.life-lab.org/v3/faqs",
+        ApiHelper.baseUrl + ApiHelper.faqs, // Use ApiHelper.baseUrl + ApiHelper.faqs
         queryParameters: queryParams,
         options: Options(
           contentType: "application/json",
@@ -52,7 +53,7 @@ class StudentFaqService {
     String audience = 'student',
   }) async {
     final raw =
-        await getStudentFaqsRaw(categoryId: categoryId, audience: audience);
+    await getStudentFaqsRaw(categoryId: categoryId, audience: audience);
 
     // include items for the student audience OR 'all'
     return raw

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:lifelab3/src/common/helper/api_helper.dart';
 import 'package:lifelab3/src/common/helper/color_code.dart';
 import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/mentor/code/provider/mentor_code_provider.dart';
@@ -139,7 +140,7 @@ class DeepLinkManager {
   Future<Map<String, dynamic>?> _fetchPendingRedirect(String token) async {
     try {
       final response = await http.get(
-        Uri.parse('https://api.life-lab.org/api/pending-redirect?token=$token'),
+        Uri.parse('${ApiHelper.baseUrl}${ApiHelper.pendingRedirect}?token=$token'), // Use ApiHelper.pendingRedirect
       );
 
       if (response.statusCode == 200) {
@@ -157,7 +158,6 @@ class DeepLinkManager {
       return null;
     }
   }
-
   Future<void> _processTokenRedirect(Map<String, dynamic> redirectData) async {
     final type = redirectData['type']?.toString();
     final id = redirectData['id']?.toString();
@@ -365,7 +365,6 @@ class DeepLinkManager {
       // TODO: Implement your API call to fetch mission data by ID
       // Example:
       // final response = await http.get(
-      //   Uri.parse('https://api.life-lab.org/api/missions/$missionId')
       // );
       // if (response.statusCode == 200) {
       //   final data = json.decode(response.body);

@@ -4,7 +4,7 @@ import 'package:lifelab3/src/common/helper/string_helper.dart';
 import 'package:lifelab3/src/common/widgets/custom_button.dart';
 import 'package:lifelab3/src/teacher/teacher_login/presentations/widgets/teacher_otp_widget.dart';
 import 'package:lifelab3/src/teacher/teacher_login/provider/teacher_login_provider.dart';
-
+import 'package:provider/provider.dart';
 
 void teacherEnterPinSheet2(BuildContext context, TeacherLoginProvider provider) => showModalBottomSheet(
   context: context,
@@ -14,7 +14,7 @@ void teacherEnterPinSheet2(BuildContext context, TeacherLoginProvider provider) 
     return Padding(
       padding: MediaQuery.of(context).viewInsets,
       child: Container(
-        height: 300,
+        height: 320, // Increased height for timer
         width: MediaQuery.of(context).size.width,
         padding: const EdgeInsets.only(top: 20, left: 15, right: 15),
         decoration: const BoxDecoration(
@@ -24,7 +24,6 @@ void teacherEnterPinSheet2(BuildContext context, TeacherLoginProvider provider) 
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             const Text(
               StringHelper.enterTheOtp,
               style: TextStyle(
@@ -47,17 +46,24 @@ void teacherEnterPinSheet2(BuildContext context, TeacherLoginProvider provider) 
                   ),
                 ),
 
-                TextButton(
-                  onPressed: () {
-                    // TODO
+                // Updated resend OTP button with timer
+                Consumer<TeacherLoginProvider>(
+                  builder: (context, provider, child) {
+                    return TextButton(
+                      onPressed: provider.canResendOtp
+                          ? () => provider.resendOtp(false)
+                          : null,
+                      child: Text(
+                        provider.canResendOtp
+                            ? StringHelper.resendOtp
+                            : "Resend OTP in ${provider.formattedTimer}",
+                        style: TextStyle(
+                          color: provider.canResendOtp ? Colors.blue : Colors.grey,
+                          fontSize: 15,
+                        ),
+                      ),
+                    );
                   },
-                  child: const Text(
-                    StringHelper.resendOtp,
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontSize: 15,
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -76,7 +82,7 @@ void teacherEnterPinSheet2(BuildContext context, TeacherLoginProvider provider) 
               },
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
           ],
         ),
       ),

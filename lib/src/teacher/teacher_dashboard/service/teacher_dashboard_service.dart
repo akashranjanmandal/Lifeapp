@@ -1,197 +1,198 @@
 import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
-import '../../../common/helper/api_helper.dart';
-import '../../../common/helper/string_helper.dart';
-import '../../../utils/storage_utils.dart';
+import 'package:lifelab3/src/common/helper/api_helper.dart';
+import 'package:lifelab3/src/common/helper/string_helper.dart';
+import 'package:lifelab3/src/utils/storage_utils.dart';
 
 class TeacherDashboardService {
-
   Dio dio = Dio();
 
-  Future getCompetencies(Map<String, dynamic> body) async {
+  // Add this method to get headers with API key
+  Future<Map<String, String>> _getHeaders() async {
+    final token = StorageUtil.getString(StringHelper.token);
+    return {
+      HttpHeaders.acceptHeader: "application/json",
+      HttpHeaders.contentTypeHeader: "application/json",
+      "x-api-key": "gasdgg_555gae1_a151ghrhtj_k548jt_fsc265461hjvb",
+      if (token.isNotEmpty) HttpHeaders.authorizationHeader: "Bearer $token",
+    };
+  }
+
+  Future<Response?> getCompetencies(Map<String, dynamic> body) async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.post(
         ApiHelper.baseUrl + ApiHelper.getCompetency,
         data: FormData.fromMap(body),
         options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
+          headers: headers,
           sendTimeout: const Duration(seconds: 3),
         ),
       );
 
       debugPrint("Competencies Code: ${response.statusCode}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("Competencies Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading competencies");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
       debugPrint("Competencies Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
       debugPrint("Competencies Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
 
-  Future getConceptCartoon(Map<String, dynamic> body) async {
+  Future<Response?> getConceptCartoon(Map<String, dynamic> body) async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.post(
         ApiHelper.baseUrl + ApiHelper.getConceptCartoon,
         data: FormData.fromMap(body),
         options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
+          headers: headers,
           sendTimeout: const Duration(seconds: 3),
         ),
       );
 
       debugPrint("Concept Cartoon Code: ${response.statusCode}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("Concept Cartoon Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading concept cartoons");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
       debugPrint("Concept Cartoon Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
       debugPrint("Concept Cartoon Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
 
-  Future getAssessment(Map<String, dynamic> body) async {
+  Future<Response?> getAssessment(Map<String, dynamic> body) async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.post(
         ApiHelper.baseUrl + ApiHelper.getAssessment,
         data: FormData.fromMap(body),
         options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
+          headers: headers,
           sendTimeout: const Duration(seconds: 3),
         ),
       );
 
       debugPrint("Get Assessment Code: ${response.statusCode}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("Get Assessment Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading assessments");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
       debugPrint("Get Assessment Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
       debugPrint("Get Assessment Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
 
-  Future getWorkSheet(Map<String, dynamic> body) async {
+  Future<Response?> getWorkSheet(Map<String, dynamic> body) async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.post(
         ApiHelper.baseUrl + ApiHelper.getWorksheet,
         data: FormData.fromMap(body),
-        options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        options: Options(headers: headers),
       );
 
       debugPrint("Get Worksheet Code: ${response.statusCode}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("Get Worksheet Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading worksheets");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
       debugPrint("Get Worksheet Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
       debugPrint("Get Worksheet Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
 
-  Future getConceptCartoonHeader() async {
+  Future<Response?> getConceptCartoonHeader() async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.get(
         ApiHelper.baseUrl + ApiHelper.getConceptCartoonHeader,
-        options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        options: Options(headers: headers),
       );
 
       debugPrint("Concept Cartoon Header Code: ${response.statusCode}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("Concept Cartoon Header Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading concept cartoon headers");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
       debugPrint("Concept Cartoon Header Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
       debugPrint("Concept Cartoon Header Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
-// In TeacherDashboardService class
+
   Future<Response?> getPblLanguages() async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.get(
         ApiHelper.baseUrl + ApiHelper.PblLanguage,
         options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
+          headers: headers,
           sendTimeout: const Duration(seconds: 3),
         ),
       );
 
       debugPrint("PBL Languages API Response: ${response.statusCode}");
       debugPrint("PBL Languages API Data: ${response.data}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("PBL Languages API Dio Error: ${e.response?.data}");
@@ -207,75 +208,72 @@ class TeacherDashboardService {
       return null;
     }
   }
-  Future getLessonLanguage() async {
+
+  Future<Response?> getLessonLanguage() async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.get(
         ApiHelper.baseUrl + ApiHelper.lessonLanguage,
-        options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        options: Options(headers: headers),
       );
 
       debugPrint("Lesson Language Code: ${response.statusCode}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("Lesson Language Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading lesson languages");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
       debugPrint("Lesson Language Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
       debugPrint("Lesson Language Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
-  Future getSubject() async {
+
+  Future<Response?> getSubject() async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.get(
         ApiHelper.baseUrl + ApiHelper.subjects,
-        options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        options: Options(headers: headers),
       );
 
       debugPrint("subjects Code: ${response.statusCode}");
-
       return response;
     } on DioException catch (e) {
-      debugPrint("Lesson Language Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      debugPrint("Subjects Dio Error ${e.response}");
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading subjects");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
-      debugPrint("Lesson Language Socket Error: $e");
+      debugPrint("Subjects Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
-      debugPrint("Lesson Language Catch Error: $e");
+      debugPrint("Subjects Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
+
   Future<Response?> getBoards() async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.get(
         ApiHelper.baseUrl + ApiHelper.getBoard,
-        options: Options(
-          headers: {
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        options: Options(headers: headers),
       );
 
       debugPrint("Boards API Response: ${response.statusCode}");
@@ -289,50 +287,46 @@ class TeacherDashboardService {
     }
   }
 
-  Future getGrades() async {
+  Future<Response?> getGrades() async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.get(
         ApiHelper.baseUrl + ApiHelper.teachersGrade,
-        options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        options: Options(headers: headers),
       );
 
-      debugPrint("subjects Code: ${response.statusCode}");
-
+      debugPrint("Grades Code: ${response.statusCode}");
       return response;
     } on DioException catch (e) {
-      debugPrint("Lesson Language Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      debugPrint("Grades Dio Error ${e.response}");
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading grades");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
-      debugPrint("Lesson Language Socket Error: $e");
+      debugPrint("Grades Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
-      debugPrint("Lesson Language Catch Error: $e");
+      debugPrint("Grades Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
-// Add this method to your TeacherDashboardService class
+
   Future<Response?> getTeacherSubjectGrade() async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.get(
-        "https://api.life-lab.org/v3/TeacherSubjectGrade/",
-        options: Options(
-          headers: {
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        ApiHelper.baseUrl + "/v3/TeacherSubjectGrade/", // Changed to use ApiHelper.baseUrl
+        options: Options(headers: headers),
       );
+
       debugPrint("TeacherSubjectGrade API Response: ${response.statusCode}");
       debugPrint("TeacherSubjectGrade API Response: ${response.data}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("TeacherSubjectGrade Error: ${e.response?.data}");
@@ -342,39 +336,41 @@ class TeacherDashboardService {
       return null;
     }
   }
-  Future submitPlan(Map<String, dynamic> body) async {
+
+  Future<Response?> submitPlan(Map<String, dynamic> body) async {
     try {
+      final headers = await _getHeaders();
+
       Response response = await dio.post(
         ApiHelper.baseUrl + ApiHelper.lessonPlan,
         data: body,
-        options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader: "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        options: Options(headers: headers),
       );
 
       debugPrint("Submit lesson plan Code: ${response.statusCode}");
-
       return response;
     } on DioException catch (e) {
       debugPrint("Submit lesson plan Dio Error ${e.response}");
-      Fluttertoast.showToast(msg: e.response!.data!["message"]);
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error submitting lesson plan");
       Loader.hide();
+      return e.response;
     } on SocketException catch(e) {
       Loader.hide();
       debugPrint("Submit lesson plan Socket Error: $e");
       Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
     } catch (e) {
       Loader.hide();
       debugPrint("Submit lesson plan Catch Error: $e");
       Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
     }
   }
+
   Future<Response?> postPblTextbookMappings(Map<String, dynamic> body) async {
     try {
+      final headers = await _getHeaders();
+
       // Remove la_board_id if null
       if (body['la_board_id'] == null) {
         body.remove('la_board_id');
@@ -384,21 +380,13 @@ class TeacherDashboardService {
       debugPrint("🔹 API Request Body: ${body.toString()}");
 
       Response response = await dio.post(
-        "https://api.life-lab.org/v3/pbl-textbook-mappings/",
+        ApiHelper.baseUrl + "/v3/pbl-textbook-mappings/", // Changed to use ApiHelper.baseUrl
         data: body,
-        options: Options(
-          contentType: "application/json",
-          headers: {
-            HttpHeaders.acceptHeader: "application/json",
-            HttpHeaders.authorizationHeader:
-            "Bearer ${StorageUtil.getString(StringHelper.token)}"
-          },
-        ),
+        options: Options(headers: headers),
       );
 
       // Debug: Print full response
       debugPrint("✅ API Response [${response.statusCode}]: ${response.data}");
-
       return response;
     } catch (e, stacktrace) {
       debugPrint("❌ PBL Textbook Mappings Error: $e");

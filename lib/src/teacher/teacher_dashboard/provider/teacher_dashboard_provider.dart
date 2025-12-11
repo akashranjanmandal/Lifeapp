@@ -173,8 +173,8 @@ class TeacherDashboardProvider extends ChangeNotifier {
   /// ----------------- BOARD MANAGEMENT -----------------
   Future<void> getBoard() async {
     try {
-      Response response = await TeacherSignUpServices().getBoard();
-      if (response.statusCode == 200) {
+      Response? response = await TeacherSignUpServices().getBoard(); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         boardModel = BoardModel.fromJson(response.data);
 
         // Set default board if not already set
@@ -185,6 +185,8 @@ class TeacherDashboardProvider extends ChangeNotifier {
 
         debugPrint("✅ Loaded ${boardModel?.data?.boards?.length ?? 0} boards");
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load boards: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint('❌ Error fetching board data: $e');
@@ -211,14 +213,13 @@ class TeacherDashboardProvider extends ChangeNotifier {
     try {
       final response = await TeacherDashboardService().getTeacherSubjectGrade();
       if (response != null && response.statusCode == 200) {
-        teacherSubjectGradeModel =
-            TeacherSubjectGradeModel.fromJson(response.data);
+        teacherSubjectGradeModel = TeacherSubjectGradeModel.fromJson(response.data);
 
         // Debug prints
         debugPrint("Total pairs: ${teacherSubjectGradeModel?.subjectGradePairs?.length ?? 0}");
         notifyListeners();
       } else {
-        debugPrint("Failed to fetch teacher subject-grade data");
+        debugPrint("Failed to fetch teacher subject-grade data: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("Error in getTeacherSubjectGrade: $e");
@@ -232,7 +233,6 @@ class TeacherDashboardProvider extends ChangeNotifier {
   }
 
   /// ----------------- PBL FUNCTIONS -----------------
-// Replace the existing getCombinedSubjectGradePairs method with this:
   List<TeacherSubjectGradePair> getCombinedSubjectGradePairs() {
     final List<TeacherSubjectGradePair> combinedPairs = [];
     final Set<String> uniqueKeys = {};
@@ -250,7 +250,9 @@ class TeacherDashboardProvider extends ChangeNotifier {
     }
 
     return combinedPairs;
-  }  List<TeacherSubjectGradePair> get combinedSubjectGradePairs => getCombinedSubjectGradePairs();
+  }
+
+  List<TeacherSubjectGradePair> get combinedSubjectGradePairs => getCombinedSubjectGradePairs();
 
   Future<void> getPblTextbookMappings({
     required int laSubjectId,
@@ -271,19 +273,15 @@ class TeacherDashboardProvider extends ChangeNotifier {
       if (response != null && response.statusCode == 200) {
         pblMappingResponse = PblTextbookMappingResponse.fromJson(response.data);
         debugPrint("✅ Loaded ${pdfMappings.length} PDF mappings for board: $board");
-        // REMOVE notifyListeners() from here - call it only once at the end
       } else {
         pblMappingResponse = null;
-        debugPrint("❌ No PDF mappings found for the selected criteria");
-        // REMOVE notifyListeners() from here
+        debugPrint("❌ No PDF mappings found for the selected criteria: ${response?.statusCode}");
       }
     } catch (e) {
       pblMappingResponse = null;
       debugPrint("❌ PBL Mapping Provider Error: $e");
-      // REMOVE notifyListeners() from here
     }
 
-    // CALL notifyListeners() ONLY ONCE at the end
     notifyListeners();
   }
 
@@ -298,8 +296,8 @@ class TeacherDashboardProvider extends ChangeNotifier {
   /// ----------------- DASHBOARD -----------------
   Future<void> getDashboardData() async {
     try {
-      Response response = await DashboardServices().getDashboardData();
-      if (response.statusCode == 200) {
+      Response? response = await DashboardServices().getDashboardData();
+      if (response != null && response.statusCode == 200) {
         dashboardModel = DashboardModel.fromJson(response.data);
 
         // Safely parse boardId from dashboard
@@ -313,19 +311,22 @@ class TeacherDashboardProvider extends ChangeNotifier {
 
         debugPrint("✅ Dashboard loaded - Board: $board, BoardID: $boardId");
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load dashboard: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading dashboard: $e");
     }
   }
 
-  // ... rest of your existing methods remain the same
   Future<void> getSubjectsData() async {
     try {
-      Response response = await TeacherDashboardService().getSubject();
-      if (response.statusCode == 200) {
+      Response? response = await TeacherDashboardService().getSubject(); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         subjectModel = SubjectModel.fromJson(response.data);
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load subjects: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading subjects: $e");
@@ -334,10 +335,12 @@ class TeacherDashboardProvider extends ChangeNotifier {
 
   void getLevel() async {
     try {
-      Response response = await LevelListService().getLevelData();
-      if (response.statusCode == 200) {
+      Response? response = await LevelListService().getLevelData(); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         levels = LevelModel.fromJson(response.data);
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load levels: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading levels: $e");
@@ -346,10 +349,12 @@ class TeacherDashboardProvider extends ChangeNotifier {
 
   void getCompetency({required Map<String, dynamic> body}) async {
     try {
-      Response response = await TeacherDashboardService().getCompetencies(body);
-      if (response.statusCode == 200) {
+      Response? response = await TeacherDashboardService().getCompetencies(body); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         competenciesModel = CompetenciesModel.fromJson(response.data);
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load competencies: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading competencies: $e");
@@ -358,10 +363,12 @@ class TeacherDashboardProvider extends ChangeNotifier {
 
   void getConceptCartoon({required Map<String, dynamic> body}) async {
     try {
-      Response response = await TeacherDashboardService().getConceptCartoon(body);
-      if (response.statusCode == 200) {
+      Response? response = await TeacherDashboardService().getConceptCartoon(body); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         cartoonModel = ConceptCartoonModel.fromJson(response.data);
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load concept cartoons: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading concept cartoons: $e");
@@ -370,10 +377,12 @@ class TeacherDashboardProvider extends ChangeNotifier {
 
   void getConceptCartoonHeader() async {
     try {
-      Response response = await TeacherDashboardService().getConceptCartoonHeader();
-      if (response.statusCode == 200) {
+      Response? response = await TeacherDashboardService().getConceptCartoonHeader(); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         headerModel = ConceptCartoonHeaderModel.fromJson(response.data);
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load concept cartoon headers: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading concept cartoon headers: $e");
@@ -382,10 +391,12 @@ class TeacherDashboardProvider extends ChangeNotifier {
 
   void getAssessment({required Map<String, dynamic> body}) async {
     try {
-      Response response = await TeacherDashboardService().getAssessment(body);
-      if (response.statusCode == 200) {
+      Response? response = await TeacherDashboardService().getAssessment(body); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         assessmentModel = AssessmentModel.fromJson(response.data);
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load assessments: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading assessments: $e");
@@ -394,10 +405,12 @@ class TeacherDashboardProvider extends ChangeNotifier {
 
   void getWorkSheet({required Map<String, dynamic> body}) async {
     try {
-      Response response = await TeacherDashboardService().getWorkSheet(body);
-      if (response.statusCode == 200) {
+      Response? response = await TeacherDashboardService().getWorkSheet(body); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         workSheetModel = WorkSheetModel.fromJson(response.data);
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load worksheets: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading worksheets: $e");
@@ -407,10 +420,12 @@ class TeacherDashboardProvider extends ChangeNotifier {
   /// ----------------- LANGUAGE MANAGEMENT -----------------
   Future<void> getLanguage() async {
     try {
-      Response response = await TeacherDashboardService().getLessonLanguage();
-      if (response.statusCode == 200) {
+      Response? response = await TeacherDashboardService().getLessonLanguage(); // Change to Response?
+      if (response != null && response.statusCode == 200) { // Add null check
         languageModel = LanguageModel.fromJson(response.data);
         notifyListeners();
+      } else {
+        debugPrint("❌ Failed to load languages: ${response?.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error loading languages: $e");
@@ -439,11 +454,11 @@ class TeacherDashboardProvider extends ChangeNotifier {
         "la_lession_plan_language_id": languageId,
       };
 
-      Response response = await TeacherDashboardService().submitPlan(body);
+      Response? response = await TeacherDashboardService().submitPlan(body); // Change to Response?
 
       Loader.hide();
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) { // Add null check
         lessonPlanModel = LessonPlanModel.fromJson(response.data);
         if (context.mounted && lessonPlanModel!.data!.laLessionPlans!.isNotEmpty) {
           Navigator.push(
@@ -455,7 +470,7 @@ class TeacherDashboardProvider extends ChangeNotifier {
         }
       } else {
         lessonPlanModel = null;
-        Fluttertoast.showToast(msg: "Failed to load lesson plans");
+        Fluttertoast.showToast(msg: "Failed to load lesson plans: ${response?.statusCode}");
       }
       notifyListeners();
     } catch (e) {
@@ -507,7 +522,7 @@ class TeacherDashboardProvider extends ChangeNotifier {
   bool get isSubjectSelected => subjectId > 0;
   bool get isGradeSelected => gradeId > 0;
 
-  bool get canProceedToSubjects => isBoardSelected && isPblLanguageSelected; // Use PBL language for PBL flow
+  bool get canProceedToSubjects => isBoardSelected && isPblLanguageSelected;
   bool get canProceedToGrades => isSubjectSelected;
   bool get canProceedToPdfs => isGradeSelected;
 

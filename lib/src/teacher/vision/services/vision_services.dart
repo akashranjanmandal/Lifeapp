@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../../common/helper/api_helper.dart';
 import '../../../utils/storage_utils.dart';
 import '../../../common/helper/string_helper.dart';
 import '../models/vision_model.dart';
@@ -15,7 +16,7 @@ class TimeoutException implements Exception {
 }
 
 class TeacherVisionAPIService {
-  static const String baseUrl = "https://api.life-lab.org/v3";
+  static const String baseUrl = ApiHelper.baseUrl;
   static const int _REQUEST_TIMEOUT = 15;
   Future<String?> _getAuthToken() async {
     return StorageUtil.getString(StringHelper.token);
@@ -45,7 +46,7 @@ class TeacherVisionAPIService {
       debugPrint('📋 Query parameters: $queryParams');
 
       // 3️⃣ Build URI
-      final uri = Uri.parse('$baseUrl/chapters').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrl/v3/chapters').replace(queryParameters: queryParams);
       debugPrint('🔄 Fetching chapters from: $uri');
 
       // 4️⃣ Make HTTP GET request
@@ -96,7 +97,7 @@ class TeacherVisionAPIService {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$baseUrl/boards');
+      final uri = Uri.parse('$baseUrl/v3/boards');
       final response = await http.get(
         uri,
         headers: {
@@ -158,7 +159,7 @@ class TeacherVisionAPIService {
       if (chapterId != null && chapterId.isNotEmpty) 'chapter_id': chapterId,
     };
 
-    final uri = Uri.parse('$baseUrl/teachers/visions-list').replace(queryParameters: queryParams);
+    final uri = Uri.parse('$baseUrl/v3/teachers/visions-list').replace(queryParameters: queryParams);
     debugPrint('🔄 Fetching videos with filters: $queryParams');
     debugPrint('🔗 Full request URI: $uri');
 
@@ -273,9 +274,9 @@ class TeacherVisionAPIService {
 
       // Try multiple possible endpoints
       final endpoints = [
-        '$baseUrl/teachers/vision/$visionId',
-        '$baseUrl/vision/$visionId',
-        '$baseUrl/teachers/visions/$visionId',
+        '$baseUrl/v3/teachers/vision/$visionId',
+        '$baseUrl/v3/vision/$visionId',
+        '$baseUrl/v3/teachers/visions/$visionId',
       ];
 
       for (final endpoint in endpoints) {
@@ -347,7 +348,7 @@ class TeacherVisionAPIService {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$baseUrl/levels');
+      final uri = Uri.parse('$baseUrl/v3/levels');
       final response = await http.get(
         uri,
         headers: {
@@ -409,7 +410,7 @@ class TeacherVisionAPIService {
       }
 
       final endpoints = [
-        '$baseUrl/teachers/visions',
+        '$baseUrl/v3/teachers/visions',
       ];
 
       for (final endpoint in endpoints) {
@@ -560,7 +561,7 @@ class TeacherVisionAPIService {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$baseUrl/subjects');
+      final uri = Uri.parse('$baseUrl/v3/subjects');
       final response = await http.get(
         uri,
         headers: {
@@ -606,7 +607,7 @@ class TeacherVisionAPIService {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$baseUrl/teachers/assign-visions');
+      final uri = Uri.parse('$baseUrl/v3/teachers/assign-visions');
       final payload = {
         'vision_id': int.tryParse(videoId) ?? videoId,
         'user_ids': studentIds.map((id) => int.tryParse(id) ?? id).toList(),
@@ -650,7 +651,7 @@ class TeacherVisionAPIService {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$baseUrl/vision/progress/$assignmentId');
+      final uri = Uri.parse('$baseUrl/v3/vision/progress/$assignmentId');
       final response = await http.get(
         uri,
         headers: {
@@ -680,7 +681,7 @@ class TeacherVisionAPIService {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$baseUrl/vision/$visionId');
+      final uri = Uri.parse('$baseUrl/v3/vision/$visionId');
       final response = await http.get(
         uri,
         headers: {
@@ -720,7 +721,7 @@ class TeacherVisionAPIService {
         throw Exception('Section ID is required');
       }
 
-      final uri = Uri.parse('$baseUrl/teachers/class-students');
+      final uri = Uri.parse('$baseUrl/v3/teachers/class-students');
       final response = await http.post(
         uri,
         headers: {
@@ -782,7 +783,7 @@ class TeacherVisionAPIService {
         throw Exception('Authentication token not found');
       }
 
-      final uri = Uri.parse('$baseUrl/vision/assignment/$assignmentId');
+      final uri = Uri.parse('$baseUrl/v3/vision/assignment/$assignmentId');
       final response = await http.delete(
         uri,
         headers: {
@@ -815,7 +816,7 @@ class TeacherVisionAPIService {
       }
 
       final uri = Uri.parse(
-          '$baseUrl/teachers/vision/$visionId/participants-with-answers?class=$className');
+          '$baseUrl/v3/teachers/vision/$visionId/participants-with-answers?class=$className');
       final response = await http.get(
         uri,
         headers: {
@@ -856,7 +857,7 @@ class TeacherVisionAPIService {
       }
 
       final uri =
-      Uri.parse('$baseUrl/teachers/vision-submission/$visionCompleteId/status');
+      Uri.parse('$baseUrl/v3/teachers/vision-submission/$visionCompleteId/status');
       final response = await http.patch(
         uri,
         headers: {

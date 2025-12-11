@@ -1060,7 +1060,7 @@ class _NotificationPageState extends State<NotificationPage> {
     height: MediaQuery.of(context).size.height,
     child: const Center(
       child: Text(
-        "No data available",
+        "Failed to load notifications. Please try again.",
         style: TextStyle(
           color: Colors.black,
           fontSize: 20,

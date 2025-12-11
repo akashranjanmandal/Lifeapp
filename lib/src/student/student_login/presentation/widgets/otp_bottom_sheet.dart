@@ -6,12 +6,49 @@ import 'package:lifelab3/src/common/widgets/custom_button.dart';
 import '../../provider/student_login_provider.dart';
 import 'otp_widget.dart';
 
-
 void enterPinSheet(BuildContext context, StudentLoginProvider provider) => showModalBottomSheet(
   context: context,
   backgroundColor: Colors.transparent,
   isScrollControlled: true,
   builder: (context) {
+    return _StudentOtpBottomSheet(provider: provider);
+  },
+);
+
+class _StudentOtpBottomSheet extends StatefulWidget {
+  final StudentLoginProvider provider;
+
+  const _StudentOtpBottomSheet({required this.provider});
+
+  @override
+  State<_StudentOtpBottomSheet> createState() => _StudentOtpBottomSheetState();
+}
+
+class _StudentOtpBottomSheetState extends State<_StudentOtpBottomSheet> {
+  late StudentLoginProvider _provider;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = widget.provider;
+    // Add listener to rebuild when timer changes
+    _provider.addListener(_onProviderUpdate);
+  }
+
+  void _onProviderUpdate() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _provider.removeListener(_onProviderUpdate);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: MediaQuery.of(context).viewInsets,
       child: Container(
@@ -25,7 +62,6 @@ void enterPinSheet(BuildContext context, StudentLoginProvider provider) => showM
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             const Text(
               StringHelper.enterTheOtp,
               style: TextStyle(
@@ -35,7 +71,7 @@ void enterPinSheet(BuildContext context, StudentLoginProvider provider) => showM
             ),
 
             const SizedBox(height: 20),
-            OtpWidget(provider: provider),
+            OtpWidget(provider: _provider),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -48,14 +84,17 @@ void enterPinSheet(BuildContext context, StudentLoginProvider provider) => showM
                   ),
                 ),
 
+                // Timer-enabled resend button
                 TextButton(
-                  onPressed: () {
-                    provider.sendOtp(context);
-                  },
-                  child: const Text(
-                    StringHelper.resendOtp,
+                  onPressed: _provider.canResendOtp
+                      ? () => _provider.resendOtp(context)
+                      : null,
+                  child: Text(
+                    _provider.canResendOtp
+                        ? StringHelper.resendOtp
+                        : "Resend OTP in ${_provider.formattedTimer}",
                     style: TextStyle(
-                      color: Colors.blue,
+                      color: _provider.canResendOtp ? Colors.blue : Colors.grey,
                       fontSize: 15,
                     ),
                   ),
@@ -69,8 +108,8 @@ void enterPinSheet(BuildContext context, StudentLoginProvider provider) => showM
               height: 45,
               width: MediaQuery.of(context).size.width,
               onTap: () {
-                if(provider.otpController.text.length == 4) {
-                  provider.verifyOtp(context);
+                if(_provider.otpController.text.length == 4) {
+                  _provider.verifyOtp(context);
                 } else {
                   Fluttertoast.showToast(msg: StringHelper.invalidData);
                 }
@@ -83,5 +122,5 @@ void enterPinSheet(BuildContext context, StudentLoginProvider provider) => showM
         ),
       ),
     );
-  },
-);
+  }
+}

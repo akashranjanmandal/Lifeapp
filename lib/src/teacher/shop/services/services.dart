@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
+import '../../../common/helper/api_helper.dart';
 import '../../../common/helper/string_helper.dart';
 import '../../../utils/storage_utils.dart';
 import '../models/model.dart';
@@ -9,7 +10,7 @@ import 'package:flutter/foundation.dart'; // for debugPrint
 class ProductService {
   final String token;
   final Dio dio = Dio();
-  final String baseUrl = 'https://api.life-lab.org/v3/coupon';
+  final String baseUrl = ApiHelper.baseUrl;
 
   ProductService(this.token);
 
@@ -34,7 +35,7 @@ class ProductService {
     final token = await StorageUtil.getString(StringHelper.token);
 
     final res = await dio.get(
-      '$baseUrl/teacher/list',
+      '$baseUrl/v3/coupon/teacher/list',
       options: Options(
         headers: {
           'Authorization': 'Bearer $token',
@@ -55,7 +56,7 @@ class ProductService {
   Future<List<Product>> fetchProducts() async {
     final token = await StorageUtil.getString(StringHelper.token);
 
-    developer.log('Fetching products from $baseUrl/teacher/list', name: 'ProductService');
+    developer.log('Fetching products from $baseUrl/v3/coupon/teacher/list', name: 'ProductService');
     developer.log('Using token: $token', name: 'ProductService');
 
     if (token.isEmpty) {
@@ -63,7 +64,7 @@ class ProductService {
     }
 
     final res = await dio.get(
-      '$baseUrl/teacher/list',
+      '$baseUrl/v3/teacher/list',
       options: Options(
         headers: {
           'Authorization': 'Bearer $token',
@@ -89,7 +90,7 @@ class ProductService {
 
   Future<List<Purchase>> fetchPurchaseHistory() async {
     try {
-      final url = '$baseUrl/teacher/purchase-history';
+      final url = '$baseUrl/v3/coupon/teacher/purchase-history';
       debugPrint('[ProductService] Fetching purchase history from $url');
 
       final headers = await getHeaders(); // get token headers
@@ -119,7 +120,7 @@ class ProductService {
 
   Future<int> redeemProduct(int productId) async {
     try {
-      final url = '$baseUrl/$productId/redeem';
+      final url = '$baseUrl/v3/coupon/$productId/redeem';
       debugPrint('[ProductService] Redeeming product id $productId at $url');
 
       final headers = await getHeaders(); // ✅ includes token
@@ -155,7 +156,7 @@ class ProductService {
 
   Future<List<CoinTransaction>> fetchCoinTransactions() async {
     try {
-      final url = 'https://api.life-lab.org/v3/coupon/teacher/coin-history'; // replace with correct endpoint
+      final url = '$baseUrl/v3/coupon/teacher/coin-history'; // replace with correct endpoint
       final headers = await getHeaders();
 
       final response = await dio.get(

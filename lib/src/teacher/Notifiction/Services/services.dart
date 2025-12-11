@@ -5,7 +5,7 @@ import '../models/models.dart';
 
 class NotificationService {
   final String token;
-  final String baseUrl = 'https://api.life-lab.org';
+  final String baseUrl = ApiHelper.baseUrl;
 
   NotificationService(this.token);
 

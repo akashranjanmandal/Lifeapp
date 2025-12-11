@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
@@ -14,39 +15,122 @@ import '../../../utils/storage_utils.dart';
 import '../../teacher_dashboard/presentations/pages/teacher_dashboard_page.dart';
 
 class TeacherLoginProvider extends ChangeNotifier {
-
   TextEditingController codeController = TextEditingController();
   TextEditingController otpController = TextEditingController();
   TextEditingController otpController2 = TextEditingController();
   TextEditingController contactController = TextEditingController();
 
+  // OTP Timer variables
+  Timer? _otpTimer;
+  int _otpTimerCount = 0;
+  bool _canResendOtp = true;
+
+  // Getters for UI
+  int get otpTimerCount => _otpTimerCount;
+  bool get canResendOtp => _canResendOtp;
+  String get formattedTimer {
+    int minutes = _otpTimerCount ~/ 60;
+    int seconds = _otpTimerCount % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  // Start OTP timer for 25 seconds
+  void _startOtpTimer() {
+    _otpTimerCount = 25; // 25 seconds
+    _canResendOtp = false;
+
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_otpTimerCount > 0) {
+        _otpTimerCount--;
+        notifyListeners();
+      } else {
+        _stopOtpTimer();
+        _canResendOtp = true;
+        notifyListeners();
+      }
+    });
+  }
+
+  // Stop OTP timer
+  void _stopOtpTimer() {
+    _otpTimer?.cancel();
+    _otpTimer = null;
+  }
+
+  // Reset OTP timer (call this when resending OTP)
+  void resetOtpTimer() {
+    _stopOtpTimer();
+    _otpTimerCount = 0;
+    _canResendOtp = true;
+    notifyListeners();
+  }
+
+  // Dispose timer when provider is disposed
+  @override
+  void dispose() {
+    _stopOtpTimer();
+    super.dispose();
+  }
+
   Future<void> sendOtp() async {
+    if (!_canResendOtp) {
+      Fluttertoast.showToast(msg: "Please wait $formattedTimer before requesting a new OTP.");
+      return;
+    }
 
     Map<String, dynamic> map = {
       "type": 5,
       "mobile_no": contactController.text,
     };
 
-    Response response = await SignUpApiService().sendOtp(map: map);
+    try {
+      Response response = await SignUpApiService().sendOtp(map: map);
 
-    if(response.statusCode == 200) {
-      Fluttertoast.showToast(msg: response.data["message"]);
+      if(response.statusCode == 200) {
+        Fluttertoast.showToast(msg: response.data["message"]);
+        _startOtpTimer(); // Start timer after successful OTP send
+      }
+    } catch (e) {
+      // Error handling is done in the service
     }
   }
 
   Future<void> sendOtpLogin() async {
+    if (!_canResendOtp) {
+      Fluttertoast.showToast(msg: "Please wait $formattedTimer before requesting a new OTP.");
+      return;
+    }
 
     Map<String, dynamic> map = {
       "type": 5,
       "mobile_no": contactController.text,
     };
 
-    Response response = await TeacherLoginServices().sendOtp(map);
+    try {
+      Response response = await TeacherLoginServices().sendOtp(map);
 
-    if(response.statusCode == 200) {
-      contactController.text = response.data["data"]["mobile_no"];
-      Fluttertoast.showToast(msg: response.data["message"]);
-      notifyListeners();
+      if(response.statusCode == 200) {
+        contactController.text = response.data["data"]["mobile_no"];
+        Fluttertoast.showToast(msg: response.data["message"]);
+        _startOtpTimer(); // Start timer after successful OTP send
+        notifyListeners();
+      }
+    } catch (e) {
+      // Error handling is done in the service
+    }
+  }
+
+  // Add resend OTP method
+  Future<void> resendOtp(bool isLogin) async {
+    if (!_canResendOtp) {
+      Fluttertoast.showToast(msg: "Please wait $formattedTimer before requesting a new OTP.");
+      return;
+    }
+
+    if (isLogin) {
+      await sendOtpLogin();
+    } else {
+      await sendOtp();
     }
   }
 
@@ -63,19 +147,25 @@ class TeacherLoginProvider extends ChangeNotifier {
       "otp": otpController2.text,
     };
 
-    Response? response = await SignUpApiService().verifyOtp(map: map);
+    try {
+      Response? response = await SignUpApiService().verifyOtp(map: map);
 
-    Loader.hide();
+      Loader.hide();
 
-    if(response?.statusCode == 200) {
-      VerifyOtpModel model = VerifyOtpModel.fromJson(response!.data);
-      if(context.mounted) {
-        push(
-          context: context,
-          page: TeacherSignUpPage(contact: contactController.text,),
-        );
+      if(response?.statusCode == 200) {
+        VerifyOtpModel model = VerifyOtpModel.fromJson(response!.data);
+        if(context.mounted) {
+          push(
+            context: context,
+            page: TeacherSignUpPage(contact: contactController.text,),
+          );
+        }
+        Fluttertoast.showToast(msg: response.data["message"]);
+        _stopOtpTimer(); // Stop timer after successful verification
       }
-      Fluttertoast.showToast(msg: response.data["message"]);
+    } catch (e) {
+      Loader.hide();
+      // Error handling is done in the service
     }
   }
 
@@ -92,31 +182,33 @@ class TeacherLoginProvider extends ChangeNotifier {
       "otp": otpController.text,
     };
 
-    Response? response = await SignUpApiService().verifyOtp(map: map);
+    try {
+      Response? response = await SignUpApiService().verifyOtp(map: map);
 
-    Loader.hide();
+      Loader.hide();
 
-    if(response?.statusCode == 200) {
-      VerifyOtpModel model = VerifyOtpModel.fromJson(response!.data);
-      if(context.mounted) {
-        if(model.data!.token!.isNotEmpty) {
-          StorageUtil.putBool(StringHelper.isTeacher, true);
-          StorageUtil.putString(StringHelper.token, model.data!.token!);
+      if(response?.statusCode == 200) {
+        VerifyOtpModel model = VerifyOtpModel.fromJson(response!.data);
+        if(context.mounted) {
+          if(model.data!.token!.isNotEmpty) {
+            StorageUtil.putBool(StringHelper.isTeacher, true);
+            StorageUtil.putString(StringHelper.token, model.data!.token!);
 
-// Log the token immediately
-          final storedToken = StorageUtil.getString(StringHelper.token);
-          print("🔐 Stored Auth Token: $storedToken");
+            // Log the token immediately
+            final storedToken = StorageUtil.getString(StringHelper.token);
+            print("🔐 Stored Auth Token: $storedToken");
 
-          pushRemoveUntil(context: context, page: const TeacherDashboardPage());
-
-        } else {
-          pushRemoveUntil(context: context, page: TeacherSignUpPage(contact: contactController.text));
+            pushRemoveUntil(context: context, page: const TeacherDashboardPage());
+          } else {
+            pushRemoveUntil(context: context, page: TeacherSignUpPage(contact: contactController.text));
+          }
         }
+        Fluttertoast.showToast(msg: response.data["message"]);
+        _stopOtpTimer(); // Stop timer after successful verification
       }
-      Fluttertoast.showToast(msg: response.data["message"]);
+    } catch (e) {
+      Loader.hide();
+      // Error handling is done in the service
     }
   }
-
-
-
 }

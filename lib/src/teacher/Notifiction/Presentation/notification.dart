@@ -16,6 +16,9 @@ class NotificationPage extends StatefulWidget {
 
 class _NotificationPageState extends State<NotificationPage> {
   Future<List<NotificationModel>>? _futureNotifications;
+  bool _isLoading = false;
+  String _errorMessage = '';
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -24,15 +27,30 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   void _loadNotificationsAndMarkRead() async {
-    final service = NotificationService(widget.token);
-
-    // Call API to mark all notifications as read
-    await service.clearNotifications();
-
-    // Then fetch the updated notifications with readAt updated
     setState(() {
-      _futureNotifications = service.fetchNotifications();
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
     });
+
+    try {
+      final service = NotificationService(widget.token);
+
+      // Call API to mark all notifications as read
+      await service.clearNotifications();
+
+      // Then fetch the updated notifications
+      setState(() {
+        _futureNotifications = service.fetchNotifications();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _errorMessage = 'Failed to load notifications. Please try again.';
+      });
+    }
   }
 
   void _showMessageDialog(String title, String message, int index) async {
@@ -61,7 +79,7 @@ class _NotificationPageState extends State<NotificationPage> {
       return message.replaceAll(linkRegex, '').trim();
     }
 
-    await Future.delayed(const Duration(milliseconds: 100)); // just for feel
+    await Future.delayed(const Duration(milliseconds: 100));
     if (!mounted) return;
 
     await showDialog(
@@ -128,14 +146,24 @@ class _NotificationPageState extends State<NotificationPage> {
                               ),
                               elevation: 2,
                             ),
-                            onPressed: () {
+                            onPressed: () async {
                               final urlRegExp = RegExp(r'(https?:\/\/[^\s]+)');
                               final match = urlRegExp.firstMatch(message);
                               if (match != null) {
-                                launchUrl(
-                                  Uri.parse(match.group(0)!),
-                                  mode: LaunchMode.externalApplication,
-                                );
+                                try {
+                                  await launchUrl(
+                                    Uri.parse(match.group(0)!),
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                } catch (e) {
+                                  // Show error message if URL launch fails
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Could not open link. Please try again.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               }
                             },
                             child: const Text(
@@ -192,124 +220,231 @@ class _NotificationPageState extends State<NotificationPage> {
     );
   }
 
-  String formatDate(DateTime date) {
-    return DateFormat('dd MMM yyyy, hh:mm a').format(date.toLocal());
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red.withOpacity(0.7),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              _errorMessage.isNotEmpty ? _errorMessage : 'Something went wrong',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.notifications_none_outlined,
+              size: 64,
+              color: Colors.grey.withOpacity(0.5),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No notifications yet',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You\'re all caught up!',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationList(List<NotificationModel> notifications) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: notifications.length,
+      itemBuilder: (context, index) {
+        final n = notifications[index];
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/app_logo.png',
+                height: 40,
+                width: 40,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 40,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4A5EFF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.notifications, color: Color(0xFF4A5EFF)),
+                  );
+                },
+              ),
+            ),
+            title: Text(
+              n.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                _formatDate(n.createdAt),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
+            trailing: ElevatedButton(
+              onPressed: () => _showMessageDialog(n.title, n.message, index),
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: const Color(0xFF4A5EFF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text("View"),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    try {
+      return DateFormat('dd MMM yyyy, hh:mm a').format(date.toLocal());
+    } catch (e) {
+      return 'Date unavailable';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_futureNotifications == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100),
         child: Container(
           color: const Color(0xFFF4F6FA),
           child: SafeArea(
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, size: 20),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const TeacherDashboardPage()),
-                    );
-                  },
-                ),
-                const Text(
-                  "Notification",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.black54,
-                    fontWeight: FontWeight.w600,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios, size: 20),
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TeacherDashboardPage()),
+                      );
+                    },
                   ),
-                ),
-              ],
+                  const Text(
+                    "Notifications",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_futureNotifications != null && !_hasError)
+                    IconButton(
+                      icon: const Icon(Icons.refresh, size: 22),
+                      onPressed: _loadNotificationsAndMarkRead,
+                      tooltip: 'Refresh notifications',
+                    ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-      body: FutureBuilder<List<NotificationModel>>(
+      body: _isLoading
+          ? const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A5EFF)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading notifications...',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      )
+          : _hasError
+          ? _buildErrorState()
+          : FutureBuilder<List<NotificationModel>>(
         future: _futureNotifications,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No notifications found."));
+          }
+
+          if (snapshot.hasError) {
+            return _buildErrorState();
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return _buildEmptyState();
           }
 
           final notifications = snapshot.data!;
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final n = notifications[index];
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-
-                  // App logo
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      'assets/images/app_logo.png',
-                      height: 40,
-                      width: 40,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-
-                  title: Text(
-                    n.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      formatDate(n.createdAt),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ),
-                  trailing: ElevatedButton(
-                    onPressed: () => _showMessageDialog(n.title, n.message, index),
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: const Color(0xFF4A5EFF),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
-                    child: const Text("View"),
-                  ),
-                ),
-              );
-            },
-          );
+          return _buildNotificationList(notifications);
         },
       ),
+
     );
   }
 }

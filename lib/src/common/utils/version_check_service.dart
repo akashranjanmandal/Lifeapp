@@ -4,9 +4,11 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:lifelab3/src/common/helper/api_helper.dart'; // Add this import
 
 class VersionCheckService {
-  static const String API_URL = 'https://api.life-lab.org/api/app-version';
+  // Remove the hardcoded API_URL and use ApiHelper
+  String get apiUrl => ApiHelper.baseUrl + ApiHelper.appVersion;
 
   Future<void> checkAndPromptUpdate(BuildContext context) async {
     if (!context.mounted) {
@@ -23,9 +25,9 @@ class VersionCheckService {
           "${packageInfo.version}+${packageInfo.buildNumber}";
       debugPrint("Current app version: $currentVersion");
 
-      // Fetch latest version from API
-      debugPrint("Fetching version from: $API_URL");
-      final response = await http.get(Uri.parse(API_URL));
+      // Fetch latest version from API using ApiHelper
+      debugPrint("Fetching version from: $apiUrl");
+      final response = await http.get(Uri.parse(apiUrl));
       debugPrint("API Response status code: ${response.statusCode}");
       debugPrint("API Response body: ${response.body}");
 
@@ -71,7 +73,7 @@ class VersionCheckService {
           .map((e) => int.parse(e.trim()))
           .toList();
       List<int> latest =
-          latestVersionOnly.split('.').map((e) => int.parse(e.trim())).toList();
+      latestVersionOnly.split('.').map((e) => int.parse(e.trim())).toList();
 
       // Compare version numbers
       for (int i = 0; i < 3; i++) {
@@ -94,11 +96,11 @@ class VersionCheckService {
   }
 
   Future<void> _showUpdateDialog(
-    BuildContext context,
-    String message,
-    String storeUrl,
-    bool isForceUpdate,
-  ) async {
+      BuildContext context,
+      String message,
+      String storeUrl,
+      bool isForceUpdate,
+      ) async {
     if (!context.mounted) return;
 
     return showDialog<void>(

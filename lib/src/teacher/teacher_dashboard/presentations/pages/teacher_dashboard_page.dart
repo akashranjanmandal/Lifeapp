@@ -142,17 +142,19 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     _timer?.cancel();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const TeacherDrawerView(),
       body: _tabs[_selectedIdx],
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(context), // Pass context here
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final navItemWidth = screenWidth / 5; // Divide equally among 5 items
+
     return Container(
       height: 100,
       decoration: BoxDecoration(
@@ -173,14 +175,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildNavItem('assets/images/home_icon.png', 'Home', 0),
-          _buildNavItem('assets/images/connect_icon.png', 'PBL', 1),
-          _buildNavItem('assets/images/shop_icon.png', 'Shop', 2),
-          _buildNavItem('assets/images/tracker_icon.png', 'Leaderboard', 3),
+          _buildNavItem('assets/images/home_icon.png', 'Home', 0, navItemWidth),
+          _buildNavItem('assets/images/connect_icon.png', 'PBL', 1, navItemWidth),
+          _buildNavItem('assets/images/shop_icon.png', 'Shop', 2, navItemWidth),
+          _buildNavItem('assets/images/tracker_icon.png', 'Leaderboard', 3, navItemWidth),
           _buildNavItem(
             'assets/images/notification_icon.png',
             'Notification',
             4,
+            navItemWidth,
             showBadge: _unreadNotificationCount > 0,
           ),
         ],
@@ -188,9 +191,12 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     );
   }
 
-  Widget _buildNavItem(String iconPath, String label, int index,
+  Widget _buildNavItem(String iconPath, String label, int index, double itemWidth,
       {bool showBadge = false}) {
     final bool isSelected = _selectedIdx == index;
+
+    // Calculate responsive padding based on screen width
+    final horizontalPadding = itemWidth > 80 ? 12.0 : 8.0;
 
     return InkWell(
       onTap: () {
@@ -213,64 +219,66 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
 
         setState(() => _selectedIdx = index);
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-        width: 60,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  iconPath,
-                  width: 24,
-                  height: 24,
-                  color: isSelected ? const Color(0xFF6574F9) : Colors.grey,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
+      child: SizedBox(
+        width: itemWidth, // Use responsive width
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 16, horizontal: horizontalPadding),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    iconPath,
+                    width: 24,
+                    height: 24,
                     color: isSelected ? const Color(0xFF6574F9) : Colors.grey,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.start,
-                ),
-              ],
-            ),
-            if (showBadge)
-              Positioned(
-                right: -6,
-                top: -6,
-                child: Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white, width: 1.5),
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: Text(
-                    _unreadNotificationCount > 99
-                        ? '99+'
-                        : '$_unreadNotificationCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected ? const Color(0xFF6574F9) : Colors.grey,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                   ),
-                ),
+                ],
               ),
-          ],
+              if (showBadge)
+                Positioned(
+                  right: 0,
+                  top: -6,
+                  child: Container(
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      _unreadNotificationCount > 99
+                          ? '99+'
+                          : '$_unreadNotificationCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

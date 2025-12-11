@@ -80,7 +80,8 @@ class _MissionPageState extends State<MissionPage> {
       "type": 1,
       "la_subject_id": widget.subjectId,
       "la_level_id": widget.levelId,
-    }, params: '?page=$page');
+    },
+    );
 
     (widget.missionListModel.data!.missions!.data ?? []).addAll(
         Provider.of<SubjectLevelProvider>(context, listen: false)

@@ -1,7 +1,7 @@
 name: lifelab3
 description: A new Flutter project.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-version: 3.6.1+74
+version: 3.6.2+75
 environment:
   sdk: '>=3.2.0 <4.0.0'
 dependencies:

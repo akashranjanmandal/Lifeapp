@@ -4,13 +4,14 @@
   import 'package:http/http.dart' as http;
   import 'package:path_provider/path_provider.dart';
   import 'package:flutter_image_compress/flutter_image_compress.dart';
-  import '../models/vision_video.dart';
+  import '../../../common/helper/api_helper.dart';
+import '../models/vision_video.dart';
   import '../../../utils/storage_utils.dart';
   import '../../../common/helper/string_helper.dart';
   import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
   class VisionAPIService {
-    static const String baseUrl = 'https://api.life-lab.org/v3';
+    static const String baseUrl = ApiHelper.baseUrl;
     static const int _requestTimeout = 15;
     static const int _defaultPerPage = 15;
 
@@ -106,7 +107,7 @@
 
         final response = await _makeRequest(
             'GET',
-            '/vision/list?la_subject_id=$subjectId&la_level_id=$levelId&search_title=$searchText&page=$page&per_page=$perPage'
+            '/v3/vision/list?la_subject_id=$subjectId&la_level_id=$levelId&search_title=$searchText&page=$page&per_page=$perPage'
         );
 
         if (response.statusCode != 200) _handleErrorResponse(response);
@@ -150,7 +151,7 @@
 
         final response = await _makeRequest(
             'GET',
-            '/vision/list?la_subject_id=$subjectId&la_level_id=$levelId&page=$page&per_page=$perPage'
+            '/v3/vision/list?la_subject_id=$subjectId&la_level_id=$levelId&page=$page&per_page=$perPage'
         );
 
         if (response.statusCode != 200) _handleErrorResponse(response);
@@ -187,7 +188,7 @@
     Future<Map<String, dynamic>> getVisionQuestions(String visionId) async {
       try {
         debugPrint('🔄 Fetching questions for vision: $visionId');
-        final response = await _makeRequest('GET', '/vision/$visionId/questions');
+        final response = await _makeRequest('GET', '/v3/vision/$visionId/questions');
 
         if (response.statusCode != 200) _handleErrorResponse(response);
         final data = _parseResponse(response);
@@ -239,7 +240,7 @@
 
         final response = await _makeRequest(
           'GET',
-          '/vision/$visionId',
+          '/v3/vision/$visionId',
         );
 
         if (response.statusCode != 200) _handleErrorResponse(response);
@@ -319,7 +320,7 @@
             'answers': mcqAnswers,
           };
 
-          final response = await _makeRequest('POST', '/vision/complete', body: body);
+          final response = await _makeRequest('POST', '/v3/vision/complete', body: body);
           if (response.statusCode != 200 && response.statusCode != 201) {
             _handleErrorResponse(response);
             return null;
@@ -336,7 +337,7 @@
               'question_id': ans['id'],
               'answer_text': ans['answer'].toString(),
             };
-            final response = await _makeRequest('POST', '/vision/complete', body: body);
+            final response = await _makeRequest('POST', '/v3/vision/complete', body: body);
             if (response.statusCode != 200 && response.statusCode != 201) {
               _handleErrorResponse(response);
               return null;
@@ -557,7 +558,7 @@
           'vision_id': int.tryParse(visionId),
         };
         final response =
-        await _makeRequest('POST', '/vision/result', body: body);
+        await _makeRequest('POST', '/v3/vision/result', body: body);
 
         if (response.statusCode == 200) {
           final data = _parseResponse(response);
@@ -587,7 +588,7 @@
 
         final response = await _makeRequest(
             'GET',
-            '/vision/list?la_subject_id=$subjectId&la_level_id=$levelId&filter=$filter&page=$page&per_page=$perPage'
+            '/v3/vision/list?la_subject_id=$subjectId&la_level_id=$levelId&filter=$filter&page=$page&per_page=$perPage'
         );
 
         if (response.statusCode != 200) _handleErrorResponse(response);
@@ -624,7 +625,7 @@
       try {
         debugPrint('🔄 Skipping quiz: $visionId');
 
-        final response = await _makeRequest('POST', '/vision/skip',
+        final response = await _makeRequest('POST', '/v3/vision/skip',
             body: {'vision_id': visionId});
 
         if (response.statusCode == 200) {
@@ -652,7 +653,7 @@
     Future<bool> markQuizPending(String visionId) async {
       try {
         debugPrint('🔄 Marking quiz pending: $visionId');
-        final response = await _makeRequest('POST', '/vision/pending',
+        final response = await _makeRequest('POST', '/v3/vision/pending',
             body: {'vision_id': visionId});
 
         if (response.statusCode == 200) {

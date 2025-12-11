@@ -49,6 +49,104 @@ class _ProductListState extends State<ProductList> {
     super.dispose();
   }
 
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String errorMessage) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              errorMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.shopping_bag_outlined,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No products available',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Check back later for new products',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                final provider = Provider.of<ProductProvider>(context, listen: false);
+                provider.loadProducts();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _kPurple,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Refresh'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,15 +183,57 @@ class _ProductListState extends State<ProductList> {
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, _) {
+          // Handle loading state
           if (provider.loading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(_kPurple),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading products...',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
           }
+
+          // Handle error state with user-friendly message
           if (provider.error != null) {
-            return Center(child: Text('Error: ${provider.error}'));
+            String errorMessage = 'Unable to load products';
+
+            // Convert technical error to user-friendly message
+            final error = provider.error!.toString().toLowerCase();
+            if (error.contains('network') || error.contains('connection')) {
+              errorMessage = 'No internet connection. Please check your network and try again.';
+            } else if (error.contains('timeout')) {
+              errorMessage = 'Request timed out. Please try again.';
+            } else if (error.contains('401') || error.contains('unauthorized')) {
+              errorMessage = 'Session expired. Please log in again.';
+            } else if (error.contains('500') || error.contains('server')) {
+              errorMessage = 'Our servers are temporarily unavailable. Please try again later.';
+            }
+
+            return _buildErrorState(errorMessage);
+          }
+
+          // Handle empty state
+          if (provider.products.isEmpty) {
+            return _buildEmptyState();
           }
 
           return RefreshIndicator(
-            onRefresh: () async => await provider.loadProducts(),
+            onRefresh: () async {
+              try {
+                await provider.loadProducts();
+              } catch (e) {
+                _showErrorSnackBar('Failed to refresh products. Please try again.');
+              }
+            },
             child: Container(
               color: const Color(0xFFF7F8FA),
               child: ListView(
@@ -236,7 +376,7 @@ class _ProductListState extends State<ProductList> {
                       balloonAssetPath:
                       imageUrl != null ? imageUrl : 'assets/images/coin.png',
                       isFirst: index == 0,
-                      isRedeemed: product.redeemed, // ✅ <-- pass the flag
+                      isRedeemed: product.redeemed,
                       onTap: () {
                         MixpanelService.track("Individual product item clicked", properties: {
                           "timestamp": DateTime.now().toIso8601String(),
@@ -321,13 +461,14 @@ class _CoinCard extends StatelessWidget {
     );
   }
 }
+
 class ProductItem extends StatelessWidget {
   final String balloonAssetPath;
   final String productName;
   final int redeemPoints;
   final VoidCallback? onTap;
   final bool isFirst;
-  final bool isRedeemed; // ✅ NEW
+  final bool isRedeemed;
 
   const ProductItem({
     super.key,
@@ -336,9 +477,8 @@ class ProductItem extends StatelessWidget {
     required this.redeemPoints,
     this.onTap,
     this.isFirst = false,
-    required this.isRedeemed, // ✅ NEW
+    required this.isRedeemed,
   });
-
 
   @override
   Widget build(BuildContext context) {
@@ -369,13 +509,34 @@ class ProductItem extends StatelessWidget {
                   height: 160,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                  const Center(child: CircularProgressIndicator()),
+                  placeholder: (context, url) => Container(
+                    height: 160,
+                    color: Colors.grey.shade200,
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(_kPurple),
+                      ),
+                    ),
+                  ),
                   errorWidget: (context, url, error) => Container(
                     height: 160,
-                    color: Colors.grey.shade300,
+                    color: Colors.grey.shade200,
                     child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 60),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.broken_image,
+                            size: 60,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Image not available',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 )
@@ -384,6 +545,13 @@ class ProductItem extends StatelessWidget {
                   height: 160,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 160,
+                    color: Colors.grey.shade200,
+                    child: const Center(
+                      child: Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
+                    ),
+                  ),
                 ),
               ),
               Container(
@@ -405,6 +573,7 @@ class ProductItem extends StatelessWidget {
                     fontSize: 16,
                   ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ),
               Container(
@@ -424,7 +593,7 @@ class ProductItem extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black38,
+                      color: Colors.grey,
                     ),
                   )
                       : Row(
@@ -438,13 +607,19 @@ class ProductItem extends StatelessWidget {
                         "assets/images/coins_icon.png",
                         height: 18,
                         width: 18,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.monetization_on,
+                          size: 18,
+                          color: _kCoinGold,
+                        ),
                       ),
                       Text(
                         " $redeemPoints",
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.black87),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
                       ),
                     ],
                   ),

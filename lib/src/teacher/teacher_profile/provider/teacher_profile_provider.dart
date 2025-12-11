@@ -53,50 +53,110 @@
     List<int> subjectIdList = [];
     Future<void> fetchLeaderboardData(int teacherId, String schoolName) async {
       try {
+        debugPrint("Fetching leaderboard data for teacherId: $teacherId, school: $schoolName");
+
         final token = await StorageUtil.getString(StringHelper.token);
         final leaderboardService = LeaderboardService(token);
 
-        final teacherList = await leaderboardService.fetchTeacherLeaderboard();
-        final schoolList = await leaderboardService.fetchSchoolLeaderboard();
+        // Fetch both leaderboards in parallel
+        final Future<List<LeaderboardEntry>> teacherFuture = leaderboardService.fetchTeacherLeaderboard();
+        final Future<List<LeaderboardEntry>> schoolFuture = leaderboardService.fetchSchoolLeaderboard();
 
+        final List<List<LeaderboardEntry>> results = await Future.wait([teacherFuture, schoolFuture]);
+        final teacherList = results[0];
+        final schoolList = results[1];
+
+        debugPrint("Teacher list count: ${teacherList.length}");
+        debugPrint("School list count: ${schoolList.length}");
 
         // More flexible school name matching
         final normalizedSchoolName = schoolName.trim().toLowerCase();
+        debugPrint("Normalized school name: $normalizedSchoolName");
 
-        // Find teacher rank
+        // Find teacher rank - use null-aware operator
         teacherRankEntry = teacherList.firstWhere(
               (entry) => entry.teacherId == teacherId,
-          orElse: () => LeaderboardEntry(
-            rank: 0,
-            teacherId: teacherId,
-            name: '',
-            schoolName: '',
-            totalEarnedCoins: 0,
-          ),
+          orElse: () {
+            debugPrint("Teacher not found in leaderboard, using default");
+            return LeaderboardEntry(
+              rank: 0,
+              teacherId: teacherId,
+              name: '',
+              schoolName: '',
+              totalEarnedCoins: 0,
+              tScore: 0.0,
+              sScore: 0.0,
+              assignTaskCoins: 0,
+              correctSubmissionCoins: 0,
+              maxPossibleCoins: 0,
+              studentCoins: 0,
+              teacherCoins: 0,
+              maxStudentCoins: 0,
+              maxTeacherCoins: 0,
+            );
+          },
         );
 
         // Find school rank with more flexible matching
         schoolRankEntry = schoolList.firstWhere(
               (entry) {
-            final entryName = entry.name?.trim().toLowerCase() ?? '';
-            return entryName.contains(normalizedSchoolName) ||
-                normalizedSchoolName.contains(entryName);
+            final entryName = (entry.name ?? '').trim().toLowerCase();
+            debugPrint("Comparing school: $entryName with $normalizedSchoolName");
+
+            // Try multiple matching strategies
+            if (entryName == normalizedSchoolName) {
+              return true;
+            }
+
+            if (entryName.contains(normalizedSchoolName) || normalizedSchoolName.contains(entryName)) {
+              return true;
+            }
+
+            // Split into words and check for partial matches
+            final entryWords = entryName.split(' ').where((w) => w.isNotEmpty).toList();
+            final schoolWords = normalizedSchoolName.split(' ').where((w) => w.isNotEmpty).toList();
+
+            // Check if any word from entry matches any word from school name
+            for (final entryWord in entryWords) {
+              for (final schoolWord in schoolWords) {
+                if (entryWord.contains(schoolWord) || schoolWord.contains(entryWord)) {
+                  return true;
+                }
+              }
+            }
+
+            return false;
           },
-          orElse: () => LeaderboardEntry(
-            rank: 0,
-            teacherId: null,
-            name: schoolName,
-            schoolName: '',
-            totalEarnedCoins: 0,
-          ),
+          orElse: () {
+            debugPrint("School not found in leaderboard, using default");
+            return LeaderboardEntry(
+              rank: 0,
+              teacherId: null,
+              name: schoolName,
+              schoolName: '',
+              totalEarnedCoins: 0,
+              tScore: 0.0,
+              sScore: 0.0,
+              assignTaskCoins: 0,
+              correctSubmissionCoins: 0,
+              maxPossibleCoins: 0,
+              studentCoins: 0,
+              teacherCoins: 0,
+              maxStudentCoins: 0,
+              maxTeacherCoins: 0,
+            );
+          },
         );
 
-        debugPrint("Teacher Rank: ${teacherRankEntry?.rank}");
-        debugPrint("School Rank: ${schoolRankEntry?.rank}");
+        debugPrint("Teacher Rank Found: ${teacherRankEntry?.rank}");
+        debugPrint("School Rank Found: ${schoolRankEntry?.rank}");
 
+        // Ensure we notify listeners
         safeNotifyListeners();
       } catch (e) {
         debugPrint("Error fetching leaderboard data: $e");
+        debugPrint("Stack trace: ${e.toString()}");
+
         // Set default values on error
         teacherRankEntry = LeaderboardEntry(
           rank: 0,
@@ -104,6 +164,15 @@
           name: '',
           schoolName: '',
           totalEarnedCoins: 0,
+          tScore: 0.0,
+          sScore: 0.0,
+          assignTaskCoins: 0,
+          correctSubmissionCoins: 0,
+          maxPossibleCoins: 0,
+          studentCoins: 0,
+          teacherCoins: 0,
+          maxStudentCoins: 0,
+          maxTeacherCoins: 0,
         );
         schoolRankEntry = LeaderboardEntry(
           rank: 0,
@@ -111,11 +180,21 @@
           name: schoolName,
           schoolName: '',
           totalEarnedCoins: 0,
+          tScore: 0.0,
+          sScore: 0.0,
+          assignTaskCoins: 0,
+          correctSubmissionCoins: 0,
+          maxPossibleCoins: 0,
+          studentCoins: 0,
+          teacherCoins: 0,
+          maxStudentCoins: 0,
+          maxTeacherCoins: 0,
         );
+
+        // Ensure we notify listeners even on error
         safeNotifyListeners();
       }
     }
-
     void updateSchoolCode(String val) {
       isSchoolCodeValid = false;
       schoolCodeController.text = val;
@@ -195,11 +274,13 @@
     }
 
     Future<void> getSubjectList() async {
-      Response response = await DashboardServices().getSubjectData();
+      Response? response = await DashboardServices().getSubjectData(); // Change to Response?
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) { // Add null check
         subjectModel = SubjectModel.fromJson(response.data);
         safeNotifyListeners();
+      } else {
+        debugPrint("❌ Failed to load subjects: ${response?.statusCode}");
       }
     }
 

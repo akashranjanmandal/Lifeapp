@@ -11,6 +11,7 @@ import '../../../common/helper/string_helper.dart';
 class MentorLoginService {
 
   Dio dio = Dio();
+  static const String otpApiKey = "gasdgg_555gae1_a151ghrhtj_k548jt_fsc265461hjvb";
 
   Future sendOtp(String code) async {
 
@@ -25,6 +26,7 @@ class MentorLoginService {
           contentType: "application/json",
           headers: {
             HttpHeaders.acceptHeader: "application/json",
+            "x-api-key": otpApiKey,
           },
         ),
       );
@@ -57,6 +59,7 @@ class MentorLoginService {
           contentType: "application/json",
           headers: {
             HttpHeaders.acceptHeader: "application/json",
+            "x-api-key": otpApiKey,
           },
         ),
       );

@@ -11,6 +11,15 @@ class LeaderboardProvider extends ChangeNotifier {
   bool isLoadingTeachers = false;
   bool isLoadingSchools = false;
 
+  bool isLoadMoreTeachers = false;
+  bool isLoadMoreSchools = false;
+
+  int teacherPage = 1;
+  int schoolPage = 1;
+  final int limit = 20;
+
+  String currentFilter = 'monthly';
+
   bool hasMoreTeachers = true;
   bool hasMoreSchools = true;
 
@@ -19,29 +28,75 @@ class LeaderboardProvider extends ChangeNotifier {
 
   LeaderboardProvider(String token) : _service = LeaderboardService(token);
 
+  void setFilter(String filter) {
+    currentFilter = _normalizeFilter(filter);
+    teacherPage = 1;
+    schoolPage = 1;
+    hasMoreTeachers = true;
+    hasMoreSchools = true;
+    teachers.clear();
+    schools.clear();
+    notifyListeners();
+  }
+
+  String _normalizeFilter(String filter) {
+    switch (filter.toLowerCase()) {
+      case 'monthly':
+        return 'monthly';
+      case '3 months':
+      case 'quarterly':
+        return 'quarterly';
+      case '6 months':
+      case 'halfyearly':
+        return 'halfyearly';
+      case '1 year':
+      case 'yearly':
+        return 'yearly';
+      default:
+        return 'monthly';
+    }
+  }
+
   Future<void> loadTeacherLeaderboard({bool loadMore = false}) async {
     if (loadMore && !hasMoreTeachers) return;
 
     if (!loadMore) {
+      teacherPage = 1;
       hasMoreTeachers = true;
       teachers.clear();
+      isLoadingTeachers = true;
+    } else {
+      isLoadMoreTeachers = true;
+      teacherPage++;
     }
 
-    isLoadingTeachers = true;
     errorTeachers = null;
     notifyListeners();
 
     try {
-      final result = await _service.fetchTeacherLeaderboard();
+      final result = await _service.fetchTeacherLeaderboard(
+        filter: currentFilter,
+        page: teacherPage,
+        limit: limit,
+      );
+
       if (result.isEmpty) {
         hasMoreTeachers = false;
       } else {
-        teachers.addAll(result);
+        if (loadMore) {
+          teachers.addAll(result);
+        } else {
+          teachers = result;
+        }
       }
     } catch (e) {
       errorTeachers = e.toString();
+      if (loadMore) {
+        teacherPage--;
+      }
     } finally {
       isLoadingTeachers = false;
+      isLoadMoreTeachers = false;
       notifyListeners();
     }
   }
@@ -50,25 +105,42 @@ class LeaderboardProvider extends ChangeNotifier {
     if (loadMore && !hasMoreSchools) return;
 
     if (!loadMore) {
+      schoolPage = 1;
       hasMoreSchools = true;
       schools.clear();
+      isLoadingSchools = true;
+    } else {
+      isLoadMoreSchools = true;
+      schoolPage++;
     }
 
-    isLoadingSchools = true;
     errorSchools = null;
     notifyListeners();
 
     try {
-      final result = await _service.fetchSchoolLeaderboard();
+      final result = await _service.fetchSchoolLeaderboard(
+        filter: currentFilter,
+        page: schoolPage,
+        limit: limit,
+      );
+
       if (result.isEmpty) {
         hasMoreSchools = false;
       } else {
-        schools.addAll(result);
+        if (loadMore) {
+          schools.addAll(result);
+        } else {
+          schools = result;
+        }
       }
     } catch (e) {
       errorSchools = e.toString();
+      if (loadMore) {
+        schoolPage--;
+      }
     } finally {
       isLoadingSchools = false;
+      isLoadMoreSchools = false;
       notifyListeners();
     }
   }

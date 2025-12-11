@@ -51,11 +51,13 @@ class ToolProvider extends ChangeNotifier {
   }
 
   Future<void> getSubjectsData() async {
-    Response response = await DashboardServices().getSubjectData();
+    Response? response = await DashboardServices().getSubjectData(); // Change to Response?
 
-    if(response.statusCode == 200) {
+    if (response != null && response.statusCode == 200) { // Add null check
       subjectModel = SubjectModel.fromJson(response.data);
       notifyListeners();
+    } else {
+      debugPrint("❌ Failed to load subjects: ${response?.statusCode}");
     }
   }
 

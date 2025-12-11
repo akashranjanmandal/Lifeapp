@@ -67,15 +67,23 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
     super.dispose();
   }
 
+  // Helper method to safely access data
+  bool get _hasData {
+    final provider = Provider.of<StudentProgressProvider>(context, listen: false);
+    return provider.allStudentReportModel?.data != null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<StudentProgressProvider>(context);
+    final data = provider.allStudentReportModel?.data;
+
     return Scaffold(
       appBar: commonAppBar(
         context: context,
         name: 'Classroom Report',
       ),
-      body: provider.allStudentReportModel != null
+      body: provider.allStudentReportModel != null && data != null
           ? Stack(
         children: [
           SingleChildScrollView(
@@ -83,111 +91,110 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (provider.allStudentReportModel!.data != null)
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 6,
-                        child: SizedBox(
-                          height: 40,
-                          child: ElevatedButton(
-                            onPressed: _isDownloading
-                                ? null
-                                : () {
-                              if (provider.allStudentReportModel !=
-                                  null &&
-                                  provider.allStudentReportModel!
-                                      .data !=
-                                      null) {
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: SizedBox(
+                        height: 40,
+                        child: ElevatedButton(
+                          onPressed: _isDownloading
+                              ? null
+                              : () {
+                            if (provider.allStudentReportModel !=
+                                null &&
+                                provider.allStudentReportModel!
+                                    .data !=
+                                    null) {
+                              setState(() {
+                                _isDownloading = true;
+                              });
+                              provider
+                                  .downloadPDF(
+                                context,
+                                widget.gradeName,
+                                widget.sectionName,
+                                widget.subjectName,
+                                widget.gradeId,
+                              )
+                                  .then((_) {
                                 setState(() {
-                                  _isDownloading = true;
+                                  _isDownloading = false;
                                 });
-                                provider
-                                    .downloadPDF(
-                                  context,
-                                  widget.gradeName,
-                                  widget.sectionName,
-                                  widget.subjectName,
-                                  widget.gradeId,
-                                )
-                                    .then((_) {
-                                  setState(() {
-                                    _isDownloading = false;
-                                  });
-                                });
-                              } else {
-                                Fluttertoast.showToast(
-                                    msg: "Data not ready for download!");
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              padding:
-                              const EdgeInsets.symmetric(vertical: 8),
+                              });
+                            } else {
+                              Fluttertoast.showToast(
+                                  msg: "Data not ready for download!");
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
                             ),
-                            child: _isDownloading
-                                ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                AlwaysStoppedAnimation<Color>(
-                                    Colors.white),
-                              ),
-                            )
-                                : const Text(
-                              "Download Report",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
+                            padding:
+                            const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          child: _isDownloading
+                              ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                              AlwaysStoppedAnimation<Color>(
+                                  Colors.white),
+                            ),
+                          )
+                              : const Text(
+                            "Download Report",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        flex: 6,
-                        child: SizedBox(
-                          height: 40,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          ClassroomStudentList(
-                                              sectionName:
-                                              widget.sectionName)));
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                side: const BorderSide(
-                                    color: Colors.grey, width: .7),
-                              ),
-                              padding:
-                              const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      flex: 6,
+                      child: SizedBox(
+                        height: 40,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        ClassroomStudentList(
+                                            sectionName:
+                                            widget.sectionName)));
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              side: const BorderSide(
+                                  color: Colors.grey, width: .7),
                             ),
-                            child: const Text(
-                              "View Students",
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
+                            padding:
+                            const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          child: const Text(
+                            "View Students",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
                 const SizedBox(
                   height: 15,
                 ),
@@ -267,7 +274,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                           Column(
                             children: [
                               Text(
-                                "${provider.allStudentReportModel!.data!.student!.length}",
+                                "${data.student?.length ?? 0}", // Safe access
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 23,
@@ -291,16 +298,15 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (provider.allStudentReportModel!.data != null)
-                            const Text(
-                              'Performance Summary',
-                              textAlign: TextAlign.start,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey,
-                              ),
+                          const Text(
+                            'Performance Summary',
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey,
                             ),
+                          ),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 vertical: 10, horizontal: 0),
@@ -328,7 +334,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     CrossAxisAlignment.center,
                                     children: [
                                       Text(
-                                        "${provider.allStudentReportModel!.data!.totalVision ?? ""}",
+                                        "${data.totalVision ?? ""}",
                                         style: const TextStyle(
                                           color: Colors.black,
                                           fontSize: 13,
@@ -361,7 +367,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     CrossAxisAlignment.center,
                                     children: [
                                       Text(
-                                        "${provider.allStudentReportModel!.data!.totalMission ?? ""}",
+                                        "${data.totalMission ?? ""}",
                                         style: const TextStyle(
                                           color: Colors.black,
                                           fontSize: 13,
@@ -394,7 +400,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     CrossAxisAlignment.center,
                                     children: [
                                       Text(
-                                        "${provider.allStudentReportModel!.data!.totalQuiz ?? ""}",
+                                        "${data.totalQuiz ?? ""}",
                                         style: const TextStyle(
                                           color: Colors.black,
                                           fontSize: 13,
@@ -427,7 +433,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     CrossAxisAlignment.center,
                                     children: [
                                       Text(
-                                        "${provider.allStudentReportModel!.data!.totalCoins ?? ""}",
+                                        "${data.totalCoins ?? ""}",
                                         style: const TextStyle(
                                           color: Colors.black,
                                           fontSize: 13,
@@ -462,7 +468,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                       CrossAxisAlignment.center,
                                       children: [
                                         Text(
-                                          "${provider.allStudentReportModel!.data!.coinsRedeemed ?? ""}",
+                                          "${data.coinsRedeemed ?? ""}",
                                           style: const TextStyle(
                                             color: Colors.black,
                                             fontSize: 13,
@@ -516,7 +522,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     children: [
                                       TextSpan(
                                         text:
-                                        "(Completion rate ${provider.allStudentReportModel!.data!.visionCompletionRate ?? 0}%)",
+                                        "(Completion rate ${data.visionCompletionRate ?? 0}%)",
                                         style: const TextStyle(
                                           color: Colors.blue,
                                           fontSize: 15,
@@ -537,7 +543,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "${provider.allStudentReportModel!.data!.totalVisionAssigned ?? 0}",
+                                      "${data.totalVisionAssigned ?? 0}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -556,7 +562,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "${provider.allStudentReportModel!.data!.totalVision ?? 0}",
+                                      "${data.totalVision ?? 0}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -575,7 +581,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "${provider.allStudentReportModel!.data!.totalVisionCoins ?? 0}",
+                                      "${data.totalVisionCoins ?? 0}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -598,7 +604,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     children: [
                                       TextSpan(
                                         text:
-                                        "(Completion rate ${provider.allStudentReportModel!.data!.missionCompletionRate ?? ""}%)",
+                                        "(Completion rate ${data.missionCompletionRate ?? 0}%)",
                                         style: const TextStyle(
                                           color: Colors.blue,
                                           fontSize: 15,
@@ -619,7 +625,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "${provider.allStudentReportModel!.data!.totalMissionAssigned ?? 0}",
+                                      "${data.totalMissionAssigned ?? 0}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -638,7 +644,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "${provider.allStudentReportModel!.data!.totalMission ?? 0}",
+                                      "${data.totalMission ?? 0}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -657,7 +663,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "${provider.allStudentReportModel!.data!.totalMissionCoins ?? 0}",
+                                      "${data.totalMissionCoins ?? 0}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -686,7 +692,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "${provider.allStudentReportModel!.data!.totalQuiz ?? 0}",
+                                      "${data.totalQuiz ?? 0}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -705,7 +711,7 @@ class _ClassroomDetailsPageState extends State<ClassroomDetailsPage> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "${provider.allStudentReportModel!.data!.quizTotalCoins ?? 0}",
+                                      "${data.quizTotalCoins ?? 0}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,

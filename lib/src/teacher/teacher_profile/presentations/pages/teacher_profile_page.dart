@@ -157,16 +157,22 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
   DateTime? _startTime;
   @override
   void initState() {
-
     super.initState();
     _startTime = DateTime.now();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       final provider = Provider.of<TeacherProfileProvider>(context, listen: false);
       final user = Provider.of<TeacherDashboardProvider>(context, listen: false)
           .dashboardModel!
           .data!
           .user!;
-      provider.fetchLeaderboardData(user.id!, user.school?.name ?? "");
+
+      debugPrint("User ID: ${user.id}");
+      debugPrint("School Name from API: ${user.school?.name}");
+
+      // Fetch leaderboard data first
+      await provider.fetchLeaderboardData(user.id!, user.school?.name ?? "");
+
+      // Now load the rest of the data
       provider.getSchoolList();
       provider.getStateCityList();
       provider.getSectionList();
@@ -204,8 +210,12 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
         provider.initializeGradeMapList();
       }
 
-      provider.gradeList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 , 12 ];
-      setState(() => isLoading = false);
+      provider.gradeList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+      // Force a rebuild after all data is loaded
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     });
   }
   @override
@@ -716,167 +726,196 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
   }
   Widget _profile() {
     final user = Provider.of<TeacherDashboardProvider>(context).dashboardModel!.data!.user!;
-    final provider = Provider.of<TeacherProfileProvider>(context, listen: false);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF6C63FF), // Adjust to match design
-            Color(0xFF957DFF),
-          ],
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-      ),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              user.imagePath != null
-                  ? CircleAvatar(
-                radius: 60,
-                backgroundImage: NetworkImage(ApiHelper.imgBaseUrl + user.imagePath!),
-              )
-                  : const CircleAvatar(
-                radius: 60,
-                backgroundColor: Colors.white,
-                backgroundImage: AssetImage(ImageHelper.profileImg),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: InkWell(
-                  onTap: () {
-                    MixpanelService.track("Profile photo icon clicked", properties: {
-                      "timestamp": DateTime.now().toIso8601String(),
-                    });
-                    chooseImageBottomSheet();
-                  },
 
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+    return Consumer<TeacherProfileProvider>(
+      builder: (context, provider, child) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF6C63FF),
+                Color(0xFF957DFF),
+              ],
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+          ),
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  user.imagePath != null
+                      ? CircleAvatar(
+                    radius: 60,
+                    backgroundImage: NetworkImage(ApiHelper.imgBaseUrl + user.imagePath!),
+                  )
+                      : const CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.white,
+                    backgroundImage: AssetImage(ImageHelper.profileImg),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: InkWell(
+                      onTap: () {
+                        MixpanelService.track("Profile photo icon clicked", properties: {
+                          "timestamp": DateTime.now().toIso8601String(),
+                        });
+                        chooseImageBottomSheet();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      "assets/images/cam.png",
-                      height: 30,
-                      width: 30,
+                        child: Image.asset(
+                          "assets/images/cam.png",
+                          height: 30,
+                          width: 30,
+                        ),
+                      ),
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                user.name ?? "Teacher Name",
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Mobile: ${user.mobileNo ?? "N/A"}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "School Code: ${user.school?.id ?? "N/A"}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 30),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _infoRow(
+                      "Teacher Rank",
+                      provider.teacherRankEntry?.rank != null && provider.teacherRankEntry!.rank > 0
+                          ? "#${provider.teacherRankEntry!.rank}"
+                          : "Not Ranked",
+                    ),
+                    const Divider(height: 25),
+                    _infoRow(
+                      "School Rank",
+                      provider.schoolRankEntry?.rank != null && provider.schoolRankEntry!.rank > 0
+                          ? "#${provider.schoolRankEntry!.rank}"
+                          : "Not Ranked",
+                    ),
+                    const Divider(height: 25),
+                    _infoRow(
+                        "Teacher Level",
+                        Provider.of<TeacherDashboardProvider>(context)
+                            .dashboardModel?.data?.user?.engagementBadge ?? "No badge"
+                    ),
+                    const Divider(height: 25),
+                    // School Name with better handling for long names
+                    _infoRow("School Name", user.school?.name ?? "N/A"),
+                    const Divider(height: 25),
+                    _infoRow(
+                        "Board",
+                        provider.boardNameController.text.isNotEmpty
+                            ? provider.boardNameController.text
+                            : user.board_name ?? "N/A"
+                    ),
+                    const Divider(height: 25),
+                    _infoRow(
+                        "DOB",
+                        provider.dobController.text.isNotEmpty
+                            ? provider.dobController.text
+                            : user.dob ?? "N/A"
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Text(
-            user.name ?? "Teacher Name",
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "Mobile: ${user.mobileNo ?? "N/A"}",
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "School Code: ${user.school?.id ?? "N/A"}",
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(height: 30),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _infoRow("Teacher Rank",
-                    provider.teacherRankEntry != null && provider.teacherRankEntry!.rank > 0
-                        ? "#${provider.teacherRankEntry!.rank}"
-                        : "Not Ranked"),
-                const Divider(height: 25),
-                _infoRow("School Rank",
-                    provider.schoolRankEntry != null && provider.schoolRankEntry!.rank > 0
-                        ? "#${provider.schoolRankEntry!.rank}"
-                        : "Not Ranked"),
-                const Divider(height: 25),
-                _infoRow(
-                    "Teacher Level",
-                    Provider.of<TeacherDashboardProvider>(context)
-                        .dashboardModel?.data?.user?.engagementBadge ?? "No badge"
-                ),
-                const Divider(height: 25),
-                _infoRow("School Name", user.school?.name ?? "N/A"),
-                const Divider(height: 25),
-                _infoRow("Board", provider.boardNameController.text.isNotEmpty
-                    ? provider.boardNameController.text
-                    : user.board_name ?? "N/A"),
-                const Divider(height: 25),
-                _infoRow("DOB", provider.dobController.text.isNotEmpty
-                    ? provider.dobController.text
-                    : user.dob ?? "N/A"),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
   Widget _infoRow(String title, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                maxLines: 2, // Allow school name to wrap
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: ColorCode.buttonColor,
+                ),
+              ),
+            ),
+          ],
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: ColorCode.buttonColor,
-          ),
-        ),
+        const SizedBox(height: 4),
       ],
     );
   }
-
   AppBar _appBar() => AppBar(
     backgroundColor: Colors.transparent,
     leading: IconButton(

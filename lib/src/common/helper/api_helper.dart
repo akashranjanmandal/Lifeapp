@@ -1,26 +1,8 @@
-// import '../../../config/environment.dart';
 class ApiHelper {
   ApiHelper._();
 
-  // static String get baseUrl {
-  //   switch (EnvironmentConfig().environment) {
-  //     case Environment.aws:
-  //       return "https://api.gappubobo.com";
-  //     case Environment.digitalOcean:
-  //       return "https://api.life-lab.org";
-  //   }
-  // }
-
-  static const String baseUrl = "https://api.life-lab.org";
-  static const String baseUrlStaging = "https://staging.life-lab.org";
-
   // static const String baseUrl = "https://staging.life-lab.org";
-
-  // static const String baseUrl = "http://10.0.2.2:8000";
-
-  // static const String baseUrl= "http://192.168.29.143:8000";
-
-  // static const String baseUrl = "https://stg.gappubobo.com";
+  static const String baseUrl = "https://api.life-lab.org";
 
   static const String imgBaseUrl =
       "https://lifeappmedia.blr1.digitaloceanspaces.com/";
@@ -64,6 +46,7 @@ class ApiHelper {
   static const String uploadImage = "/v3/profile/image";
   static const String uploadProfile = "/v3/profile";
   static const String uploadTeacherProfile = "/v3/profile/teacher";
+  static const String campaignsToday = "/v3/campaigns/today";
   static const String updateMentorProfile = "/v3/mentor-profile";
   static const String createSession = "/v3/sessions/create";
   static const String upcomingSession = "/v3/sessions/upcoming";
@@ -84,7 +67,7 @@ class ApiHelper {
   static const String getAllStudent = "/v3/reports/all-students";
   static const String classStudent = "/v3/reports/class-students/";
 
-// Staging endpoints
+  // Staging endpoints
   static const String classStudentStaging = "/v3/reports/class-students/";
   static const String getAllStudentStaging = "/v3/reports/all-students";
   static const String PblLanguage = "/v3/languages/";
@@ -93,9 +76,20 @@ class ApiHelper {
   static const String teachersGrade = "/v3/teachers/grade-sections";
   static const String getTeacherMission = "/v3/teachers/missions";
   static const String pblmapping = "/v3/pbl-textbook-mappings/";
-  static const String getTeacherMissionParticipant =
-      "/v3/teachers/mission-participants/";
+  static const String getTeacherMissionParticipant = "/v3/teachers/mission-participants/";
   static const String teacherMissionApproveReject = "/v3/teachers/submission/";
   static const String getStudentMissions = "/v3/mission/submission";
   static const String storeToken = "/api/v1/device-token";
+  static const String appVersion = "/api/app-version";
+  static const String faqs = "/v3/faqs";
+  static const String pendingRedirect = "/api/pending-redirect";
+  static const String teacherSubjectGrade = "/v3/TeacherSubjectGrade/";
+  static const String visionComplete = "/v3/vision/complete";
+  static const String visionResult = "/v3/vision/result";
+  static const String visionSkip = "/v3/vision/skip";
+  static const String visionPending = "/v3/vision/pending";
+  static const String couponTeacherList = "/v3/coupon/teacher/list";
+  static const String couponTeacherPurchaseHistory = "/v3/coupon/teacher/purchase-history";
+  static const String couponTeacherCoinHistory = "/v3/coupon/teacher/coin-history";
+  static const String couponRedeem = "/v3/coupon";
 }
