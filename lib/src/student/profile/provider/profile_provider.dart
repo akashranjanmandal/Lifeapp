@@ -108,54 +108,66 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void update(BuildContext context) async {
+  Future<void> update(BuildContext context) async {  // Add Future<void> return type
+    if(chileNameController.text.trim().isNotEmpty &&
+        schoolNameController.text.trim().isNotEmpty &&
+        gradeController.text.isNotEmpty &&
+        sexController.text.trim().isNotEmpty &&
+        stateController.text.isNotEmpty &&
+        cityController.text.isNotEmpty &&
+        dobController.text.isNotEmpty) {
 
-    // print("Child Name: ${chileNameController.text.trim()}");
-    // print("School Name: ${schoolNameController.text.trim()}");
-    // print("Grade: ${gradeController.text}");
-    // print("Sex: ${sexController.text}");
-    // print("State: ${stateController.text}");
-    // print("City: ${cityController.text}");
-    // print("Dob: ${dobController.text}");
-    // print("Address: ${addressController.text}");
-    // print("Section: ${sectionController.text}");
-
-    if(chileNameController.text.trim().isNotEmpty && schoolNameController.text.trim().isNotEmpty
-        && gradeController.text.isNotEmpty && sexController.text.trim().isNotEmpty
-        && stateController.text.isNotEmpty && cityController.text.isNotEmpty
-        && dobController.text.isNotEmpty) {
       Loader.show(
         context,
         progressIndicator: const CircularProgressIndicator(color: ColorCode.buttonColor,),
         overlayColor: Colors.black54,
       );
 
-      Map<String, dynamic> body = {
-        "mobile_no": mobileController.text,
-        "name": chileNameController.text.trim(),
-        "la_grade_id": int.parse(gradeController.text),
-        "school": schoolNameController.text.trim(),
-        "state": stateController.text,
-        "city": cityController.text,
-        "gender": gender,
-        "guardian_name": parentNameController.text.trim(),
-        "address": addressController.text,
-        "dob": dobController.text,
-        "school_code": schoolCodeController.text,
-        "section": sectionController.text,
-      };
+      try {
+        Map<String, dynamic> body = {
+          "mobile_no": mobileController.text,
+          "name": chileNameController.text.trim(),
+          "la_grade_id": int.parse(gradeController.text),
+          "school": schoolNameController.text.trim(),
+          "state": stateController.text,
+          "city": cityController.text,
+          "gender": gender,
+          "guardian_name": parentNameController.text.trim(),
+          "address": addressController.text,
+          "dob": dobController.text,
+          "school_code": schoolCodeController.text,
+          "section": sectionController.text,
+        };
 
-      Response response = await ProfileService().updateProfileData(body, isStudent: true);
+        Response response = await ProfileService().updateProfileData(body, isStudent: true);
 
-      Loader.hide();
+        Loader.hide();
 
-      if(response.statusCode == 200) {
-        if(!context.mounted) return;
-        Fluttertoast.showToast(msg: "Updated");
-        Provider.of<DashboardProvider>(context, listen: false).getDashboardData();
+        if(response.statusCode == 200) {
+          if(!context.mounted) return;
+          Fluttertoast.showToast(msg: "Updated");
+
+          // Track successful update
+          MixpanelService.track("Profile Updated Successfully", properties: {
+            "timestamp": DateTime.now().toIso8601String(),
+          });
+
+          // Refresh dashboard data
+          await Provider.of<DashboardProvider>(context, listen: false).getDashboardData();
+
+          // Return success
+          return;
+        } else {
+          // Return error
+          throw Exception("Update failed with status: ${response.statusCode}");
+        }
+      } catch (e) {
+        Loader.hide();
+        rethrow; // Re-throw so the caller can handle it
       }
     } else {
-      Fluttertoast.showToast(msg: StringHelper.invalidData);
+      // Return validation error
+      throw Exception(StringHelper.invalidData);
     }
   }
 

@@ -159,65 +159,40 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
   void initState() {
     super.initState();
     _startTime = DateTime.now();
+
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      final provider = Provider.of<TeacherProfileProvider>(context, listen: false);
-      final user = Provider.of<TeacherDashboardProvider>(context, listen: false)
-          .dashboardModel!
-          .data!
-          .user!;
+      try {
+        final provider = Provider.of<TeacherProfileProvider>(context, listen: false);
+        final dashboardProvider = Provider.of<TeacherDashboardProvider>(context, listen: false);
 
-      debugPrint("User ID: ${user.id}");
-      debugPrint("School Name from API: ${user.school?.name}");
-
-      // Fetch leaderboard data first
-      await provider.fetchLeaderboardData(user.id!, user.school?.name ?? "");
-
-      // Now load the rest of the data
-      provider.getSchoolList();
-      provider.getStateCityList();
-      provider.getSectionList();
-      provider.getBoardList().then((_) {
-        if (user.la_board_id?.isNotEmpty == true && user.board_name?.isNotEmpty == true) {
-          provider.setInitialBoard(user.la_board_id, user.board_name);
+        // Check if dashboard data is available
+        if (dashboardProvider.dashboardModel?.data?.user == null) {
+          debugPrint("⚠️ Dashboard user data is null");
+          if (mounted) setState(() => isLoading = false);
+          return;
         }
-      });
-      provider.getSubjectList();
 
-      provider.schoolNameController.text = user.school?.name ?? "";
-      provider.teacherNameController.text = user.name ?? "";
-      provider.sectionController.text = user.section?.name ?? "";
-      provider.sectionId = user.section?.id;
-      provider.dobController.text = user.dob ?? "";
-      provider.gradeController.text = user.grade?.name.toString() ?? "";
-      provider.stateController.text = user.state ?? "";
-      provider.cityController.text = user.city ?? "";
-      provider.schoolCodeController.text = user.school?.code?.toString() ?? "";
+        final user = dashboardProvider.dashboardModel!.data!.user!;
 
-      provider.setInitialDOB(user.dob);
-      provider.gradeMapList.clear(); // Prevent duplicates
-
-      if (user.laTeacherGrades != null && user.laTeacherGrades!.isNotEmpty) {
-        for (var element in user.laTeacherGrades!) {
-          provider.gradeMapList.add({
-            "la_grade_id": element.grade?.id?.toString() ?? "",
-            "la_section_id": element.section?.id?.toString() ?? "",
-            "la_section_name": element.section?.name ?? "",
-            "subjects": element.subject?.id?.toString() ?? "",
-            "subject_name": element.subject?.title ?? ""
-          });
+        // Use the optimized initialization
+        await provider.initializeProfileData(
+          context: context,
+          userId: user.id ?? 0, // Provide default value
+          schoolName: user.school?.name ?? "",
+          user: user,
+        );
+      } catch (e, stackTrace) {
+        debugPrint("❌ Error initializing profile: $e");
+        debugPrint("Stack trace: $stackTrace");
+        Fluttertoast.showToast(msg: "Failed to load profile data");
+      } finally {
+        if (mounted) {
+          setState(() => isLoading = false);
         }
-      } else {
-        provider.initializeGradeMapList();
-      }
-
-      provider.gradeList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-
-      // Force a rebuild after all data is loaded
-      if (mounted) {
-        setState(() => isLoading = false);
       }
     });
   }
+
   @override
   void dispose() {
     if (_startTime != null) {

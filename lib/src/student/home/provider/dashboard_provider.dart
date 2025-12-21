@@ -123,18 +123,21 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
+// dashboard_provider.dart - Fix the checkSubscription method
   Future<void> checkSubscription() async {
     try {
       Response? response = await DashboardServices().checkSubscription();
 
       if (response != null && response.statusCode == 200) {
         final data = response.data["data"];
-        StorageUtil.putBool(StringHelper.isJigyasa, data["JIGYASA"] == 1);
-        StorageUtil.putBool(StringHelper.isPragya, data["PRAGYA"] == 1);
-        StorageUtil.putBool(StringHelper.isTeacherLifeLabDemo, data["LIFE_LAB_DEMO_MODELS"] == 1);
-        StorageUtil.putBool(StringHelper.isTeacherJigyasa, data["JIGYASA_SELF_DIY_ACTVITES"] == 1);
-        StorageUtil.putBool(StringHelper.isTeacherPragya, data["PRAGYA_DIY_ACTIVITES_WITH_LIFE_LAB_KITS"] == 1);
-        StorageUtil.putBool(StringHelper.isTeacherLesson, data["LIFE_LAB_ACTIVITIES_LESSION_PLANS"] == 1);
+
+        // Use putBool instead of setBool
+        await StorageUtil.putBool(StringHelper.isTeacherLifeLabDemo, data["LIFE_LAB_DEMO_MODELS"] == 1);
+        await StorageUtil.putBool(StringHelper.isTeacherJigyasa, data["JIGYASA_SELF_DIY_ACTVITES"] == 1);
+        await StorageUtil.putBool(StringHelper.isTeacherPragya, data["PRAGYA_DIY_ACTIVITES_WITH_LIFE_LAB_KITS"] == 1);
+        await StorageUtil.putBool(StringHelper.isTeacherLesson, data["LIFE_LAB_ACTIVITIES_LESSION_PLANS"] == 1);
+        await StorageUtil.putBool(StringHelper.isJigyasa, data["JIGYASA"] == 1);
+        await StorageUtil.putBool(StringHelper.isPragya, data["PRAGYA"] == 1);
 
         debugPrint("✅ Subscription status updated");
       } else {

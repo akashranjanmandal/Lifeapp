@@ -572,12 +572,28 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                         });
                       }
 
-                      provider.update(context);
-                      // After update, refresh and navigate to home page
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const NavBarPage(currentIndex: 0)),
-                            (route) => false,
-                      );
+                      try {
+                        // Now this will work since update returns Future<void>
+                        await provider.update(context);
+
+                        // After successful update, navigate to home
+                        // Optional: Add a small delay to ensure UI updates
+                        await Future.delayed(const Duration(milliseconds: 500));
+
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (_) => const NavBarPage(currentIndex: 0)
+                          ),
+                              (route) => false,
+                        );
+
+                      } catch (e) {
+                        // Handle any errors from the update method
+                        Fluttertoast.showToast(
+                          msg: e.toString().replaceAll("Exception: ", ""),
+                          toastLength: Toast.LENGTH_LONG,
+                        );
+                      }
                     },
                   ),
                 ],

@@ -41,15 +41,20 @@ class ToolProvider extends ChangeNotifier {
     }
   }
 
-  void getLevel() async {
-    Response response = await LevelListService().getLevelData();
+  Future<void> getLevel() async {  // Add return type Future<void>
+    try {
+      Response response = await LevelListService().getLevelData();
 
-    if(response.statusCode == 200) {
-      level = LevelModel.fromJson(response.data);
-      notifyListeners();
+      if(response.statusCode == 200) {
+        level = LevelModel.fromJson(response.data);
+        notifyListeners();
+      } else {
+        throw Exception('Failed to load level data');
+      }
+    } catch (e) {
+      rethrow;
     }
   }
-
   Future<void> getSubjectsData() async {
     Response? response = await DashboardServices().getSubjectData(); // Change to Response?
 
@@ -162,15 +167,20 @@ class ToolProvider extends ChangeNotifier {
   }
 
 
-  void getTeacherGrade() async {
-    Response response = await ToolServices().getTeacherGrade();
+  Future<void> getTeacherGrade() async {
+    try {
+      Response response = await ToolServices().getTeacherGrade();
 
-    if(response.statusCode == 200) {
-      teacherGradeSectionModel = TeacherGradeSectionModel.fromJson(response.data);
-      notifyListeners();
-    } else {
+      if(response.statusCode == 200) {
+        teacherGradeSectionModel = TeacherGradeSectionModel.fromJson(response.data);
+        notifyListeners();
+      } else {
+        teacherGradeSectionModel = null;
+        throw Exception('Failed to load teacher grade data');
+      }
+    } catch (e) {
       teacherGradeSectionModel = null;
+      rethrow; // Rethrow the error to handle in UI
     }
   }
-
 }

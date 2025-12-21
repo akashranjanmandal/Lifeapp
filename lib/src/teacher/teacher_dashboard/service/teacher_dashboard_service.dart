@@ -20,7 +20,63 @@ class TeacherDashboardService {
       if (token.isNotEmpty) HttpHeaders.authorizationHeader: "Bearer $token",
     };
   }
+  Future<Response?> getAllSubjects() async {
+    try {
+      final headers = await _getHeaders();
 
+      Response response = await dio.get(
+        ApiHelper.baseUrl + ApiHelper.subjects,
+        options: Options(
+          headers: headers,
+          sendTimeout: const Duration(seconds: 5),
+        ),
+      );
+
+      debugPrint("All Subjects API Response: ${response.statusCode}");
+      return response;
+    } on DioException catch (e) {
+      debugPrint("All Subjects API Error: ${e.response?.data}");
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading subjects");
+      return e.response;
+    } on SocketException catch(e) {
+      debugPrint("All Subjects Socket Error: $e");
+      Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
+    } catch (e) {
+      debugPrint("All Subjects Catch Error: $e");
+      Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
+    }
+  }
+
+  Future<Response?> getAllGrades() async {
+    try {
+      final headers = await _getHeaders();
+
+      Response response = await dio.get(
+        ApiHelper.baseUrl + ApiHelper.getGradesList, // "/v3/grades"
+        options: Options(
+          headers: headers,
+          sendTimeout: const Duration(seconds: 5),
+        ),
+      );
+
+      debugPrint("All Grades API Response: ${response.statusCode}");
+      return response;
+    } on DioException catch (e) {
+      debugPrint("All Grades API Error: ${e.response?.data}");
+      Fluttertoast.showToast(msg: e.response?.data?["message"] ?? "Error loading grades");
+      return e.response;
+    } on SocketException catch(e) {
+      debugPrint("All Grades Socket Error: $e");
+      Fluttertoast.showToast(msg: StringHelper.badInternet);
+      return null;
+    } catch (e) {
+      debugPrint("All Grades Catch Error: $e");
+      Fluttertoast.showToast(msg: StringHelper.tryAgainLater);
+      return null;
+    }
+  }
   Future<Response?> getCompetencies(Map<String, dynamic> body) async {
     try {
       final headers = await _getHeaders();

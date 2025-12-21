@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
 import '../../../teacher_sign_up/model/board_model.dart';
+import '../../model/pbl_loading_state.dart';
 
 class PblTextBookMappingPage extends StatefulWidget {
   const PblTextBookMappingPage({super.key});
@@ -24,7 +25,6 @@ class PblTextBookMappingPage extends StatefulWidget {
 class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
   int step = 1;
   bool _isLoading = false;
-  bool _skippedSubjectGrade = false;
   final List<int> _visibleSteps = [1];
 
   // Download progress variables
@@ -39,8 +39,8 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
   }
 
   Future<void> _initializeData() async {
-    setState(() => _isLoading = true);
     final provider = Provider.of<TeacherDashboardProvider>(context, listen: false);
+    setState(() => _isLoading = true);
     try {
       await provider.getDashboardData();
       await provider.getPblLanguages();
@@ -74,164 +74,42 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
 
   void _nextStep() {
     if (step == 1) {
-      _loadSubjects();
-    } else if (step == 2) {
-      // This is now the combined selection step - directly check PBL
-      _checkPblForSelectedSubjectGrade();
+      // Directly load all PDFs after language/board selection
+      _loadAllPdfs();
     }
-    // Remove the old step 3 logic completely
   }
-  Future<void> _loadSubjects() async {
+  Future<void> _loadAllPdfs() async {
     if (_isLoading) return;
 
     setState(() => _isLoading = true);
     final provider = Provider.of<TeacherDashboardProvider>(context, listen: false);
+
     try {
+      // Get teacher's subject-grade pairs for reference only
       await provider.getTeacherSubjectGrade();
-      final allPairs = provider.teacherSubjectGradeModel?.subjectGradePairs ?? [];
 
-      if (allPairs.isEmpty) {
-        debugPrint("❌ No subject/grade pairs available for this teacher");
+      // Load ALL PDFs WITHOUT subject/grade filters - ONLY board and language
+      await provider.loadAllPblPdfs();
+
+      if (provider.allPblPdfs.isEmpty) {
+        debugPrint("❌ No PDFs available for selected board/language");
         _goToStep(99);
         return;
       }
 
-      // Get unique subject-grade combinations that have PDFs
-      Map<String, TeacherSubjectGradePair> uniqueCombinations = {};
-      Map<int, List<TeacherSubjectGradePair>> subjectToGradesMap = {};
+      debugPrint("✅ Loaded ${provider.allPblPdfs.length} PDFs");
 
-      for (final pair in allPairs) {
-        await provider.getPblTextbookMappings(
-          laSubjectId: pair.subject?.id ?? 0,
-          laGradeId: pair.grade?.id ?? 0,
-        );
+      // Go to PDF listing page
+      _goToStep(2);
 
-        if (provider.pdfMappings.isNotEmpty) {
-          final subjectId = pair.subject?.id ?? 0;
-          final gradeId = pair.grade?.id ?? 0;
-          final combinationKey = '$subjectId-$gradeId';
-
-          // Store unique combination - this ensures no duplicates
-          if (!uniqueCombinations.containsKey(combinationKey)) {
-            uniqueCombinations[combinationKey] = pair;
-          }
-
-          // Map subject to all its grades with PDFs
-          if (!subjectToGradesMap.containsKey(subjectId)) {
-            subjectToGradesMap[subjectId] = [];
-          }
-
-          // Check if this grade already exists for this subject
-          final existingGrade = subjectToGradesMap[subjectId]!.firstWhere(
-                (existingPair) => existingPair.grade?.id == gradeId,
-            orElse: () => TeacherSubjectGradePair(), // Return dummy if not found
-          );
-
-          if (existingGrade.grade == null) { // Only add if not already present
-            subjectToGradesMap[subjectId]!.add(pair);
-          }
-        }
-      }
-
-      if (uniqueCombinations.isEmpty) {
-        debugPrint("❌ No PDFs available for any subject/grade pairs");
-        _goToStep(99);
-        return;
-      }
-
-      provider.subjectGradePairsWithPdf = uniqueCombinations.values.toList();
-      provider.setSubjectToGradesMap(subjectToGradesMap);
-
-      debugPrint("✅ Found ${provider.subjectGradePairsWithPdf.length} unique subject-grade combinations with PDFs");
-
-      // If there's only one combination, auto-select and go to PDFs
-      if (provider.subjectGradePairsWithPdf.length == 1) {
-        final pair = provider.subjectGradePairsWithPdf.first;
-        provider.subjectId = pair.subject?.id ?? 0;
-        provider.gradeId = pair.grade?.id ?? 0;
-        provider.notifyListeners();
-        _skippedSubjectGrade = true;
-
-        await _checkPblForSinglePair(provider);
-        return;
-      } else {
-        // Multiple combinations - go to combined selection step
-        _goToStep(2);
-      }
     } catch (e) {
-      debugPrint("Error loading subjects: $e");
-      Fluttertoast.showToast(msg: "Failed to load subjects");
+      debugPrint("Error loading PDFs: $e");
+      Fluttertoast.showToast(msg: "Failed to load PDFs");
       _goToStep(99);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-// Update the _nextStep method
-  Future<void> _loadGrades() async {
-    final provider = Provider.of<TeacherDashboardProvider>(context, listen: false);
-    final gradesForSubject = provider.getGradesForSubject(provider.subjectId);
-
-    if (gradesForSubject.isEmpty) {
-      _goToStep(99);
-    } else if (gradesForSubject.length == 1) {
-      // Only one grade for this subject - auto-select and go to PDFs
-      provider.gradeId = gradesForSubject.first.grade?.id ?? 0;
-      provider.notifyListeners();
-      await _checkPblForSelectedSubjectGrade();
-    } else {
-      // Multiple grades - show grade selection
-      _goToStep(3);
-    }
-  }
-
-  Future<void> _checkPblForSelectedSubjectGrade() async {
-    if (_isLoading) return; // Prevent multiple calls
-
-    setState(() => _isLoading = true);
-    final provider = Provider.of<TeacherDashboardProvider>(context, listen: false);
-    try {
-      await provider.getPblTextbookMappings(
-        laSubjectId: provider.subjectId,
-        laGradeId: provider.gradeId,
-      );
-
-      if (provider.pdfMappings.isEmpty) {
-        _goToStep(99);
-      } else {
-        _goToStep(4);
-      }
-    } catch (e) {
-      debugPrint("Error checking PBL data: $e");
-      _goToStep(99);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _checkPblForSinglePair(TeacherDashboardProvider provider) async {
-    if (_isLoading) return; // Prevent multiple calls
-
-    setState(() => _isLoading = true);
-    try {
-      await provider.getPblTextbookMappings(
-        laSubjectId: provider.subjectId,
-        laGradeId: provider.gradeId,
-      );
-
-      if (provider.pdfMappings.isEmpty) {
-        _goToStep(99);
-      } else {
-        _goToStep(4);
-      }
-    } catch (e) {
-      debugPrint("Error loading PDFs for single pair: $e");
-      _goToStep(99);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-// FIXED DOWNLOAD METHOD - Works on all Android & iOS versions
   Future<void> _downloadPdf(String url, String fileName) async {
     if (_isDownloading) return; // Prevent multiple downloads
 
@@ -314,7 +192,6 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
     }
   }
 
-// SAFE directory method that works on all Android versions
   Future<Directory> _getSafeDownloadDirectory() async {
     if (Platform.isAndroid) {
       try {
@@ -541,15 +418,18 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Column(
                 children: [
+                  // In the Column children of the build method:
                   Expanded(
                     child: _isLoading
                         ? const Center(child: CircularProgressIndicator())
                         : _buildStepContent(provider),
                   ),
-                  const SizedBox(height: 16),
-                  if (step < 4 && step != 99 && !_isLoading)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+
+// Wrap the bottom button section with SafeArea
+                  if (step < 2 && step != 99 && !_isLoading)
+                    SafeArea(
+                      top: false, // Don't add top padding
+                      minimum: const EdgeInsets.all(16),
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -584,26 +464,25 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
     switch (step) {
       case 1:
         return provider.pblLanguageId != 0 && provider.boardId != 0;
-      case 2:
-        return provider.subjectId != 0 && provider.gradeId != 0; // Both must be selected
       default:
         return false;
     }
   }
+
   Widget _buildStepContent(TeacherDashboardProvider provider) {
     switch (step) {
       case 1:
         return _buildPblLanguageBoardStep(provider);
       case 2:
-        return _buildCombinedSubjectGradeStep(provider); // Combined step
-      case 4:
-        return _buildPdfStep(provider);
+        return _buildPdfListingWithFilters(provider);
       case 99:
         return _buildNoDataStep();
       default:
         return const SizedBox();
     }
-  }  // The rest of your UI methods remain exactly the same...
+  }
+
+  // ================= OLD UI STYLE - STEP 1 =================
   Widget _buildPblLanguageBoardStep(TeacherDashboardProvider provider) {
     return Column(
       children: [
@@ -614,7 +493,7 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
         ),
         const SizedBox(height: 20),
 
-        // PBL Language Dropdown
+        // PBL Language Dropdown (OLD STYLE)
         Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
@@ -630,7 +509,7 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
             ],
           ),
           child: InkWell(
-            onTap: () => _showPblLanguageDropdown(context, provider),
+            onTap: () => _showPblLanguageDropdownOldStyle(context, provider),
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -675,7 +554,7 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
           ),
         ),
 
-        // Board Dropdown
+        // Board Dropdown (OLD STYLE)
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -690,7 +569,7 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
             ],
           ),
           child: InkWell(
-            onTap: () => _showBoardDropdown(context, provider),
+            onTap: () => _showBoardDropdownOldStyle(context, provider),
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -738,7 +617,8 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
     );
   }
 
-  void _showPblLanguageDropdown(BuildContext context, TeacherDashboardProvider provider) {
+  // ================= OLD STYLE DROPDOWNS =================
+  void _showPblLanguageDropdownOldStyle(BuildContext context, TeacherDashboardProvider provider) {
     final pblLanguages = List.from(provider.availablePblLanguages);
 
     if (provider.pblLanguageId != null) {
@@ -872,7 +752,7 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
     );
   }
 
-  void _showBoardDropdown(BuildContext context, TeacherDashboardProvider provider) {
+  void _showBoardDropdownOldStyle(BuildContext context, TeacherDashboardProvider provider) {
     final boards = provider.availableBoards;
     List<Board> filteredBoards = List.from(boards);
     TextEditingController searchController = TextEditingController();
@@ -1025,176 +905,247 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
     );
   }
 
-  Widget _buildCombinedSubjectGradeStep(TeacherDashboardProvider provider) {
-    // Use subjectGradePairsWithPdf directly since it already contains unique combinations
-    final combinedPairs = provider.subjectGradePairsWithPdf;
-
-    if (combinedPairs.isEmpty) return _buildNoDataStep();
-
-    // Debug print to see what we're displaying
-    debugPrint("Displaying ${combinedPairs.length} unique combinations:");
-    for (final pair in combinedPairs) {
-      debugPrint(" - ${pair.grade?.name} - ${pair.subject?.title}");
-    }
-
+  // ================= PDF LISTING WITH FILTERS (OLD UI STYLE) =================
+  Widget _buildPdfListingWithFilters(TeacherDashboardProvider provider) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
-        const Text(
-            "Select Subject & Grade",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
-        ),
-        const SizedBox(height: 20),
-        Expanded(
-          child: ListView.builder(
-            itemCount: combinedPairs.length,
-            itemBuilder: (context, index) {
-              final pair = combinedPairs[index];
-              final isSelected = provider.subjectId == pair.subject?.id &&
-                  provider.gradeId == pair.grade?.id;
-              final subjectName = pair.subject?.title ?? 'Unknown Subject';
-              final gradeName = pair.grade?.name ?? 'Unknown Grade';
-              final displayText = '$gradeName - $subjectName';
-
-              return InkWell(
-                onTap: () {
-                  provider.subjectId = pair.subject?.id ?? 0;
-                  provider.gradeId = pair.grade?.id ?? 0;
-                  provider.notifyListeners();
-
-                  // Debug print to confirm selection
-                  debugPrint("Selected: $displayText (Subject ID: ${pair.subject?.id}, Grade ID: ${pair.grade?.id})");
-                },
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: isSelected ? Border.all(color: Colors.blue, width: 2) : null,
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          blurRadius: 2
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          displayText,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: isSelected ? Colors.blue : Colors.black87,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                      if (isSelected)
-                        const Icon(Icons.check_circle, color: Colors.blue),
-                    ],
-                  ),
-                ),
-              );
-            },
+        // Filter dropdowns with OLD UI style
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildSubjectDropdown(provider),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildGradeDropdown(provider),
+              ),
+            ],
           ),
+        ),
+
+        // PDF List with OLD UI style
+        Expanded(
+          child: _buildPdfList(provider),
         ),
       ],
     );
   }
-  Widget _buildPdfStep(TeacherDashboardProvider provider) {
-    final pdfs = provider.pdfMappings;
-    if (pdfs.isEmpty) return _buildNoDataStep();
 
-    // Get subject and grade names safely
-    String subjectName = '';
-    String gradeName = '';
+// Get unique subjects that have PDFs
+  Widget _buildSubjectDropdown(TeacherDashboardProvider provider) {
+    // Show ALL subjects from the subject list
+    final allSubjects = provider.allSubjects;
 
-    if (provider.subjectGradePairsWithPdf.isNotEmpty) {
-      final subjectPair = provider.subjectGradePairsWithPdf.firstWhere(
-            (p) => p.subject?.id == provider.subjectId,
-        orElse: () => provider.subjectGradePairsWithPdf.first,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: provider.filterSubjectId == 0 ? null : provider.filterSubjectId,
+          hint: const Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: Text("All Subjects"),
+          ),
+          isExpanded: true,
+          items: [
+            const DropdownMenuItem<int>(
+              value: 0,
+              child: Padding(
+                padding: EdgeInsets.only(left: 12),
+                child: Text("All Subjects"),
+              ),
+            ),
+            ...allSubjects.where((subject) => subject.id != null).map((subject) {
+              return DropdownMenuItem<int>(
+                value: subject.id!,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(subject.title ?? 'Unknown'),
+                ),
+              );
+            }),
+          ],
+          onChanged: (value) {
+            provider.setFilterSubjectId(value ?? 0);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGradeDropdown(TeacherDashboardProvider provider) {
+    // Show ALL grades from the grade list
+    final allGrades = provider.allGrades;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: provider.filterGradeId == 0 ? null : provider.filterGradeId,
+          hint: const Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: Text("All Grades"),
+          ),
+          isExpanded: true,
+          items: [
+            const DropdownMenuItem<int>(
+              value: 0,
+              child: Padding(
+                padding: EdgeInsets.only(left: 12),
+                child: Text("All Grades"),
+              ),
+            ),
+            ...allGrades.where((grade) => grade.id != null).map((grade) {
+              return DropdownMenuItem<int>(
+                value: grade.id!,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(grade.name ?? 'Unknown'),
+                ),
+              );
+            }),
+          ],
+          onChanged: (value) {
+            provider.setFilterGradeId(value ?? 0);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPdfList(TeacherDashboardProvider provider) {
+    // Show loading indicator
+    if (provider.pblLoadingState == PblLoadingState.loading) {
+      return const Center(
+        child: CircularProgressIndicator(),
       );
-      subjectName = subjectPair.subject?.title ?? '';
-
-      final gradePair = provider.subjectGradePairsWithPdf.firstWhere(
-            (p) => p.grade?.id == provider.gradeId,
-        orElse: () => provider.subjectGradePairsWithPdf.first,
-      );
-      gradeName = gradePair.grade?.name ?? '';
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 10),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            itemCount: pdfs.length,
-            itemBuilder: (context, index) {
-              final pdf = pdfs[index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 4)
+    // Get filtered PDFs
+    final filteredPdfs = provider.getFilteredPdfs();
+
+    if (filteredPdfs.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              "No PDFs found for selected filters",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              "Try selecting different filters or reset filters",
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      itemCount: filteredPdfs.length,
+      itemBuilder: (context, index) {
+        final pdf = filteredPdfs[index];
+        final subjectGradeInfo = provider.getSubjectGradeInfoForPdf(pdf);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 4)
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            title: Text(
+                pdf.title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    pdf.document.name,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey)
+                ),
+                if (subjectGradeInfo != null)
+                  Text(
+                    "${subjectGradeInfo.grade?.name ?? ''} - ${subjectGradeInfo.subject?.title ?? ''}",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue[700],
+                      fontWeight: FontWeight.w500,
                     ),
-                  ],
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  title: Text(
-                      pdf.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
                   ),
-                  subtitle: Text(
-                      pdf.document.name,
-                      style: const TextStyle(fontSize: 14, color: Colors.grey)
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_red_eye, color: Colors.blue),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PdfPage(
-                                  url: ApiHelper.imgBaseUrl + pdf.document.url,
-                                  name: pdf.document.name
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.download, color: Colors.green),
-                        onPressed: () => _downloadPdf(
-                            ApiHelper.imgBaseUrl + pdf.document.url,
-                            pdf.document.name
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove_red_eye, color: Colors.blue),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PdfPage(
+                            url: ApiHelper.imgBaseUrl + pdf.document.url,
+                            name: pdf.document.name
                         ),
                       ),
-                    ],
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.download, color: Colors.green),
+                  onPressed: () => _downloadPdf(
+                      ApiHelper.imgBaseUrl + pdf.document.url,
+                      pdf.document.name
                   ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
-
   Widget _buildNoDataStep() {
     return const Center(
       child: Column(
@@ -1209,7 +1160,7 @@ class _PblTextBookMappingPageState extends State<PblTextBookMappingPage> {
           ),
           SizedBox(height: 8),
           Text(
-            "Try selecting a different board, language, or subject",
+            "Try selecting a different board or language",
             style: TextStyle(fontSize: 14, color: Colors.grey),
             textAlign: TextAlign.center,
           ),

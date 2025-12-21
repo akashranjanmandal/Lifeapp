@@ -77,17 +77,15 @@ class TeacherVisionProvider with ChangeNotifier {
       // Load cached data first for immediate display
       await _loadCachedVideos();
 
-      // Then try to fetch fresh data in background
+      // Fetch boards, subjects, levels in parallel
       await Future.wait([
         _fetchBoards().catchError((e) => debugPrint('❌ Boards fetch failed: $e')),
         _fetchSubjects().catchError((e) => debugPrint('❌ Subjects fetch failed: $e')),
         _fetchLevels().catchError((e) => debugPrint('❌ Levels fetch failed: $e')),
-      ], eagerError: false); // Continue even if some fail
+      ], eagerError: false);
 
-      // Fetch fresh videos in background
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _fetchVideos();
-      });
+      // Fetch fresh videos BEFORE marking as initialized
+      await _fetchVideos();
 
       _isInitialized = true;
       notifyListeners();

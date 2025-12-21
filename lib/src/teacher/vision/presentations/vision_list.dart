@@ -381,9 +381,79 @@ class _VisionPageState extends State<VisionPage>
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Consumer<TeacherVisionProvider>(
       builder: (context, provider, child) {
+        // Show loading screen until provider is fully initialized
+        if (!provider.isInitialized) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Vision',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    ),
+                  ),
+                  if (widget.sectionId.isNotEmpty)
+                    Text(
+                      'Grade: ${widget.gradeId}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Loading Vision...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (provider.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        provider.errorMessage!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.orange,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }
+
         final subjects = provider.getAvailableSubjects();
         final levels = provider.availableLevels;
 
@@ -491,7 +561,7 @@ class _VisionPageState extends State<VisionPage>
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _buildBoardChapterDropdown(), // Combined Board & Chapter dropdown
+                          child: _buildBoardChapterDropdown(),
                         ),
                       ],
                     ),
@@ -541,70 +611,22 @@ class _VisionPageState extends State<VisionPage>
               ),
             ),
           ),
-// In your VisionPage build method, replace the body section with this:
-
-          body: Stack(
+          body: TabBarView(
+            controller: _tabController,
             children: [
-              // Show loading indicator only during initial load
-              if (provider.isLoading && !provider.isInitialized)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.white.withOpacity(0.8),
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Loading videos...',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Main content
-              Column(
-                children: [
-                  // Show initialization progress
-                  if (!provider.isInitialized)
-                    const LinearProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
-                      backgroundColor: Colors.transparent,
-                      minHeight: 2,
-                    ),
-
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildVideoList(provider.filteredNonAssignedVideos, false, provider),
-                        _buildVideoList(provider.filteredAssignedVideos, true, provider),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              _buildVideoList(provider.filteredNonAssignedVideos, false, provider),
+              _buildVideoList(provider.filteredAssignedVideos, true, provider),
             ],
           ),
         );
       },
     );
   }
-
   Widget _buildVideoList(List<TeacherVisionVideo> videos, bool isAssignedTab, TeacherVisionProvider provider) {
     final hasMore = isAssignedTab ? provider.hasMoreAssignedVideos : provider.hasMoreAllVideos;
     final isLoadingMore = provider.isLoadingMore;
 
-    // Show loading state
+    // Show initial loading state
     if (provider.isLoading && videos.isEmpty) {
       return const Center(
         child: Column(
@@ -626,19 +648,31 @@ class _VisionPageState extends State<VisionPage>
       );
     }
 
-    // Show empty state
+    // Show empty state only after loading is complete
     if (videos.isEmpty && !provider.isLoading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.video_library_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            Icon(
+              isAssignedTab ? Icons.assignment : Icons.video_library_outlined,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
             Text(
-              'No videos found',
-              style: TextStyle(
+              isAssignedTab ? 'No assigned videos found' : 'No videos found',
+              style: const TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try adjusting your filters',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
               ),
             ),
           ],
@@ -702,6 +736,7 @@ class _VisionPageState extends State<VisionPage>
       ),
     );
   }
+
   Widget _buildRegularVideoCard(TeacherVisionVideo video, String videoId) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

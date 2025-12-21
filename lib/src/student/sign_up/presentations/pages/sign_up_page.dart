@@ -105,11 +105,20 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
       return;
     }
 
+    // Validate DOB
+    if (provider.dobController.text.isEmpty) {
+      Fluttertoast.showToast(
+        msg: "Please select Date of Birth",
+        toastLength: Toast.LENGTH_LONG,
+      );
+      return;
+    }
+
     // Track submit event with Mixpanel
     MixpanelService.track("Signup Button Clicked", properties: {
       "child_name": _childNameController.text.trim(),
       "gender": provider.sexController.text,
-      "dob": provider.dobController.text,
+      "dob": provider.dobController.text,  // This was already here
       "grade": provider.gradeController.text,
       "section": provider.sectionController.text,
       "school_code": provider.schoolCodeController.text,

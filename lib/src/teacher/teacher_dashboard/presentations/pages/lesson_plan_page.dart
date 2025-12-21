@@ -71,85 +71,98 @@ class _LessonPlanPageState extends State<LessonPlanPage> {
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: commonAppBar(context: context, name: "Lesson Plan"),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
+        body: SafeArea(
+          bottom: false, // We'll handle bottom manually for the button
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
 
-              // Language Selection
-              const Text(
-                "Language",
-                style: TextStyle(
-                  color: ColorCode.textBlackColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.grey.shade300,
-                    width: 1.5,
+                // Language Selection
+                const Text(
+                  "Language",
+                  style: TextStyle(
+                    color: ColorCode.textBlackColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
                   ),
                 ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => _showLanguageDropdown(context, provider),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            provider.language.isNotEmpty
-                                ? provider.language
-                                : "Select Language",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: provider.language.isNotEmpty
-                                  ? Colors.black
-                                  : Colors.blueAccent,
-                              fontWeight: FontWeight.w500,
+                const SizedBox(height: 8),
+                Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.grey.shade300,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _showLanguageDropdown(context, provider),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              provider.language.isNotEmpty
+                                  ? provider.language
+                                  : "Select Language",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: provider.language.isNotEmpty
+                                    ? Colors.black
+                                    : Colors.blueAccent,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
-                        ),
-                        Icon(
-                          Icons.arrow_drop_down,
-                          color: Colors.grey.shade700,
-                          size: 28,
-                        ),
-                      ],
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: Colors.grey.shade700,
+                            size: 28,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              const Spacer(),
-              CustomButton(
-                height: 50,
-                width: double.infinity,
-                name: StringHelper.submit,
-                onTap: () {
-                  if (provider.language.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Please select a language")));
-                    return;
-                  }
-                  MixpanelService.track("LessonPlanLanguagePage_SubmitClicked", properties: {
-                    "selected_language": provider.language,
-                    "selected_language_id": provider.languageId,
-                    "type": widget.type,
-                  });
-                  provider.submitPlan(context: context, type: widget.type);
-                },
-              ),
-              const SizedBox(height: 40),
-            ],
+                const Spacer(),
+
+                // Wrap the button section with SafeArea
+                SafeArea(
+                  top: false, // Only apply bottom padding
+                  minimum: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
+                  child: Column(
+                    children: [
+                      CustomButton(
+                        height: 50,
+                        width: double.infinity,
+                        name: StringHelper.submit,
+                        onTap: () {
+                          if (provider.language.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Please select a language")));
+                            return;
+                          }
+                          MixpanelService.track("LessonPlanLanguagePage_SubmitClicked", properties: {
+                            "selected_language": provider.language,
+                            "selected_language_id": provider.languageId,
+                            "type": widget.type,
+                          });
+                          provider.submitPlan(context: context, type: widget.type);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

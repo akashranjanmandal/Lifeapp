@@ -111,6 +111,11 @@ class SignUpProvider extends ChangeNotifier {
   }
 
   void registerStudent(BuildContext context) async {
+    // First, validate that DOB is not empty
+    if(dobController.text.isEmpty) {
+      Fluttertoast.showToast(msg: "Please select Date of Birth");
+      return;
+    }
 
     if(chileNameController.text.trim().isNotEmpty && gradeController.text.isNotEmpty
         && sectionController.text.trim().isNotEmpty && sexController.text.trim().isNotEmpty
@@ -135,6 +140,7 @@ class SignUpProvider extends ChangeNotifier {
         "guardian_name": parentNameController.text.trim(),
         "device_token": StorageUtil.getString(StringHelper.fcmToken),
         "school_code": schoolCodeController.text,
+        "dob": dobController.text,  // ADD THIS LINE
       };
 
       debugPrint("Data: $body");
@@ -151,7 +157,6 @@ class SignUpProvider extends ChangeNotifier {
 
         StorageUtil.putBool(StringHelper.isLoggedIn, true);
         StorageUtil.putString(StringHelper.token, model.data!.user!.token!);
-        // StorageUtil.putString('student_id',  json.encode(response.data));
         pushRemoveUntil(context: context, page: const NavBarPage(currentIndex: 0));
       }
     } else {

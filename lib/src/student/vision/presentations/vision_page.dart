@@ -405,11 +405,15 @@ class _VisionPageState extends State<VisionPage> {
         required VisionProvider provider,
       }) {
     final statusBgColor = _getStatusColor(video.status);
-    final isCompleted = video.status.toLowerCase() == 'completed';
+    final statusLabel = _getStatusLabel(video);
+
+    // Check if video should show message instead of opening player
+    final showMessageOnly = video.status.toLowerCase() == 'completed' ||
+        video.status.toLowerCase() == 'submitted';
 
     return InkWell(
-      onTap: isCompleted ? () {
-        _showCompletionToast(context);
+      onTap: showMessageOnly ? () {
+        _showStatusMessage(context, video.status);
       } : () {
         _navigateToVideoPlayer(context, video, provider);
       },
@@ -476,7 +480,7 @@ class _VisionPageState extends State<VisionPage> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        _getStatusLabel(video),
+                        statusLabel,
                         style: TextStyle(
                           color: statusBgColor,
                           fontWeight: FontWeight.bold,
@@ -518,21 +522,72 @@ class _VisionPageState extends State<VisionPage> {
     );
   }
 
-  void _showCompletionToast(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'This vision is already completed!',
-          style: TextStyle(fontSize: 16),
-        ),
-        backgroundColor: Colors.black.withOpacity(0.5),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        margin: const EdgeInsets.all(16),
-      ),
+  void _showStatusMessage(BuildContext context, String status) {
+    final isCompleted = status.toLowerCase() == 'completed';
+    final message = isCompleted
+        ? 'This vision is already completed!'
+        : 'This vision has been submitted for review!';
+
+    final icon = isCompleted ? Icons.check_circle : Icons.send;
+    final color = isCompleted ? Colors.green : Colors.blue;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  color: color,
+                  size: 60,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isCompleted ? "Vision Completed!" : "Vision Submitted!",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

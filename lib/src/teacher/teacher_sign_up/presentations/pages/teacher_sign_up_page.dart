@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:lifelab3/src/teacher/teacher_sign_up/presentations/widget/board_sheet.dart';
 import 'package:lifelab3/src/teacher/teacher_sign_up/presentations/widget/grade_sheet.dart';
 import 'package:lifelab3/src/teacher/teacher_sign_up/presentations/widget/section_sheet.dart';
@@ -62,6 +63,34 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
     );
   }
 
+  Future<void> _showDatePicker(BuildContext context, TeacherSignUpProvider provider) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 20)), // Default to 20 years ago
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: const Color(0xFF5C6BFF),
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF5C6BFF),
+              onPrimary: Colors.white,
+            ),
+            buttonTheme: const ButtonThemeData(
+              textTheme: ButtonTextTheme.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      provider.setSelectedDate(picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TeacherSignUpProvider>(context);
@@ -74,6 +103,7 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 30),
 
@@ -83,7 +113,18 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                     readOnly: false,
                     fieldController: provider.teacherNameController,
                     hintName: "Enter Teacher Name",
-                    suffix: const Icon(Icons.person_outline),
+                    suffix: const Icon(Icons.person_outline, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Date of Birth
+                  _buildTextLabel("Date of Birth"),
+                  CustomTextField(
+                    readOnly: true,
+                    fieldController: provider.dobController,
+                    hintName: "Select Date of Birth",
+                    suffix: const Icon(Icons.calendar_today_outlined, color: Colors.grey),
+                    onTap: () => _showDatePicker(context, provider),
                   ),
                   const SizedBox(height: 20),
 
@@ -92,12 +133,11 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                   Row(
                     children: [
                       Expanded(
-
                         child: CustomTextField(
                           readOnly: false,
                           fieldController: provider.schoolCodeController,
                           hintName: "Enter School Code",
-                          suffix: const Icon(Icons.school_outlined),
+                          suffix: const Icon(Icons.school_outlined, color: Colors.grey),
                           onChange: (val) {
                             setState(() {
                               provider.isSchoolCodeValid = false;
@@ -109,17 +149,17 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                       if (!provider.isSchoolCodeValid)
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFFFFF),
+                            backgroundColor: const Color(0xFF5C6BFF),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                           ),
                           onPressed: () => provider.verifySchoolCode(context),
-                          icon: const Icon(Icons.verified_outlined, size: 18),
+                          icon: const Icon(Icons.verified_outlined, size: 18, color: Colors.white),
                           label: const Text(
                             "Verify",
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                            style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
                           ),
                         ),
                     ],
@@ -129,14 +169,15 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                   // School Info
                   if (provider.isSchoolCodeValid)
                     _buildTextLabel("School Address"),
-                  CustomTextField(
-                    readOnly: true,
-                    fieldController: TextEditingController(
-                      text: "${provider.schoolNameController.text}, ${provider.stateController.text}, ${provider.cityController.text}",
+                  if (provider.isSchoolCodeValid)
+                    CustomTextField(
+                      readOnly: true,
+                      fieldController: TextEditingController(
+                        text: "${provider.schoolNameController.text}, ${provider.stateController.text}, ${provider.cityController.text}",
+                      ),
+                      hintName: "School Address",
+                      suffix: const Icon(Icons.location_on_outlined, color: Colors.grey),
                     ),
-                    hintName: "School Address",
-                    suffix: const Icon(Icons.location_on_outlined),
-                  ),
                   if (provider.isSchoolCodeValid) const SizedBox(height: 20),
 
                   // Dynamic Grade-Section-Subject Fields
@@ -150,7 +191,7 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white, // white background
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
@@ -167,9 +208,9 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                                 const SizedBox(height: 6),
                                 CustomTextField(
                                   readOnly: true,
-                                  fieldController: TextEditingController(text: e["la_grade_id"]),
+                                  fieldController: TextEditingController(text: e["la_grade_id"]?.toString() ?? ""),
                                   hintName: "Select Grade",
-                                  suffix: const Icon(Icons.grade_outlined),
+                                  suffix: const Icon(Icons.grade_outlined, color: Colors.grey),
                                   onTap: () => teacherGradeListBottomSheet(context, provider, e),
                                 ),
                                 const SizedBox(height: 20),
@@ -178,9 +219,9 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                                 const SizedBox(height: 6),
                                 CustomTextField(
                                   readOnly: true,
-                                  fieldController: TextEditingController(text: e["la_section_name"]),
+                                  fieldController: TextEditingController(text: e["la_section_name"]?.toString() ?? ""),
                                   hintName: "Select Section",
-                                  suffix: const Icon(Icons.view_agenda_outlined),
+                                  suffix: const Icon(Icons.view_agenda_outlined, color: Colors.grey),
                                   onTap: () => teacherSectionListBottomSheet(context, provider, e),
                                 ),
                                 const SizedBox(height: 20),
@@ -189,16 +230,16 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                                 const SizedBox(height: 6),
                                 CustomTextField(
                                   readOnly: true,
-                                  fieldController: TextEditingController(text: e["subject_name"]),
+                                  fieldController: TextEditingController(text: e["subject_name"]?.toString() ?? ""),
                                   hintName: "Select Subject",
-                                  suffix: const Icon(Icons.book_outlined),
+                                  suffix: const Icon(Icons.book_outlined, color: Colors.grey),
                                   onTap: () => subjectListBottomSheet(context, provider, e),
                                 ),
                               ],
                             ),
                           ),
 
-                          // 🗑️ Delete Button (except for the first entry)
+                          // Delete Button (except for the first entry)
                           if (index != 0)
                             Positioned(
                               top: 4,
@@ -288,10 +329,9 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                     readOnly: true,
                     fieldController: provider.boardNameController,
                     hintName: "Select Board",
-                    suffix: const Icon(Icons.apartment_outlined),
-                    onTap: () => boardListBottomSheet(context, provider),
+                    suffix: const Icon(Icons.apartment_outlined, color: Colors.grey),
+                    onTap: () => boardListBottomSheet(context, provider), // Make sure this is correct
                   ),
-
                   // Submit Button
                   const SizedBox(height: 40),
                   SizedBox(
@@ -314,16 +354,24 @@ class _TeacherSignUpPageState extends State<TeacherSignUpPage> {
                       ),
                       child: ElevatedButton.icon(
                         onPressed: () {
+                          // Validate form
+                          final validationError = provider.validateForm();
+                          if (validationError != null) {
+                            Fluttertoast.showToast(msg: validationError);
+                            return;
+                          }
+
                           // ✅ Mixpanel tracking for Teacher Signup
                           MixpanelService.track("Teacher Signup Clicked", properties: {
                             "teacher_name": provider.teacherNameController.text,
                             "mobile_no": widget.contact,
+                            "dob": provider.dobController.text,
                             "school_code": provider.schoolCodeController.text,
                             "school_name": provider.schoolNameController.text,
                             "state": provider.stateController.text,
                             "city": provider.cityController.text,
                             "board": provider.boardNameController.text,
-                            "grade_map_list": provider.gradeMapList,
+                            "grade_map_list": provider.gradeMapList.length,
                             "timestamp": DateTime.now().toIso8601String(),
                           });
 

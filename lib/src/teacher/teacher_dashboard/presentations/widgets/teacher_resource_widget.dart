@@ -4,101 +4,35 @@ import 'package:lifelab3/src/student/home/presentations/pages/subscribe_page.dar
 import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/cartoon_header_page.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/lesson_plan_page.dart';
 import 'package:lifelab3/src/teacher/teacher_dashboard/presentations/pages/teacher_subject_page.dart';
+import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
 
 import '../../../../common/helper/color_code.dart';
 import '../../../../common/helper/string_helper.dart';
-import 'package:lifelab3/src/common/utils/mixpanel_service.dart';
-
 import '../pages/pbl_mapping.dart';
 
 class TeacherResourceWidget extends StatelessWidget {
   final String name;
   final String img;
   final bool isSubscribe;
+  final bool isLoading;
 
   const TeacherResourceWidget({
     super.key,
     required this.name,
     required this.img,
     required this.isSubscribe,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // If loading, show loading state
+    if (isLoading) {
+      return _buildLoadingWidget(context);
+    }
+
     return InkWell(
-      onTap: () {
-        // Mixpanel tracking
-        MixpanelService.track("Teacher resource clicked", properties: {
-          "resource_name": name,
-          "timestamp": DateTime.now().toIso8601String(),
-        });
-
-        if (name == StringHelper.conceptCartoons) {
-          push(
-            context: context,
-            page: const CartoonHeaderPage(),
-          );
-        }
-        else if (name == StringHelper.pblTextBookMapping) {
-          push(
-            context: context,
-            page: const PblTextBookMappingPage(),
-          );
-        }
-        else if (name == StringHelper.competencies ||
-            name == StringHelper.assesments ||
-            name == StringHelper.worksheet) {
-          push(
-            context: context,
-            page: TeacherSubjectListPage(
-              name: name,
-            ),
-          );
-        }
-
-        else {
-          // Lesson Plan resources
-          if (name == StringHelper.lifeLabDemoModelLesson && isSubscribe) {
-            push(
-              context: context,
-              page: const LessonPlanPage(type: "1"),
-            );
-          } else if (name == StringHelper.jigyasaSelfDiy && isSubscribe) {
-            push(
-              context: context,
-              page: const LessonPlanPage(type: "2"),
-            );
-          } else if (name == StringHelper.pragyaDIYActivity && isSubscribe) {
-            push(
-              context: context,
-              page: const LessonPlanPage(type: "3"),
-            );
-          } else if (name == StringHelper.lifeLabActivitiesPlan && isSubscribe) {
-            push(
-              context: context,
-              page: const LessonPlanPage(type: "4"),
-            );
-          }
-
-          else {
-            // If not subscribed
-            push(
-              context: context,
-              page: SubScribePage(
-                type: name == StringHelper.lifeLabDemoModelLesson
-                    ? "1"
-                    : name == StringHelper.jigyasaSelfDiy
-                    ? "2"
-                    : name == StringHelper.pragyaDIYActivity
-                    ? "3"
-                    : name == StringHelper.lifeLabActivitiesPlan
-                    ? "4"
-                    : "0",
-              ),
-            );
-          }
-        }
-      },
+      onTap: () => _handleResourceTap(context), // Pass context
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       child: Column(
@@ -111,13 +45,20 @@ class TeacherResourceWidget extends StatelessWidget {
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black54),
+                  border: Border.all(
+                    color: isSubscribe ? Colors.black54 : Colors.grey[300]!,
+                  ),
+                  color: isSubscribe ? Colors.white : Colors.grey[50],
                 ),
                 child: Center(
-                  child: Image.asset(img),
+                  child: Opacity(
+                    opacity: isSubscribe ? 1.0 : 0.5,
+                    child: Image.asset(img),
+                  ),
                 ),
               ),
-              if (!isSubscribe)
+              if (!isSubscribe && name != StringHelper.conceptCartoons &&
+                  name != StringHelper.pblTextBookMapping)
                 Positioned(
                   top: 0,
                   right: 0,
@@ -137,6 +78,7 @@ class TeacherResourceWidget extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 8,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -150,8 +92,10 @@ class TeacherResourceWidget extends StatelessWidget {
             child: Center(
               child: Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
+                  color: isSubscribe ? Colors.black87 : Colors.grey,
+                  fontWeight: isSubscribe ? FontWeight.w500 : FontWeight.normal,
                 ),
                 maxLines: 5,
                 overflow: TextOverflow.ellipsis,
@@ -161,6 +105,136 @@ class TeacherResourceWidget extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoadingWidget(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          height: MediaQuery.of(context).size.width * .2,
+          width: MediaQuery.of(context).size.width * .2,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.grey[200],
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: MediaQuery.of(context).size.width * .2,
+          child: Center(
+            child: Text(
+              name,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.grey,
+              ),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _handleResourceTap(BuildContext context) { // Add context parameter
+    // Mixpanel tracking
+    MixpanelService.track("Teacher resource clicked", properties: {
+      "resource_name": name,
+      "is_subscribed": isSubscribe,
+      "timestamp": DateTime.now().toIso8601String(),
+    });
+
+    // Always accessible resources
+    if (name == StringHelper.conceptCartoons) {
+      push(
+        context: context,
+        page: const CartoonHeaderPage(),
+      );
+    } else if (name == StringHelper.pblTextBookMapping) {
+      push(
+        context: context,
+        page: const PblTextBookMappingPage(),
+      );
+    }
+    // Subject-based resources
+    else if (name == StringHelper.competencies ||
+        name == StringHelper.assesments ||
+        name == StringHelper.worksheet) {
+      push(
+        context: context,
+        page: TeacherSubjectListPage(name: name),
+      );
+    }
+    // Subscription-based resources
+    else {
+      // Check if subscribed
+      if (isSubscribe) {
+        _navigateToLessonPlan(context); // Pass context
+      } else {
+        _navigateToSubscribePage(context); // Pass context
+      }
+    }
+  }
+
+  void _navigateToLessonPlan(BuildContext context) { // Add context parameter
+    String? lessonType;
+
+    switch (name) {
+      case StringHelper.lifeLabDemoModelLesson:
+        lessonType = "1";
+        break;
+      case StringHelper.jigyasaSelfDiy:
+        lessonType = "2";
+        break;
+      case StringHelper.pragyaDIYActivity:
+        lessonType = "3";
+        break;
+      case StringHelper.lifeLabActivitiesPlan:
+        lessonType = "4";
+        break;
+    }
+
+    if (lessonType != null) {
+      push(
+        context: context,
+        page: LessonPlanPage(type: lessonType),
+      );
+    }
+  }
+
+  void _navigateToSubscribePage(BuildContext context) { // Add context parameter
+    String? subscribeType;
+
+    switch (name) {
+      case StringHelper.lifeLabDemoModelLesson:
+        subscribeType = "1";
+        break;
+      case StringHelper.jigyasaSelfDiy:
+        subscribeType = "2";
+        break;
+      case StringHelper.pragyaDIYActivity:
+        subscribeType = "3";
+        break;
+      case StringHelper.lifeLabActivitiesPlan:
+        subscribeType = "4";
+        break;
+      default:
+        subscribeType = "0";
+    }
+
+    push(
+      context: context,
+      page: SubScribePage(type: subscribeType),
     );
   }
 }

@@ -107,14 +107,13 @@ void boardListBottomSheet(BuildContext context, TeacherSignUpProvider provider) 
                         ),
                         itemBuilder: (context, index) {
                           final board = filteredBoards[index];
-                          final isSelected = provider.boardId == board.id;
+                          final isSelected = provider.selectedBoardId == board.id; // Changed from boardId to selectedBoardId
 
                           return InkWell(
                             onTap: () {
                               if (board.id != null && board.name != null) {
-                                provider.boardNameController.text = board.name!;
-                                provider.boardId = board.id!;
-                                provider.notifyListeners();
+                                // CRITICAL FIX: Call setSelectedBoard instead of setting directly
+                                provider.setSelectedBoard(board.id!, board.name!);
                                 Navigator.pop(context);
                               }
                             },
